@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: Gabarito-Black;
+  src: url(/assets/fonts/gabarito/Gabarito-Black.ttf);
+}
+
+@font-face {
+  font-family: Gabarito-Bold;
+  src: url(/assets/fonts/gabarito/Gabarito-Bold.ttf);
+}
+
+@font-face {
+  font-family: Gabarito-Medium;
+  src: url(/assets/fonts/gabarito/Gabarito-Medium.ttf);
+}
+@font-face {
+  font-family: Gabarito-Regular;
+  src: url(/assets/fonts/gabarito/Gabarito-Regular.ttf);
+}
+
+@font-face {
+  font-family: Gabarito-SemiBold;
+  src: url(/assets/fonts/gabarito/Gabarito-SemiBold.ttf);
+}
+
+@font-face {
+  font-family: Inria-Regular;
+  src: url(/assets/fonts/inria/InriaSerif-Regular.ttf);
+}
+
+:root {
+  --background: #E8EAED;
+  --foreground: #171717;
+  --azul-900: #1B2432;
+  --azul-800: #000E33;
+  --azul-700: #001d66;
+  --azul-600: #0048FF;
+  --azul-500: #3C73FF;
+  --azul-400: #336dff;
+  --font-gabarito-black: Gabarito-Black;
+  --font-gabarito-bold: Gabarito-Bold;
+  --font-gabarito-medium: Gabarito-Medium;
+  --font-gabarito-semibold: Gabarito-SemiBold;
+  --font-gabarito-regular: Gabarito-Regular;
+  --font-inria-regular: Inria-Regular;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-azul-900: var(--azul-900);
+  --color-azul-800: var(--azul-800);
+  --color-azul-700: var(--azul-700);
+  --color-azul-600: var(--azul-600);
+  --color-azul-500: var(--azul-500);
+  --color-azul-400: var(--azul-400);
+  --font-gabarito-black: var(--font-gabarito-black);
+  --font-gabarito-bold: var(--font-gabarito-bold);
+  --font-gabarito-medium: var(--font-gabarito-medium);
+  --font-gabarito-semibold: var(--font-gabarito-semibold);
+  --font-gabarito-regular: var(--font-gabarito-regular);
+  --font-inria-regular: var(--font-inria-regular);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
