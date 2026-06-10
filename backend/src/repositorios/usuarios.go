@@ -53,7 +53,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 			&usuario.Nome,
 			&usuario.Nick,
 			&usuario.Email,
-			&usuario.Senha,
+			&usuario.CriadoEm,
 		); erro != nil {
 			return nil, erro
 		}
@@ -81,7 +81,7 @@ func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, erro
 			&usuario.Nome,
 			&usuario.Nick,
 			&usuario.Email,
-			&usuario.Senha,
+			&usuario.CriadoEm,
 		); erro != nil {
 			return modelos.Usuario{}, erro
 		}
@@ -113,9 +113,9 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 }
 
 // Deletar é a função responsável por deletar um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
-func (repositorio Usuarios) Deletar(usuarioID uint64) error {
+func (repositorio Usuarios) Inativar(status string, usuarioID uint64) error {
 	statement, erro := repositorio.db.Prepare(
-		"DELETE FROM usuarios WHERE id = $1",
+		"UPDATE usuarios SET status = $1 WHERE id = $2",
 	)
 	if erro != nil {
 		return erro
@@ -154,16 +154,16 @@ func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error
 }
 
 // Seguir é a função responsável por permitir que um usuário siga outro usuário, com base nos IDs fornecidos, retornando um erro, se houver.
-func (repositorio Usuarios) Seguir(usuarioID, seguidorID uint64) error {
+func (repositorio Usuarios) Seguir(IDSeguido, IDSeguidor uint64) error {
 	statement, erro := repositorio.db.Prepare(
-		"INSERT INTO seguidores (usuario_id, seguidor_id) VALUES ($1,$2) ON CONFLICT (usuario_id, seguidor_id) DO NOTHING", // on conflict impede que um usuário siga o mesmo usuário mais de uma vez
+		"INSERT INTO seguidores (id_seguido, id_seguidor) VALUES ($1,$2) ON CONFLICT (id_seguido, id_seguidor) DO NOTHING", // on conflict impede que um usuário siga o mesmo usuário mais de uma vez
 	)
 	if erro != nil {
 		return erro
 	}
 	defer statement.Close()
 
-	if _, erro = statement.Exec(usuarioID, seguidorID); erro != nil {
+	if _, erro = statement.Exec(IDSeguido, IDSeguidor); erro != nil {
 		return erro
 	}
 
@@ -171,16 +171,16 @@ func (repositorio Usuarios) Seguir(usuarioID, seguidorID uint64) error {
 }
 
 // DeixarSeguir é a função responsável por permitir que um usuário pare de seguir outro usuário, com base nos IDs fornecidos, retornando um erro, se houver.
-func (repositorio Usuarios) DeixarSeguir(usuarioID, seguidorID uint64) error {
+func (repositorio Usuarios) DeixarSeguir(IDSeguido, IDSeguidor uint64) error {
 	statement, erro := repositorio.db.Prepare(
-		"DELETE FROM seguidores WHERE usuario_id = $1 AND seguidor_id = $2",
+		"DELETE FROM seguidores WHERE id_seguido = $1 AND id_seguidor = $2",
 	)
 	if erro != nil {
 		return erro
 	}
 	defer statement.Close()
 
-	if _, erro = statement.Exec(usuarioID, seguidorID); erro != nil {
+	if _, erro = statement.Exec(IDSeguido, IDSeguidor); erro != nil {
 		return erro
 	}
 
@@ -188,15 +188,15 @@ func (repositorio Usuarios) DeixarSeguir(usuarioID, seguidorID uint64) error {
 }
 
 // BuscarSeguidores é a função responsável por buscar os seguidores de um usuário específico do banco de dados, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
-func (repositorio Usuarios) BuscarSeguidores(usuarioID uint64) ([]modelos.Usuario, error) {
+func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		` SELECT u.id, u.nome, u.nick, u.email, u.criadoEm
 		FROM usuarios u
 		INNER JOIN seguidores s
-		ON u.id = s.seguidor_id
-		WHERE s.usuario_id = $1
+		ON u.id = s.id_seguidor
+		WHERE s.id_seguido = $1
 		`,
-		usuarioID)
+		IDSeguido)
 	if erro != nil {
 		return nil, erro
 	}
@@ -221,15 +221,15 @@ func (repositorio Usuarios) BuscarSeguidores(usuarioID uint64) ([]modelos.Usuari
 }
 
 // BuscarSeguindo é a função responsável por buscar os usuários que um usuário específico está seguindo, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
-func (repositorio Usuarios) BuscarSeguindo(usuarioID uint64) ([]modelos.Usuario, error) {
+func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		` SELECT u.id, u.nome, u.nick, u.email, u.criadoEm
 		FROM usuarios u
 		INNER JOIN seguidores s
-		ON u.id = s.usuario_id
-		WHERE s.seguidor_id = $1
+		ON u.id = s.id_seguido
+		WHERE s.id_seguidor = $1
 		`,
-		usuarioID)
+		IDSeguido)
 	if erro != nil {
 		return nil, erro
 	}

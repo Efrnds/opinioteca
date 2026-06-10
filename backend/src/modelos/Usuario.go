@@ -11,12 +11,19 @@ import (
 
 // Usuario representa a estrutura de um usuário da aplicação
 type Usuario struct {
-	ID       uint64    `json:"id,omitempty"`
-	Nome     string    `json:"nome,omitempty"`
-	Nick     string    `json:"nick,omitempty"`
-	Email    string    `json:"email,omitempty"`
-	Senha    string    `json:"senha,omitempty"`
-	CriadoEm time.Time `json:"criadoEm,omitempty"`
+	ID                 uint64    `json:"id,omitempty"`
+	Nome               string    `json:"nome,omitempty"`
+	Nick               string    `json:"nick,omitempty"`
+	Email              string    `json:"email,omitempty"`
+	Senha              string    `json:"senha,omitempty"`
+	CriadoEm           time.Time `json:"criadoEm,omitempty"`
+	RankConfiabilidade int       `json:"rankConfiabilidade"`
+	AssinaturaID       uint64    `json:"assinaturaId"`
+	SequenciaAtual     int       `json:"sequenciaAtual"`
+	MaiorSequencia     int       `json:"maiorSequencia"`
+	ModoZen            bool      `json:"modoZen"`
+	Status             string    `json:"status"`
+	IsAdmin            bool      `json:"isAdmin"`
 }
 
 // Preparar é responsável por validar e formatar os dados do usuário antes de serem persistidos no banco de dados.
