@@ -20,11 +20,12 @@ func (repositorio Usuarios) Criar(usuario modelos.Usuario) (uint64, error) {
 	var id uint64
 
 	erro := repositorio.db.QueryRow(
-		"INSERT INTO usuarios (nome, nick, email, senha) VALUES ($1, $2, $3, $4) RETURNING id",
+		"INSERT INTO usuarios (nome, nick, email, senha, status) VALUES ($1, $2, $3, $4, $5) RETURNING id",
 		usuario.Nome,
 		usuario.Nick,
 		usuario.Email,
 		usuario.Senha,
+		"ativo",
 	).Scan(&id)
 	if erro != nil {
 		return 0, erro
@@ -38,7 +39,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick) // as duas primeiras e ultimas % se referem à "%" em string, e a terceira % se refere a uma string
 
 	linhas, erro := repositorio.db.Query(
-		"SELECT id, nome, nick, email, criadoEm FROM usuarios WHERE nome ILIKE $1 or nick ILIKE $1",
+		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE nome ILIKE $1 or nick ILIKE $1",
 		nomeOuNick)
 	if erro != nil {
 		return nil, erro
@@ -53,6 +54,13 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 			&usuario.Nome,
 			&usuario.Nick,
 			&usuario.Email,
+			&usuario.RankConfiabilidade,
+			&usuario.AssinaturaID,
+			&usuario.IsAdmin,
+			&usuario.SequenciaAtual,
+			&usuario.MaiorSequencia,
+			&usuario.ModoZen,
+			&usuario.Status,
 			&usuario.CriadoEm,
 		); erro != nil {
 			return nil, erro
@@ -67,7 +75,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 // BuscarPorID trás um usuário específico do banco de dados, com base no ID fornecido, retornando o usuário e um erro, se houver.
 func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		"SELECT id, nome, nick, email, criadoEm FROM usuarios WHERE id = $1",
+		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE id = $1",
 		usuarioID)
 	if erro != nil {
 		return modelos.Usuario{}, erro
@@ -81,6 +89,13 @@ func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, erro
 			&usuario.Nome,
 			&usuario.Nick,
 			&usuario.Email,
+			&usuario.RankConfiabilidade,
+			&usuario.AssinaturaID,
+			&usuario.IsAdmin,
+			&usuario.SequenciaAtual,
+			&usuario.MaiorSequencia,
+			&usuario.ModoZen,
+			&usuario.Status,
 			&usuario.CriadoEm,
 		); erro != nil {
 			return modelos.Usuario{}, erro
@@ -113,9 +128,9 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 }
 
 // Deletar é a função responsável por deletar um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
-func (repositorio Usuarios) Inativar(status string, usuarioID uint64) error {
+func (repositorio Usuarios) Inativar(usuarioID uint64) error {
 	statement, erro := repositorio.db.Prepare(
-		"UPDATE usuarios SET status = $1 WHERE id = $2",
+		"UPDATE usuarios SET status = 'inativo' WHERE id = $1",
 	)
 	if erro != nil {
 		return erro

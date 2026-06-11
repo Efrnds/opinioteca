@@ -76,3 +76,29 @@ func (usuario *Usuario) formatar(etapa string) error {
 
 	return nil
 }
+
+func (usuario *Usuario) OcultarSenha() Usuario {
+	return Usuario{
+		ID: usuario.ID,
+		Nome: usuario.Nome,
+		Nick: usuario.Nick,
+		Email: usuario.Email,
+		Senha: "",
+		AssinaturaID: usuario.AssinaturaID,
+		IsAdmin: usuario.IsAdmin,
+		MaiorSequencia: usuario.MaiorSequencia,
+		ModoZen: usuario.ModoZen,
+		Status: usuario.Status,
+		CriadoEm: usuario.CriadoEm,
+		RankConfiabilidade: usuario.RankConfiabilidade,
+		SequenciaAtual: usuario.SequenciaAtual,
+	}
+}
+
+func (usuario *Usuario) ListaOutrosUsuarios() Usuario {
+	return Usuario{
+		ID: usuario.ID,
+		Nome: usuario.Nome,
+		Nick: usuario.Nick,
+	}
+}

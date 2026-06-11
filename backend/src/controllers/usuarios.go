@@ -59,7 +59,7 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respostas.JSON(w, http.StatusCreated, usuario)
+	respostas.JSON(w, http.StatusCreated, usuario.OcultarSenha( ))
 }
 
 // BuscarUsuarios é a função responsável por buscar todos os usuários
@@ -80,7 +80,11 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respostas.JSON(w, http.StatusOK, usuarios)
+	usuariosFiltrados := make([]modelos.Usuario, 0)
+	for _, usuario := range usuarios {
+		usuariosFiltrados = append(usuariosFiltrados, usuario.ListaOutrosUsuarios())
+	}
+	respostas.JSON(w, http.StatusOK, usuariosFiltrados)
 }
 
 // BuscarUsuario é a função responsável por buscar um usuário em específico pelo seu ID.
@@ -180,19 +184,7 @@ func InativarUsuario(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if usuarioID != usuarioIDNoToken {
-		respostas.Erro(w, http.StatusUnauthorized, errors.New("Não é permitido atualizar um usuário que não seja o seu"))
-		return
-	}
-
-	corpoRequisicao, erro := io.ReadAll(r.Body)
-	if erro != nil {
-		respostas.Erro(w, http.StatusUnprocessableEntity, erro)
-		return
-	}
-
-	var usuario modelos.Usuario
-	if erro = json.Unmarshal(corpoRequisicao, &usuario); erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
+		respostas.Erro(w, http.StatusUnauthorized, errors.New("Não é permitido inativar um usuário que não seja o seu"))
 		return
 	}
 
@@ -204,11 +196,11 @@ func InativarUsuario(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	if erro = repositorio.Inativar(status, usuarioID); erro != nil {
+	erro = repositorio.Inativar(usuarioID)
+	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-
 	respostas.JSON(w, http.StatusNoContent, nil)
 }
 
