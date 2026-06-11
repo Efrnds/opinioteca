@@ -16,6 +16,7 @@ func Logger(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// Autenticar é a função responsável por autenticar um usuário na aplicação.
 func Autenticar(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if erro := auth.ValidarToken(r); erro != nil {

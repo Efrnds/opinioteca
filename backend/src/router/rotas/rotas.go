@@ -9,25 +9,27 @@ import (
 
 // Rota representa todas as rotas da API
 type Rota struct {
-	URI string
-	Metodo string
-	Funcao func(http.ResponseWriter, *http.Request)
+	URI                string
+	Metodo             string
+	Funcao             func(http.ResponseWriter, *http.Request)
 	RequerAutenticacao bool
+	RequerAdmin        bool
 }
 
-//
-func Configurar(r *mux.Router) *mux.Router { 
+func Configurar(r *mux.Router) *mux.Router {
 	rotas := []Rota{}
 	// passar o resto das rotas com o append
 	rotas = append(rotas, rotasUsuarios...)
 	rotas = append(rotas, rotaLogin)
+	rotas = append(rotas, rotasCategorias...)
+	rotas = append(rotas, rotasLivros...)
 
 	for _, rota := range rotas {
 
 		if rota.RequerAutenticacao {
 			r.HandleFunc(rota.URI,
-			middlewares.Logger(middlewares.Autenticar(rota.Funcao)),
-		).Methods(rota.Metodo)
+				middlewares.Logger(middlewares.Autenticar(rota.Funcao)),
+			).Methods(rota.Metodo)
 		} else {
 			r.HandleFunc(rota.URI, middlewares.Logger(rota.Funcao)).Methods(rota.Metodo)
 		}
