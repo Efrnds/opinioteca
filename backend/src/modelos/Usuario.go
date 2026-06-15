@@ -23,7 +23,7 @@ type Usuario struct {
 	MaiorSequencia     int       `json:"maiorSequencia"`
 	ModoZen            bool      `json:"modoZen"`
 	Status             string    `json:"status"`
-	IsAdmin            bool      `json:"isAdmin"`
+	IsAdmin            bool      `json:"-"`
 }
 
 // Preparar é responsável por validar e formatar os dados do usuário antes de serem persistidos no banco de dados.
@@ -85,7 +85,6 @@ func (usuario *Usuario) OcultarSenha() Usuario {
 		Email: usuario.Email,
 		Senha: "",
 		AssinaturaID: usuario.AssinaturaID,
-		IsAdmin: usuario.IsAdmin,
 		MaiorSequencia: usuario.MaiorSequencia,
 		ModoZen: usuario.ModoZen,
 		Status: usuario.Status,
@@ -95,10 +94,61 @@ func (usuario *Usuario) OcultarSenha() Usuario {
 	}
 }
 
-func (usuario *Usuario) ListaOutrosUsuarios() Usuario {
+func (usuario *Usuario) ListarPublico() Usuario {
 	return Usuario{
 		ID: usuario.ID,
 		Nome: usuario.Nome,
 		Nick: usuario.Nick,
+		RankConfiabilidade: usuario.RankConfiabilidade,
+		SequenciaAtual: usuario.SequenciaAtual,
+	}
+}
+
+func (usuario *Usuario) ListarPrivado() Usuario {
+	return Usuario{
+		ID: usuario.ID,
+		Nome: usuario.Nome,
+		Nick: usuario.Nick,
+		Email: usuario.Email,
+		Status: usuario.Status,
+		AssinaturaID: usuario.AssinaturaID,
+		ModoZen: usuario.ModoZen,
+		RankConfiabilidade: usuario.RankConfiabilidade,
+		SequenciaAtual: usuario.SequenciaAtual,
+		MaiorSequencia: usuario.MaiorSequencia,
+		CriadoEm: usuario.CriadoEm,
+	}
+}
+
+// UsuarioAdmin expõe dados completos para o painel admin (inclui isAdmin).
+type UsuarioAdmin struct {
+	ID                 uint64    `json:"id"`
+	Nome               string    `json:"nome"`
+	Nick               string    `json:"nick"`
+	Email              string    `json:"email"`
+	CriadoEm           time.Time `json:"criadoEm"`
+	RankConfiabilidade int       `json:"rankConfiabilidade"`
+	AssinaturaID       uint64    `json:"assinaturaId"`
+	SequenciaAtual     int       `json:"sequenciaAtual"`
+	MaiorSequencia     int       `json:"maiorSequencia"`
+	ModoZen            bool      `json:"modoZen"`
+	Status             string    `json:"status"`
+	IsAdmin            bool      `json:"isAdmin"`
+}
+
+func (usuario *Usuario) ListarAdmin() UsuarioAdmin {
+	return UsuarioAdmin{
+		ID:                 usuario.ID,
+		Nome:               usuario.Nome,
+		Nick:               usuario.Nick,
+		Email:              usuario.Email,
+		CriadoEm:           usuario.CriadoEm,
+		RankConfiabilidade: usuario.RankConfiabilidade,
+		AssinaturaID:       usuario.AssinaturaID,
+		SequenciaAtual:     usuario.SequenciaAtual,
+		MaiorSequencia:     usuario.MaiorSequencia,
+		ModoZen:            usuario.ModoZen,
+		Status:             usuario.Status,
+		IsAdmin:            usuario.IsAdmin,
 	}
 }

@@ -18,21 +18,24 @@ type Rota struct {
 
 func Configurar(r *mux.Router) *mux.Router {
 	rotas := []Rota{}
-	// passar o resto das rotas com o append
 	rotas = append(rotas, rotasUsuarios...)
 	rotas = append(rotas, rotaLogin)
 	rotas = append(rotas, rotasCategorias...)
 	rotas = append(rotas, rotasLivros...)
+	rotas = append(rotas, rotasAvaliacoes...)
+	rotas = append(rotas, rotasAdmin...)
 
 	for _, rota := range rotas {
+		handler := rota.Funcao
 
-		if rota.RequerAutenticacao {
-			r.HandleFunc(rota.URI,
-				middlewares.Logger(middlewares.Autenticar(rota.Funcao)),
-			).Methods(rota.Metodo)
-		} else {
-			r.HandleFunc(rota.URI, middlewares.Logger(rota.Funcao)).Methods(rota.Metodo)
+		if rota.RequerAdmin {
+			handler = middlewares.VerificarAdmin(handler)
 		}
+		if rota.RequerAutenticacao {
+			handler = middlewares.Autenticar(handler)
+		}
+
+		r.HandleFunc(rota.URI, middlewares.Logger(handler)).Methods(rota.Metodo)
 	}
 
 	return r

@@ -108,3 +108,18 @@ func (repositorio Categorias) Inativar(ID uint64) error {
 	}
 	return nil
 }
+
+// BuscarPorNome retorna a categoria pelo nome exato.
+func (repositorio Categorias) BuscarPorNome(nome string) (modelos.Categoria, error) {
+	linha := repositorio.db.QueryRow(
+		"SELECT id, nome_categoria, ativo, criadoEm FROM categorias WHERE nome_categoria = $1 AND ativo = true",
+		nome,
+	)
+
+	var categoria modelos.Categoria
+	erro := linha.Scan(&categoria.ID, &categoria.NomeCategoria, &categoria.Ativo, &categoria.CriadoEm)
+	if erro == sql.ErrNoRows {
+		return modelos.Categoria{}, sql.ErrNoRows
+	}
+	return categoria, erro
+}

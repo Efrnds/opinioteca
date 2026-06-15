@@ -16,6 +16,8 @@ var (
 	Porta = 0
 	// SecretKey é a chave secreta usada para assinar os tokens JWT
 	SecretKey []byte
+	// GoogleBooksAPIKey chave opcional da Google Books API
+	GoogleBooksAPIKey = ""
 )
 
 // A função Carregar, carrega as variáveis de ambiente no arquivo .env
@@ -40,4 +42,5 @@ func Carregar() {
 	)
 
 	SecretKey = []byte(os.Getenv("SECRET_KEY"))
+	GoogleBooksAPIKey = os.Getenv("GOOGLE_BOOKS_API_KEY")
 }

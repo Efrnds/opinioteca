@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// Rotas sociais de usuário — perfil acessado pelo nick (estilo Twitter).
 var rotasUsuarios = []Rota{
 	{
 		URI:                "/usuarios",
@@ -19,49 +20,55 @@ var rotasUsuarios = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
-		URI:                "/usuarios/{usuarioId}",
+		URI:                "/usuarios/{nick}",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarUsuario,
 		RequerAutenticacao: true,
 	},
 	{
-		URI:                "/usuarios/{usuarioId}",
+		URI:                "/usuarios/{nick}",
 		Metodo:             http.MethodPut,
 		Funcao:             controllers.AtualizarUsuario,
 		RequerAutenticacao: true,
 	},
 	{
-		URI:                "/usuarios/{usuarioId}",
+		URI:                "/usuarios/{nick}",
 		Metodo:             http.MethodDelete,
 		Funcao:             controllers.InativarUsuario,
 		RequerAutenticacao: true,
 	},
 	{
-		URI:                "/usuarios/{usuarioId}/seguir",
+		URI:                "/usuarios/{nick}/seguir",
 		Metodo:             http.MethodPost,
 		Funcao:             controllers.SeguirUsuario,
 		RequerAutenticacao: true,
 	},
 	{
-		URI:                "/usuarios/{usuarioId}/deixar-de-seguir",
+		URI:                "/usuarios/{nick}/deixar-de-seguir",
 		Metodo:             http.MethodPost,
 		Funcao:             controllers.DeixarSeguirUsuario,
 		RequerAutenticacao: true,
 	},
 	{
-		URI:                "/usuarios/{usuarioId}/seguidores",
+		URI:                "/usuarios/{nick}/seguidores",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarSeguidores,
 		RequerAutenticacao: true,
 	},
 	{
-		URI:                "/usuarios/{usuarioId}/seguindo",
+		URI:                "/usuarios/{nick}/seguindo",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarSeguindo,
 		RequerAutenticacao: true,
 	},
 	{
-		URI:                "/usuarios/{usuarioId}/atualizar-senha",
+		URI:                "/usuarios/{nick}/avaliacoes",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarAvaliacoesPorUsuario,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/usuarios/{nick}/atualizar-senha",
 		Metodo:             http.MethodPost,
 		Funcao:             controllers.AtualizarSenha,
 		RequerAutenticacao: true,

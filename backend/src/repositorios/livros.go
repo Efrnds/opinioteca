@@ -3,182 +3,207 @@ package repositorios
 import (
 	"backend/src/modelos"
 	"database/sql"
+	"fmt"
+	"strings"
+	"time"
 )
 
-// Livros é a struct responsável por representar o repositório de livros.
+const selectLivro = `
+	SELECT id, ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse,
+	       capa_url, data_publicacao, google_volume_id, origem, criadoEm
+	FROM livros`
+
 type Livros struct {
 	db *sql.DB
 }
 
-// NovoRepositorioDeLivros é a função responsável por criar um novo repositório de livros.
 func NovoRepositorioDeLivros(db *sql.DB) *Livros {
 	return &Livros{db}
 }
 
-// Criar é a função responsável por criar um novo livro no banco de dados.
-func (repositorio Livros) Criar(livro modelos.Livro) (uint64, error) {
-	var id uint64
+func (repositorio Livros) scanLivro(linhas *sql.Rows) (modelos.Livro, error) {
+	var livro modelos.Livro
+	var isbn, editora, sinopse, capaURL, googleVolumeID sql.NullString
+	var dataPublicacao sql.NullTime
 
-	erro := repositorio.db.QueryRow(
-		"INSERT INTO livros (ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
-		livro.ISBN,
-		livro.Titulo,
-		livro.Editora,
-		livro.CategoriaID,
-		"ativo",
-		livro.Paginas,
-		livro.Autor,
-		livro.Sinopse,
-		livro.CapaURL,
-		livro.DataPublicacao,
-	).Scan(&id)
-	if erro != nil {
-		return 0, erro
-	}
-
-	return uint64(id), nil
-}
-
-// Buscar é a função responsável por buscar todos os livros no banco de dados.
-func (repositorio Livros) Buscar(ISBN string) ([]modelos.Livro, error) {
-	linhas, erro := repositorio.db.Query(
-		"SELECT id, ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao FROM livros WHERE ISBN = $1 AND status = 'ativo'", 
-		ISBN)
-	if erro != nil {
-		return nil, erro
-	}
-	defer linhas.Close()
-
-	livros := make([]modelos.Livro, 0)
-	for linhas.Next() {
-		var livro modelos.Livro
-		if erro = linhas.Scan(
-			&livro.ID,
-			&livro.ISBN,
-			&livro.Titulo,
-			&livro.Editora,
-			&livro.CategoriaID,
-			&livro.Status,
-			&livro.Paginas,
-			&livro.Autor,
-			&livro.Sinopse,
-			&livro.CapaURL,
-			&livro.DataPublicacao,
-			&livro.CriadoEm,
-		); erro != nil {
-			return nil, erro
-		}
-		livros = append(livros, livro)
-	}
-
-	return livros, nil
-}
-
-// BuscarPorID é a função responsável por buscar um livro específico no banco de dados.
-func (repositorio Livros) BuscarPorID(ID uint64) (modelos.Livro, error) {
-	linhas, erro := repositorio.db.Query(
-		"SELECT id, ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao FROM livros WHERE id = $1 AND status = 'ativo'",
-		ID)
+	erro := linhas.Scan(
+		&livro.ID,
+		&isbn,
+		&livro.Titulo,
+		&editora,
+		&livro.CategoriaID,
+		&livro.Status,
+		&livro.Paginas,
+		&livro.Autor,
+		&sinopse,
+		&capaURL,
+		&dataPublicacao,
+		&googleVolumeID,
+		&livro.Origem,
+		&livro.CriadoEm,
+	)
 	if erro != nil {
 		return modelos.Livro{}, erro
 	}
 
-	var livro modelos.Livro
-	if linhas.Next() {
-		if erro = linhas.Scan(
-			&livro.ID,
-			&livro.ISBN,
-			&livro.Titulo,
-			&livro.Editora,
-			&livro.CategoriaID,
-			&livro.Status,
-			&livro.Paginas,
-			&livro.Autor,
-			&livro.Sinopse,
-			&livro.CapaURL,
-			&livro.DataPublicacao,
-			&livro.CriadoEm,
-		); erro != nil {
-			return modelos.Livro{}, erro
-		}
+	if isbn.Valid {
+		livro.ISBN = isbn.String
+	}
+	if editora.Valid {
+		livro.Editora = editora.String
+	}
+	if sinopse.Valid {
+		livro.Sinopse = sinopse.String
+	}
+	if capaURL.Valid {
+		livro.CapaURL = capaURL.String
+	}
+	if dataPublicacao.Valid {
+		livro.DataPublicacao = &dataPublicacao.Time
+	}
+	if googleVolumeID.Valid {
+		livro.GoogleVolumeID = googleVolumeID.String
 	}
 
 	return livro, nil
 }
 
-// Atualizar é a função responsável por atualizar um livro específico no banco de dados.
-func (repositorio Livros) Atualizar(ID uint64, livro modelos.Livro) error {
-	statement, erro := repositorio.db.Prepare(
-		"UPDATE livros SET ISBN = $1, titulo = $2, editora = $3, categoria_id = $4, status = $5, paginas = $6, autor = $7, sinopse = $8, capa_url = $9, data_publicacao = $10 WHERE id = $11",
+func (repositorio Livros) scanLivroRow(row *sql.Row) (modelos.Livro, error) {
+	var livro modelos.Livro
+	var isbn, editora, sinopse, capaURL, googleVolumeID sql.NullString
+	var dataPublicacao sql.NullTime
+
+	erro := row.Scan(
+		&livro.ID,
+		&isbn,
+		&livro.Titulo,
+		&editora,
+		&livro.CategoriaID,
+		&livro.Status,
+		&livro.Paginas,
+		&livro.Autor,
+		&sinopse,
+		&capaURL,
+		&dataPublicacao,
+		&googleVolumeID,
+		&livro.Origem,
+		&livro.CriadoEm,
 	)
 	if erro != nil {
-		return erro
+		return modelos.Livro{}, erro
 	}
-	defer statement.Close()
 
-	if _, erro = statement.Exec(
-		livro.ISBN,
+	if isbn.Valid {
+		livro.ISBN = isbn.String
+	}
+	if editora.Valid {
+		livro.Editora = editora.String
+	}
+	if sinopse.Valid {
+		livro.Sinopse = sinopse.String
+	}
+	if capaURL.Valid {
+		livro.CapaURL = capaURL.String
+	}
+	if dataPublicacao.Valid {
+		livro.DataPublicacao = &dataPublicacao.Time
+	}
+	if googleVolumeID.Valid {
+		livro.GoogleVolumeID = googleVolumeID.String
+	}
+
+	return livro, nil
+}
+
+func nullableString(valor string) interface{} {
+	if strings.TrimSpace(valor) == "" {
+		return nil
+	}
+	return valor
+}
+
+func nullableTime(valor *time.Time) interface{} {
+	if valor == nil {
+		return nil
+	}
+	return *valor
+}
+
+func (repositorio Livros) Criar(livro modelos.Livro) (uint64, error) {
+	var id uint64
+	erro := repositorio.db.QueryRow(
+		`INSERT INTO livros (ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao, google_volume_id, origem)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+		nullableString(livro.ISBN),
 		livro.Titulo,
-		livro.Editora,
+		nullableString(livro.Editora),
 		livro.CategoriaID,
 		livro.Status,
 		livro.Paginas,
 		livro.Autor,
-		livro.Sinopse,
-		livro.CapaURL,
-		livro.DataPublicacao,
-		ID,
-	); erro != nil {
-		return erro
+		nullableString(livro.Sinopse),
+		nullableString(livro.CapaURL),
+		nullableTime(livro.DataPublicacao),
+		nullableString(livro.GoogleVolumeID),
+		livro.Origem,
+	).Scan(&id)
+	if erro != nil {
+		return 0, erro
 	}
-
-	return nil
+	return id, nil
 }
 
-// Inativar é a função responsável por inativar um livro específico no banco de dados.
-func (repositorio Livros) Inativar(ID uint64) error {
-	statement, erro := repositorio.db.Prepare(
-		"UPDATE livros SET status = 'inativo' WHERE id = $1",
+func (repositorio Livros) BuscarPorID(ID uint64) (modelos.Livro, error) {
+	linha := repositorio.db.QueryRow(
+		selectLivro+" WHERE id = $1 AND status = 'ativo'", ID)
+	livro, erro := repositorio.scanLivroRow(linha)
+	if erro == sql.ErrNoRows {
+		return modelos.Livro{}, sql.ErrNoRows
+	}
+	return livro, erro
+}
+
+func (repositorio Livros) BuscarPorISBN(ISBN string) (modelos.Livro, error) {
+	linha := repositorio.db.QueryRow(
+		selectLivro+" WHERE ISBN = $1 AND status = 'ativo'", ISBN)
+	livro, erro := repositorio.scanLivroRow(linha)
+	if erro == sql.ErrNoRows {
+		return modelos.Livro{}, sql.ErrNoRows
+	}
+	return livro, erro
+}
+
+func (repositorio Livros) BuscarPorGoogleVolumeID(volumeID string) (modelos.Livro, error) {
+	linha := repositorio.db.QueryRow(
+		selectLivro+" WHERE google_volume_id = $1 AND status = 'ativo'", volumeID)
+	livro, erro := repositorio.scanLivroRow(linha)
+	if erro == sql.ErrNoRows {
+		return modelos.Livro{}, sql.ErrNoRows
+	}
+	return livro, erro
+}
+
+func (repositorio Livros) BuscarTexto(q string, limite int) ([]modelos.Livro, error) {
+	if limite <= 0 {
+		limite = 10
+	}
+
+	padrao := "%" + strings.TrimSpace(q) + "%"
+	linhas, erro := repositorio.db.Query(
+		selectLivro+` WHERE status = 'ativo'
+		 AND (titulo ILIKE $1 OR autor ILIKE $1 OR ISBN ILIKE $1 OR editora ILIKE $1)
+		 ORDER BY titulo ASC LIMIT $2`,
+		padrao, limite,
 	)
 	if erro != nil {
-		return erro
-	}
-	defer statement.Close()
-
-	if _, erro = statement.Exec(ID); erro != nil {
-		return erro
-	}
-
-	return nil
-}
-
-// BuscarPorAutor é a função responsável por buscar todos os livros de um autor específico no banco de dados.
-func (repositorio Livros) BuscarPorAutor(Autor string) ([]modelos.Livro, error) {
-	linhas, erro := repositorio.db.Query(
-		"SELECT id, ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao FROM livros WHERE autor = $1 AND status = 'ativo'",
-		Autor)
-	if erro != nil {
 		return nil, erro
 	}
 	defer linhas.Close()
 
 	livros := make([]modelos.Livro, 0)
 	for linhas.Next() {
-		var livro modelos.Livro
-		if erro = linhas.Scan(
-			&livro.ID,
-			&livro.ISBN,
-			&livro.Titulo,
-			&livro.Editora,
-			&livro.CategoriaID,
-			&livro.Status,
-			&livro.Paginas,
-			&livro.Autor,
-			&livro.Sinopse,
-			&livro.CapaURL,
-			&livro.DataPublicacao,
-			&livro.CriadoEm,
-		); erro != nil {
+		livro, erro := repositorio.scanLivro(linhas)
+		if erro != nil {
 			return nil, erro
 		}
 		livros = append(livros, livro)
@@ -186,11 +211,44 @@ func (repositorio Livros) BuscarPorAutor(Autor string) ([]modelos.Livro, error) 
 	return livros, nil
 }
 
-// BuscarPorCategoria é a função responsável por buscar todos os livros de uma categoria específica no banco de dados.
-func (repositorio Livros) BuscarPorCategoria(CategoriaID uint64) ([]modelos.Livro, error) {
-	linhas, erro := repositorio.db.Query(
-		"SELECT id, ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao FROM livros WHERE categoria_id = $1 AND status = 'ativo'",
-		CategoriaID)
+type FiltrosLivros struct {
+	Query  string
+	Status string
+	Origem string
+	Limite int
+}
+
+func (repositorio Livros) BuscarTodos(filtros FiltrosLivros) ([]modelos.Livro, error) {
+	limite := filtros.Limite
+	if limite <= 0 {
+		limite = 50
+	}
+
+	query := selectLivro + " WHERE 1=1"
+	args := []interface{}{}
+	indice := 1
+
+	if filtros.Status != "" {
+		query += fmt.Sprintf(" AND status = $%d", indice)
+		args = append(args, filtros.Status)
+		indice++
+	}
+	if filtros.Origem != "" {
+		query += fmt.Sprintf(" AND origem = $%d", indice)
+		args = append(args, filtros.Origem)
+		indice++
+	}
+	if strings.TrimSpace(filtros.Query) != "" {
+		padrao := "%" + strings.TrimSpace(filtros.Query) + "%"
+		query += fmt.Sprintf(" AND (titulo ILIKE $%d OR autor ILIKE $%d OR ISBN ILIKE $%d OR editora ILIKE $%d)", indice, indice, indice, indice)
+		args = append(args, padrao)
+		indice++
+	}
+
+	query += fmt.Sprintf(" ORDER BY criadoEm DESC LIMIT $%d", indice)
+	args = append(args, limite)
+
+	linhas, erro := repositorio.db.Query(query, args...)
 	if erro != nil {
 		return nil, erro
 	}
@@ -198,21 +256,8 @@ func (repositorio Livros) BuscarPorCategoria(CategoriaID uint64) ([]modelos.Livr
 
 	livros := make([]modelos.Livro, 0)
 	for linhas.Next() {
-		var livro modelos.Livro
-		if erro = linhas.Scan(
-			&livro.ID,
-			&livro.ISBN,
-			&livro.Titulo,
-			&livro.Editora,
-			&livro.CategoriaID,
-			&livro.Status,
-			&livro.Paginas,
-			&livro.Autor,
-			&livro.Sinopse,
-			&livro.CapaURL,
-			&livro.DataPublicacao,
-			&livro.CriadoEm,
-		); erro != nil {
+		livro, erro := repositorio.scanLivro(linhas)
+		if erro != nil {
 			return nil, erro
 		}
 		livros = append(livros, livro)
@@ -220,99 +265,82 @@ func (repositorio Livros) BuscarPorCategoria(CategoriaID uint64) ([]modelos.Livr
 	return livros, nil
 }
 
-// BuscarPorEditora é a função responsável por buscar todos os livros de uma editora específica no banco de dados.
-func (repositorio Livros) BuscarPorEditora(Editora string) ([]modelos.Livro, error) {
-	linhas, erro := repositorio.db.Query(
-		"SELECT id, ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao FROM livros WHERE editora = $1 AND status = 'ativo'",
-		Editora)
-	if erro != nil {
-		return nil, erro
-	}
-	defer linhas.Close()
-	livros := make([]modelos.Livro, 0)
-	for linhas.Next() {
-		var livro modelos.Livro
-		if erro = linhas.Scan(
-			&livro.ID,
-			&livro.ISBN,
-			&livro.Titulo,
-			&livro.Editora,
-			&livro.CategoriaID,
-			&livro.Status,
-			&livro.Paginas,
-			&livro.Autor,
-			&livro.Sinopse,
-			&livro.CapaURL,
-			&livro.DataPublicacao,
-			&livro.CriadoEm,
-		); erro != nil {
-			return nil, erro
+func (repositorio Livros) UpsertGoogle(livro modelos.Livro) (uint64, error) {
+	if livro.ISBN != "" {
+		existente, erro := repositorio.BuscarPorISBN(livro.ISBN)
+		if erro == nil {
+			return existente.ID, repositorio.atualizarGoogle(existente.ID, livro)
 		}
-		livros = append(livros, livro)
+		if erro != sql.ErrNoRows {
+			return 0, erro
+		}
 	}
-	return livros, nil
+
+	if livro.GoogleVolumeID != "" {
+		existente, erro := repositorio.BuscarPorGoogleVolumeID(livro.GoogleVolumeID)
+		if erro == nil {
+			return existente.ID, repositorio.atualizarGoogle(existente.ID, livro)
+		}
+		if erro != sql.ErrNoRows {
+			return 0, erro
+		}
+	}
+
+	return repositorio.Criar(livro)
 }
 
-// BuscarPorTitulo é a função responsável por buscar um livro específico pelo seu título.
-func (repositorio Livros) BuscarPorTitulo(Titulo string) (modelos.Livro, error) {
-	linhas, erro := repositorio.db.Query(
-		"SELECT id, ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao FROM livros WHERE titulo = $1 AND status = 'ativo'",
-		Titulo)
-	if erro != nil {
-		return modelos.Livro{}, erro
-	}
-	defer linhas.Close()
-
-	var livro modelos.Livro
-	if linhas.Next() {
-		if erro = linhas.Scan(
-			&livro.ID,
-			&livro.ISBN,
-			&livro.Titulo,
-			&livro.Editora,
-			&livro.CategoriaID,
-			&livro.Status,
-			&livro.Paginas,
-			&livro.Autor,
-			&livro.Sinopse,
-			&livro.CapaURL,
-			&livro.DataPublicacao,
-			&livro.CriadoEm,
-		); erro != nil {
-			return modelos.Livro{}, erro
-		}
-	}
-	return livro, nil
+func (repositorio Livros) atualizarGoogle(id uint64, livro modelos.Livro) error {
+	_, erro := repositorio.db.Exec(
+		`UPDATE livros SET
+		 ISBN = COALESCE($1, ISBN),
+		 titulo = $2,
+		 editora = COALESCE($3, editora),
+		 paginas = $4,
+		 autor = $5,
+		 sinopse = COALESCE($6, sinopse),
+		 capa_url = COALESCE($7, capa_url),
+		 data_publicacao = COALESCE($8, data_publicacao),
+		 google_volume_id = COALESCE($9, google_volume_id),
+		 origem = $10
+		 WHERE id = $11`,
+		nullableString(livro.ISBN),
+		livro.Titulo,
+		nullableString(livro.Editora),
+		livro.Paginas,
+		livro.Autor,
+		nullableString(livro.Sinopse),
+		nullableString(livro.CapaURL),
+		nullableTime(livro.DataPublicacao),
+		nullableString(livro.GoogleVolumeID),
+		livro.Origem,
+		id,
+	)
+	return erro
 }
 
-// BuscarPorISBN é a função responsável por buscar um livro específico pelo seu ISBN.
-func (repositorio Livros) BuscarPorISBN(ISBN string) (modelos.Livro, error) {
-	linhas, erro := repositorio.db.Query(
-		"SELECT id, ISBN, titulo, editora, categoria_id, status, paginas, autor, sinopse, capa_url, data_publicacao FROM livros WHERE ISBN = $1 AND status = 'ativo'",
-		ISBN)
-	if erro != nil {
-		return modelos.Livro{}, erro
-	}
-	defer linhas.Close()
+func (repositorio Livros) Atualizar(ID uint64, livro modelos.Livro) error {
+	_, erro := repositorio.db.Exec(
+		`UPDATE livros SET ISBN = $1, titulo = $2, editora = $3, categoria_id = $4, status = $5,
+		 paginas = $6, autor = $7, sinopse = $8, capa_url = $9, data_publicacao = $10,
+		 google_volume_id = $11, origem = $12 WHERE id = $13`,
+		nullableString(livro.ISBN),
+		livro.Titulo,
+		nullableString(livro.Editora),
+		livro.CategoriaID,
+		livro.Status,
+		livro.Paginas,
+		livro.Autor,
+		nullableString(livro.Sinopse),
+		nullableString(livro.CapaURL),
+		nullableTime(livro.DataPublicacao),
+		nullableString(livro.GoogleVolumeID),
+		livro.Origem,
+		ID,
+	)
+	return erro
+}
 
-	var livro modelos.Livro
-	if linhas.Next() {
-		if erro = linhas.Scan(
-			&livro.ID,
-			&livro.ISBN,
-			&livro.Titulo,
-			&livro.Editora,
-			&livro.CategoriaID,
-			&livro.Status,
-			&livro.Paginas,
-			&livro.Autor,
-			&livro.Sinopse,
-			&livro.CapaURL,
-			&livro.DataPublicacao,
-			&livro.CriadoEm,
-		); erro != nil {
-			return modelos.Livro{}, erro
-		}
-	}
-	return livro, nil
+func (repositorio Livros) Inativar(ID uint64) error {
+	_, erro := repositorio.db.Exec("UPDATE livros SET status = 'inativo' WHERE id = $1", ID)
+	return erro
 }

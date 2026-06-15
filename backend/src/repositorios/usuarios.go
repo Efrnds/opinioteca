@@ -39,7 +39,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick) // as duas primeiras e ultimas % se referem à "%" em string, e a terceira % se refere a uma string
 
 	linhas, erro := repositorio.db.Query(
-		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE nome ILIKE $1 or nick ILIKE $1",
+		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE (nome ILIKE $1 OR nick ILIKE $1) AND status = 'ativo'",
 		nomeOuNick)
 	if erro != nil {
 		return nil, erro
@@ -72,11 +72,80 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 	return usuarios, nil
 }
 
+// BuscarTodos retorna todos os usuários (ativos e inativos) para o painel admin.
+func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
+	linhas, erro := repositorio.db.Query(
+		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios ORDER BY id",
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	usuarios := make([]modelos.Usuario, 0)
+	for linhas.Next() {
+		var usuario modelos.Usuario
+		if erro = linhas.Scan(
+			&usuario.ID,
+			&usuario.Nome,
+			&usuario.Nick,
+			&usuario.Email,
+			&usuario.RankConfiabilidade,
+			&usuario.AssinaturaID,
+			&usuario.IsAdmin,
+			&usuario.SequenciaAtual,
+			&usuario.MaiorSequencia,
+			&usuario.ModoZen,
+			&usuario.Status,
+			&usuario.CriadoEm,
+		); erro != nil {
+			return nil, erro
+		}
+		usuarios = append(usuarios, usuario)
+	}
+
+	return usuarios, nil
+}
+
 // BuscarPorID trás um usuário específico do banco de dados, com base no ID fornecido, retornando o usuário e um erro, se houver.
 func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE id = $1",
 		usuarioID)
+	if erro != nil {
+		return modelos.Usuario{}, erro
+	}
+	defer linhas.Close()
+
+	var usuario modelos.Usuario
+	if linhas.Next() {
+		if erro = linhas.Scan(
+			&usuario.ID,
+			&usuario.Nome,
+			&usuario.Nick,
+			&usuario.Email,
+			&usuario.RankConfiabilidade,
+			&usuario.AssinaturaID,
+			&usuario.IsAdmin,
+			&usuario.SequenciaAtual,
+			&usuario.MaiorSequencia,
+			&usuario.ModoZen,
+			&usuario.Status,
+			&usuario.CriadoEm,
+		); erro != nil {
+			return modelos.Usuario{}, erro
+		}
+	}
+
+	return usuario, nil
+}
+
+// BuscarPorNick busca um usuário pelo nick (case insensitive).
+func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) {
+	linhas, erro := repositorio.db.Query(
+		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE LOWER(nick) = LOWER($1)",
+		nick,
+	)
 	if erro != nil {
 		return modelos.Usuario{}, erro
 	}
@@ -127,6 +196,50 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 	return nil
 }
 
+// AtualizarAdmin atualiza perfil, status e flag de admin (painel administrativo).
+func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usuario) error {
+	statement, erro := repositorio.db.Prepare(
+		"UPDATE usuarios SET nome = $1, nick = $2, email = $3, status = $4, is_admin = $5 WHERE id = $6",
+	)
+	if erro != nil {
+		return erro
+	}
+	defer statement.Close()
+
+	if _, erro = statement.Exec(
+		usuario.Nome,
+		usuario.Nick,
+		usuario.Email,
+		usuario.Status,
+		usuario.IsAdmin,
+		usuarioID,
+	); erro != nil {
+		return erro
+	}
+
+	return nil
+}
+
+// CriarAdmin cadastra usuário com opção de definir is_admin.
+func (repositorio Usuarios) CriarAdmin(usuario modelos.Usuario, isAdmin bool) (uint64, error) {
+	var id uint64
+
+	erro := repositorio.db.QueryRow(
+		"INSERT INTO usuarios (nome, nick, email, senha, status, is_admin) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+		usuario.Nome,
+		usuario.Nick,
+		usuario.Email,
+		usuario.Senha,
+		"ativo",
+		isAdmin,
+	).Scan(&id)
+	if erro != nil {
+		return 0, erro
+	}
+
+	return id, nil
+}
+
 // Deletar é a função responsável por deletar um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
 func (repositorio Usuarios) Inativar(usuarioID uint64) error {
 	statement, erro := repositorio.db.Prepare(
@@ -147,7 +260,7 @@ func (repositorio Usuarios) Inativar(usuarioID uint64) error {
 // BuscarPorEmail é a função responsável por buscar um usuário específico do banco de dados, com base no email fornecido, retornando o usuário e um erro, se houver.
 func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error) {
 	linha, erro := repositorio.db.Query(
-		"SELECT id, senha FROM usuarios WHERE email = $1",
+		"SELECT id, senha, status, is_admin FROM usuarios WHERE email = $1",
 		email)
 	if erro != nil {
 		return modelos.Usuario{}, erro
@@ -160,6 +273,8 @@ func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error
 		if erro = linha.Scan(
 			&usuario.ID,
 			&usuario.Senha,
+			&usuario.Status,
+			&usuario.IsAdmin,
 		); erro != nil {
 			return modelos.Usuario{}, erro
 		}
@@ -205,11 +320,10 @@ func (repositorio Usuarios) DeixarSeguir(IDSeguido, IDSeguidor uint64) error {
 // BuscarSeguidores é a função responsável por buscar os seguidores de um usuário específico do banco de dados, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		` SELECT u.id, u.nome, u.nick, u.email, u.criadoEm
+		`SELECT u.id, u.nome, u.nick, u.rank_confiabilidade, u.sequencia_atual
 		FROM usuarios u
-		INNER JOIN seguidores s
-		ON u.id = s.id_seguidor
-		WHERE s.id_seguido = $1
+		INNER JOIN seguidores s ON u.id = s.id_seguidor
+		WHERE s.id_seguido = $1 AND u.status = 'ativo'
 		`,
 		IDSeguido)
 	if erro != nil {
@@ -224,8 +338,8 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 			&usuario.ID,
 			&usuario.Nome,
 			&usuario.Nick,
-			&usuario.Email,
-			&usuario.CriadoEm,
+			&usuario.RankConfiabilidade,
+			&usuario.SequenciaAtual,
 		); erro != nil {
 			return nil, erro
 		}
@@ -238,11 +352,10 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 // BuscarSeguindo é a função responsável por buscar os usuários que um usuário específico está seguindo, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		` SELECT u.id, u.nome, u.nick, u.email, u.criadoEm
+		`SELECT u.id, u.nome, u.nick, u.rank_confiabilidade, u.sequencia_atual
 		FROM usuarios u
-		INNER JOIN seguidores s
-		ON u.id = s.id_seguido
-		WHERE s.id_seguidor = $1
+		INNER JOIN seguidores s ON u.id = s.id_seguido
+		WHERE s.id_seguidor = $1 AND u.status = 'ativo'
 		`,
 		IDSeguido)
 	if erro != nil {
@@ -257,8 +370,8 @@ func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario,
 			&usuario.ID,
 			&usuario.Nome,
 			&usuario.Nick,
-			&usuario.Email,
-			&usuario.CriadoEm,
+			&usuario.RankConfiabilidade,
+			&usuario.SequenciaAtual,
 		); erro != nil {
 			return nil, erro
 		}
@@ -268,7 +381,7 @@ func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario,
 	return usuarios, nil
 }
 
-// BuscarSenha
+// BuscarSenha é a função responsável por buscar a senha de um usuário específico no banco de dados, com base no ID fornecido, retornando a senha e um erro, se houver.
 func (repositorio Usuarios) BuscarSenha(usuarioID uint64) (string, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT senha FROM usuarios WHERE id = $1",
@@ -290,6 +403,7 @@ func (repositorio Usuarios) BuscarSenha(usuarioID uint64) (string, error) {
 	return usuario.Senha, nil
 }
 
+// AtualizarSenha é a função responsável por atualizar a senha de um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
 func (repositorio Usuarios) AtualizarSenha(usuarioID uint64, senha string) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE usuarios SET senha = $1 WHERE id = $2",
@@ -305,3 +419,40 @@ func (repositorio Usuarios) AtualizarSenha(usuarioID uint64, senha string) error
 
 	return nil
 }
+
+// IsAdmin é a função responsável por verificar se um usuário específico é um administrador, com base no ID fornecido, retornando um booleano e um erro, se houver.
+func (repositorio Usuarios) IsAdmin(usuarioID uint64) (bool, error) {
+	linha, erro := repositorio.db.Query(
+		"SELECT is_admin FROM usuarios WHERE id = $1",
+		usuarioID)
+	if erro != nil {
+		return false, erro
+	}
+	defer linha.Close()
+
+	var usuario modelos.Usuario
+	if linha.Next() {
+		if erro = linha.Scan(
+			&usuario.IsAdmin,
+		); erro != nil {
+			return false, erro
+		}
+	}
+	return usuario.IsAdmin, nil
+}
+
+// AtualizarStatus é a função responsável por atualizar o status de um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
+func (repositorio Usuarios) AtualizarStatus(usuarioID uint64, status string) error {
+	statement, erro := repositorio.db.Prepare(
+		"UPDATE usuarios SET status = $1 WHERE id = $2",
+	)
+	if erro != nil {
+		return erro
+	}
+	defer statement.Close()
+	if _, erro = statement.Exec(status, usuarioID); erro != nil {
+		return erro
+	}
+	return nil
+}
+

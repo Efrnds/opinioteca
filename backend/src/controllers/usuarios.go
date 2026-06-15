@@ -11,12 +11,27 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgconn"
 )
+
+func nickDaURL(r *http.Request) string {
+	return mux.Vars(r)["nick"]
+}
+
+func usuarioDoToken(r *http.Request, repositorio *repositorios.Usuarios) (modelos.Usuario, error) {
+	usuarioID, erro := auth.ExtrairUsuarioID(r)
+	if erro != nil {
+		return modelos.Usuario{}, erro
+	}
+	return repositorio.BuscarPorID(usuarioID)
+}
+
+func ehProprioPerfil(usuarioToken modelos.Usuario, nick string) bool {
+	return strings.EqualFold(usuarioToken.Nick, nick)
+}
 
 // CriarUsuario é a função responsável por criar um novo usuário
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
@@ -59,10 +74,10 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respostas.JSON(w, http.StatusCreated, usuario.OcultarSenha( ))
+	respostas.JSON(w, http.StatusCreated, usuario.OcultarSenha())
 }
 
-// BuscarUsuarios é a função responsável por buscar todos os usuários
+// BuscarUsuarios pesquisa usuários ativos por nome ou nick.
 func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	nomeOuNick := strings.ToLower(r.URL.Query().Get("usuario"))
 
@@ -82,20 +97,14 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 
 	usuariosFiltrados := make([]modelos.Usuario, 0)
 	for _, usuario := range usuarios {
-		usuariosFiltrados = append(usuariosFiltrados, usuario.ListaOutrosUsuarios())
+		usuariosFiltrados = append(usuariosFiltrados, usuario.ListarPublico())
 	}
 	respostas.JSON(w, http.StatusOK, usuariosFiltrados)
 }
 
-// BuscarUsuario é a função responsável por buscar um usuário em específico pelo seu ID.
+// BuscarUsuario retorna o perfil pelo nick — público para outros, privado para o dono.
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
-	parametros := mux.Vars(r)
-
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
-	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
-		return
-	}
+	nick := nickDaURL(r)
 
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -105,32 +114,54 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	usuario, erro := repositorio.BuscarPorID(usuarioID)
+	usuario, erro := repositorio.BuscarPorNick(nick)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-
-	respostas.JSON(w, http.StatusOK, usuario)
-}
-
-// AtualizarUsuario é a função responsável por atualizar o cadastro de um usuário no banco de dados.
-func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
-	parametros := mux.Vars(r)
-
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
-	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
+	if usuario.ID == 0 {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
 		return
 	}
 
-	usuarioIDNoToken, erro := auth.ExtrairUsuarioID(r)
+	usuarioToken, erro := usuarioDoToken(r, repositorio)
 	if erro != nil {
 		respostas.Erro(w, http.StatusUnauthorized, erro)
 		return
 	}
 
-	if usuarioID != usuarioIDNoToken {
+	if usuario.Status != "ativo" && !ehProprioPerfil(usuarioToken, nick) {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	if ehProprioPerfil(usuarioToken, nick) {
+		respostas.JSON(w, http.StatusOK, usuario.ListarPrivado())
+		return
+	}
+
+	respostas.JSON(w, http.StatusOK, usuario.ListarPublico())
+}
+
+// AtualizarUsuario atualiza o perfil — só o dono da conta.
+func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
+	nick := nickDaURL(r)
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
+	usuarioToken, erro := usuarioDoToken(r, repositorio)
+	if erro != nil {
+		respostas.Erro(w, http.StatusUnauthorized, erro)
+		return
+	}
+
+	if !ehProprioPerfil(usuarioToken, nick) {
 		respostas.Erro(w, http.StatusUnauthorized, errors.New("Não é permitido atualizar um usuário que não seja o seu"))
 		return
 	}
@@ -152,6 +183,18 @@ func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if erro = repositorio.Atualizar(usuarioToken.ID, usuario); erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.NoContent(w)
+}
+
+// InativarUsuario inativa a própria conta.
+func InativarUsuario(w http.ResponseWriter, r *http.Request) {
+	nick := nickDaURL(r)
+
 	db, erro := banco.Conectar()
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -160,34 +203,29 @@ func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	if erro = repositorio.Atualizar(usuarioID, usuario); erro != nil {
-		respostas.Erro(w, http.StatusInternalServerError, erro)
-		return
-	}
-
-	respostas.JSON(w, http.StatusNoContent, nil)
-}
-
-// InativarUsuario é a função responsável por inativar um cadastro de usuário no banco de dados.
-func InativarUsuario(w http.ResponseWriter, r *http.Request) {
-	parametros := mux.Vars(r)
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
-	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
-		return
-	}
-
-	usuarioIDNoToken, erro := auth.ExtrairUsuarioID(r)
+	usuarioToken, erro := usuarioDoToken(r, repositorio)
 	if erro != nil {
 		respostas.Erro(w, http.StatusUnauthorized, erro)
 		return
 	}
 
-	if usuarioID != usuarioIDNoToken {
+	if !ehProprioPerfil(usuarioToken, nick) {
 		respostas.Erro(w, http.StatusUnauthorized, errors.New("Não é permitido inativar um usuário que não seja o seu"))
 		return
 	}
 
+	if erro = repositorio.Inativar(usuarioToken.ID); erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.NoContent(w)
+}
+
+// SeguirUsuario segue um usuário pelo nick.
+func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
+	nick := nickDaURL(r)
+
 	db, erro := banco.Conectar()
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -196,34 +234,39 @@ func InativarUsuario(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	erro = repositorio.Inativar(usuarioID)
-	if erro != nil {
-		respostas.Erro(w, http.StatusInternalServerError, erro)
-		return
-	}
-	respostas.JSON(w, http.StatusNoContent, nil)
-}
-
-// SeguirUsuario é a função responsável por seguir um usuário
-func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
-	seguidorID, erro := auth.ExtrairUsuarioID(r)
+	seguidor, erro := usuarioDoToken(r, repositorio)
 	if erro != nil {
 		respostas.Erro(w, http.StatusUnauthorized, erro)
 		return
 	}
 
-	parametros := mux.Vars(r)
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+	seguido, erro := repositorio.BuscarPorNick(nick)
 	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if seguido.ID == 0 || seguido.Status != "ativo" {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
 		return
 	}
 
-	if seguidorID == usuarioID {
+	if seguidor.ID == seguido.ID {
 		respostas.Erro(w, http.StatusForbidden, errors.New("Não é permitido seguir a si mesmo"))
 		return
 	}
 
+	if erro = repositorio.Seguir(seguido.ID, seguidor.ID); erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.NoContent(w)
+}
+
+// DeixarSeguirUsuario deixa de seguir um usuário pelo nick.
+func DeixarSeguirUsuario(w http.ResponseWriter, r *http.Request) {
+	nick := nickDaURL(r)
+
 	db, erro := banco.Conectar()
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -232,58 +275,38 @@ func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	if erro = repositorio.Seguir(usuarioID, seguidorID); erro != nil {
-		respostas.Erro(w, http.StatusInternalServerError, erro)
-		return
-	}
-
-	respostas.JSON(w, http.StatusNoContent, nil)
-}
-
-// DeixarSeguirUsuario é a função responsável por deixar de seguir um usuário
-func DeixarSeguirUsuario(w http.ResponseWriter, r *http.Request) {
-	seguidorID, erro := auth.ExtrairUsuarioID(r)
+	seguidor, erro := usuarioDoToken(r, repositorio)
 	if erro != nil {
 		respostas.Erro(w, http.StatusUnauthorized, erro)
 		return
 	}
 
-	parametros := mux.Vars(r)
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+	seguido, erro := repositorio.BuscarPorNick(nick)
 	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if seguido.ID == 0 {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
 		return
 	}
 
-	if seguidorID == usuarioID {
+	if seguidor.ID == seguido.ID {
 		respostas.Erro(w, http.StatusForbidden, errors.New("Não é permitido deixar de seguir a si mesmo"))
 		return
 	}
 
-	db, erro := banco.Conectar()
-	if erro != nil {
-		respostas.Erro(w, http.StatusInternalServerError, erro)
-		return
-	}
-	defer db.Close()
-
-	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	if erro = repositorio.DeixarSeguir(usuarioID, seguidorID); erro != nil {
+	if erro = repositorio.DeixarSeguir(seguido.ID, seguidor.ID); erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	respostas.JSON(w, http.StatusNoContent, nil)
+	respostas.NoContent(w)
 }
 
-// BuscarSeguidores é a função responsável por buscar os seguidores de um usuário.
+// BuscarSeguidores lista seguidores de um perfil pelo nick.
 func BuscarSeguidores(w http.ResponseWriter, r *http.Request) {
-	parametros := mux.Vars(r)
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
-	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
-		return
-	}
+	nick := nickDaURL(r)
 
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -293,23 +316,33 @@ func BuscarSeguidores(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	seguidores, erro := repositorio.BuscarSeguidores(usuarioID)
+	usuario, erro := repositorio.BuscarPorNick(nick)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if usuario.ID == 0 || usuario.Status != "ativo" {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	seguidores, erro := repositorio.BuscarSeguidores(usuario.ID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	respostas.JSON(w, http.StatusOK, seguidores)
+	seguidoresPublicos := make([]modelos.Usuario, 0, len(seguidores))
+	for _, seguidor := range seguidores {
+		seguidoresPublicos = append(seguidoresPublicos, seguidor.ListarPublico())
+	}
+
+	respostas.JSON(w, http.StatusOK, seguidoresPublicos)
 }
 
-// BuscarSeguindo é a função responsável por buscar os usuários que um usuário específico está seguindo.
+// BuscarSeguindo lista quem o usuário segue pelo nick.
 func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
-	parametros := mux.Vars(r)
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
-	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
-		return
-	}
+	nick := nickDaURL(r)
 
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -319,31 +352,49 @@ func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	usuarios, erro := repositorio.BuscarSeguindo(usuarioID)
+	usuario, erro := repositorio.BuscarPorNick(nick)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if usuario.ID == 0 || usuario.Status != "ativo" {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	usuarios, erro := repositorio.BuscarSeguindo(usuario.ID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	respostas.JSON(w, http.StatusOK, usuarios)
+	seguindoPublicos := make([]modelos.Usuario, 0, len(usuarios))
+	for _, u := range usuarios {
+		seguindoPublicos = append(seguindoPublicos, u.ListarPublico())
+	}
+
+	respostas.JSON(w, http.StatusOK, seguindoPublicos)
 }
 
-// AtualizarSenha é a função responsável por atualizar a senha de um usuário específico.
+// AtualizarSenha atualiza a senha — só o dono da conta.
 func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
-	usuarioIDNoToken, erro := auth.ExtrairUsuarioID(r)
+	nick := nickDaURL(r)
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
+	usuarioToken, erro := usuarioDoToken(r, repositorio)
 	if erro != nil {
 		respostas.Erro(w, http.StatusUnauthorized, erro)
 		return
 	}
 
-	parametros := mux.Vars(r)
-	usuarioID, erro := strconv.ParseUint(parametros["usuarioId"], 10, 64)
-	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
-		return
-	}
-	
-	if usuarioID != usuarioIDNoToken {
+	if !ehProprioPerfil(usuarioToken, nick) {
 		respostas.Erro(w, http.StatusForbidden, errors.New("Não é permitido atualizar a senha de um usuário que não seja o seu"))
 		return
 	}
@@ -360,15 +411,7 @@ func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, erro := banco.Conectar()
-	if erro != nil {
-		respostas.Erro(w, http.StatusInternalServerError, erro)
-		return
-	}
-	defer db.Close()
-
-	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	senhaSalvaNoBanco, erro := repositorio.BuscarSenha(usuarioID)
+	senhaSalvaNoBanco, erro := repositorio.BuscarSenha(usuarioToken.ID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
@@ -385,11 +428,10 @@ func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if erro = repositorio.AtualizarSenha(usuarioID, string(senhaComHash)); erro != nil {
+	if erro = repositorio.AtualizarSenha(usuarioToken.ID, string(senhaComHash)); erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	respostas.JSON(w, http.StatusNoContent, nil)
+	respostas.NoContent(w)
 }
-

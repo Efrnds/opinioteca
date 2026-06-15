@@ -13,11 +13,13 @@ import (
 )
 
 // CriarToken é a função responsável por criar um token JWT para o usuário autenticado, contendo as permissões e o ID do usuário, e retornando o token assinado como string.
-func CriarToken(usuarioID uint64) (string, error) {
+func CriarToken(usuarioID uint64, status string, isAdmin bool) (string, error) {
 	permissoes := jwt.MapClaims{}
 	permissoes["authorized"] = true
 	permissoes["exp"] = time.Now().Add(time.Hour * 6).Unix()
 	permissoes["usuarioId"] = usuarioID
+	permissoes["status"] = status
+	permissoes["isAdmin"] = isAdmin
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, permissoes)
 	return token.SignedString([]byte(config.SecretKey))
 }
@@ -72,4 +74,20 @@ func retornarChaveDeVerificacao(token *jwt.Token) (interface{}, error) {
 	}
 
 	return config.SecretKey, nil
+}
+
+// ExtrairIsAdmin é a função responsável por extrair o status do usuário presente no token JWT da requisição, retornando o status como string e um erro caso o token seja inválido ou não contenha o status do usuário.
+func ExtrairIsAdmin(r *http.Request) (bool, error) {
+	tokenString := extrairToken(r)
+	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao)
+	if erro != nil {
+		return false, erro
+	}
+	if permissoes, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if isAdmin, ok := permissoes["isAdmin"].(bool); ok {
+			return isAdmin, nil
+		}
+		return false, nil
+	}
+	return false, errors.New("Token inválido")
 }

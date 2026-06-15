@@ -8,6 +8,7 @@ import (
 	"backend/src/respostas"
 	"backend/src/security"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -45,11 +46,19 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, erro := auth.CriarToken(usuarioSalvoNoBanco.ID)
+	if usuarioSalvoNoBanco.Status == "inativo" {
+		respostas.Erro(w, http.StatusUnauthorized, errors.New("Usuário inativo ou não encontrado"))
+		return
+	}
+
+	token, erro := auth.CriarToken(usuarioSalvoNoBanco.ID, usuarioSalvoNoBanco.Status, usuarioSalvoNoBanco.IsAdmin)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	respostas.JSON(w, http.StatusOK, token)
+	respostas.JSON(w, http.StatusOK, modelos.LoginResposta{
+		Token:   token,
+		IsAdmin: usuarioSalvoNoBanco.IsAdmin,
+	})
 }

@@ -61,16 +61,18 @@ DROP TABLE IF EXISTS livros CASCADE;
 
 CREATE TABLE livros (
     id SERIAL PRIMARY KEY,
-    ISBN VARCHAR(13) NOT NULL UNIQUE,
+    ISBN VARCHAR(20) UNIQUE,
     titulo VARCHAR(255) NOT NULL,
-    editora VARCHAR(255) NOT NULL,
+    editora VARCHAR(255),
     categoria_id INTEGER NOT NULL REFERENCES categorias(id),
     status VARCHAR(255) NOT NULL CHECK (status IN ('ativo', 'inativo')),
     paginas INTEGER NOT NULL,
     autor VARCHAR(255) NOT NULL,
-    sinopse TEXT NOT NULL,
-    capa_url VARCHAR(255) NOT NULL,
-    data_publicacao DATE NOT NULL,
+    sinopse TEXT,
+    capa_url VARCHAR(512),
+    data_publicacao DATE,
+    google_volume_id VARCHAR(255) UNIQUE,
+    origem VARCHAR(50) NOT NULL DEFAULT 'local' CHECK (origem IN ('local', 'google_books', 'manual')),
     criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

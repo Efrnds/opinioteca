@@ -18,6 +18,11 @@ func JSON(w http.ResponseWriter, statusCode int, dados interface{}) {
 	}
 }
 
+// NoContent retorna 204 sem corpo na resposta.
+func NoContent(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // Erro retorna uma resposta de erro em JSON para o cliente, com o status code e a mensagem de erro fornecida
 func Erro(w http.ResponseWriter, statusCode int, erro error) {
 	JSON(w, statusCode, struct {
