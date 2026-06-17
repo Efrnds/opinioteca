@@ -13,6 +13,18 @@ var rotasAvaliacoes = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
+		URI:                "/avaliacoes/{id}/voto",
+		Metodo:             http.MethodPost,
+		Funcao:             controllers.VotarAvaliacao,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/avaliacoes/{id}/voto",
+		Metodo:             http.MethodDelete,
+		Funcao:             controllers.RemoverVotoAvaliacao,
+		RequerAutenticacao: true,
+	},
+	{
 		URI:                "/avaliacoes/{id}",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarAvaliacaoPorID,

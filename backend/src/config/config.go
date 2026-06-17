@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/joho/godotenv"
@@ -18,7 +19,16 @@ var (
 	SecretKey []byte
 	// GoogleBooksAPIKey chave opcional da Google Books API
 	GoogleBooksAPIKey = ""
+	// UploadsDir pasta onde arquivos enviados são salvos
+	UploadsDir = ""
+	// APIPublicURL URL base pública da API (usada nas URLs de imagens)
+	APIPublicURL = ""
 )
+
+// URLPublica monta a URL completa de um recurso estático da API.
+func URLPublica(caminho string) string {
+	return fmt.Sprintf("%s%s", APIPublicURL, caminho)
+}
 
 // A função Carregar, carrega as variáveis de ambiente no arquivo .env
 func Carregar() {
@@ -43,4 +53,20 @@ func Carregar() {
 
 	SecretKey = []byte(os.Getenv("SECRET_KEY"))
 	GoogleBooksAPIKey = os.Getenv("GOOGLE_BOOKS_API_KEY")
+
+	APIPublicURL = os.Getenv("API_PUBLIC_URL")
+	if APIPublicURL == "" {
+		APIPublicURL = fmt.Sprintf("http://localhost:%d", Porta)
+	}
+
+	dirConfigurado := os.Getenv("UPLOADS_DIR")
+	if dirConfigurado != "" {
+		UploadsDir = dirConfigurado
+	} else {
+		UploadsDir = filepath.Join("uploads")
+	}
+
+	if erro = os.MkdirAll(filepath.Join(UploadsDir, "avatars"), 0755); erro != nil {
+		log.Fatalf("Erro ao criar pasta de uploads: %v", erro)
+	}
 }

@@ -217,5 +217,12 @@ func BuscarAvaliacoesPorLivro(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-	respostas.JSON(w, http.StatusOK, avaliacoes)
+
+	usuarioID := usuarioIDDoTokenOpcional(r)
+	resposta, erro := montarAvaliacoesComVotos(db, avaliacoes, usuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	respostas.JSON(w, http.StatusOK, resposta)
 }

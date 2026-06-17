@@ -54,6 +54,7 @@ CREATE TABLE usuarios (
     maior_sequencia INTEGER NOT NULL DEFAULT 0,
     modo_zen BOOLEAN NOT NULL DEFAULT FALSE,
     status VARCHAR(255) NOT NULL CHECK (status IN ('ativo', 'inativo')),
+    image_url VARCHAR(512),
     criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

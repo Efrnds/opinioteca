@@ -129,7 +129,14 @@ func BuscarAvaliacaoPorID(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-	respostas.JSON(w, http.StatusOK, avaliacao)
+
+	usuarioID := usuarioIDDoTokenOpcional(r)
+	resposta, erro := montarAvaliacaoComVotos(db, avaliacao, usuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	respostas.JSON(w, http.StatusOK, resposta)
 }
 
 func BuscarAvaliacoesPorUsuario(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +162,14 @@ func BuscarAvaliacoesPorUsuario(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-	respostas.JSON(w, http.StatusOK, avaliacoes)
+
+	usuarioID := usuarioIDDoTokenOpcional(r)
+	resposta, erro := montarAvaliacoesComVotos(db, avaliacoes, usuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	respostas.JSON(w, http.StatusOK, resposta)
 }
 
 func AtualizarAvaliacao(w http.ResponseWriter, r *http.Request) {

@@ -38,6 +38,8 @@
   --azul-600: #0048FF;
   --azul-500: #3C73FF;
   --azul-400: #336dff;
+  --azul-200: #99B6FF;
+  --cinza-700: #808080;
   --font-gabarito-black: Gabarito-Black;
   --font-gabarito-bold: Gabarito-Bold;
   --font-gabarito-medium: Gabarito-Medium;
@@ -55,6 +57,8 @@
   --color-azul-600: var(--azul-600);
   --color-azul-500: var(--azul-500);
   --color-azul-400: var(--azul-400);
+  --color-azul-200: var(--azul-200);
+  --color-cinza-700: var(--cinza-700);
   --font-gabarito-black: var(--font-gabarito-black);
   --font-gabarito-bold: var(--font-gabarito-bold);
   --font-gabarito-medium: var(--font-gabarito-medium);

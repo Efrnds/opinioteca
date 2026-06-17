@@ -51,7 +51,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, erro := auth.CriarToken(usuarioSalvoNoBanco.ID, usuarioSalvoNoBanco.Status, usuarioSalvoNoBanco.IsAdmin)
+	usuarioCompleto, erro := repositorio.BuscarPorID(usuarioSalvoNoBanco.ID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	token, erro := auth.CriarToken(usuarioCompleto.ID, usuarioCompleto.Status, usuarioCompleto.IsAdmin)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
@@ -59,6 +65,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	respostas.JSON(w, http.StatusOK, modelos.LoginResposta{
 		Token:   token,
-		IsAdmin: usuarioSalvoNoBanco.IsAdmin,
+		IsAdmin: usuarioCompleto.IsAdmin,
+		Usuario: usuarioCompleto.ListarPrivado(),
 	})
 }

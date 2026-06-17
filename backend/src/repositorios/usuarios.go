@@ -6,6 +6,33 @@ import (
 	"fmt"
 )
 
+const colunasUsuario = `id, nome, nick, email, image_url, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm`
+
+func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario) error {
+	var image sql.NullString
+	if erro := linhas.Scan(
+		&usuario.ID,
+		&usuario.Nome,
+		&usuario.Nick,
+		&usuario.Email,
+		&image,
+		&usuario.RankConfiabilidade,
+		&usuario.AssinaturaID,
+		&usuario.IsAdmin,
+		&usuario.SequenciaAtual,
+		&usuario.MaiorSequencia,
+		&usuario.ModoZen,
+		&usuario.Status,
+		&usuario.CriadoEm,
+	); erro != nil {
+		return erro
+	}
+	if image.Valid {
+		usuario.Image = image.String
+	}
+	return nil
+}
+
 // Usuarios é a struct responsável por representar o repositório de usuários.
 type Usuarios struct {
 	db *sql.DB
@@ -20,12 +47,13 @@ func (repositorio Usuarios) Criar(usuario modelos.Usuario) (uint64, error) {
 	var id uint64
 
 	erro := repositorio.db.QueryRow(
-		"INSERT INTO usuarios (nome, nick, email, senha, status) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+		"INSERT INTO usuarios (nome, nick, email, senha, status, image_url) VALUES ($1, $2, $3, $4, $5, NULLIF($6, '')) RETURNING id",
 		usuario.Nome,
 		usuario.Nick,
 		usuario.Email,
 		usuario.Senha,
 		"ativo",
+		usuario.Image,
 	).Scan(&id)
 	if erro != nil {
 		return 0, erro
@@ -36,10 +64,10 @@ func (repositorio Usuarios) Criar(usuario modelos.Usuario) (uint64, error) {
 
 // Buscar tras todos os usuários que correspondem ao nome ou nick fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error) {
-	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick) // as duas primeiras e ultimas % se referem à "%" em string, e a terceira % se refere a uma string
+	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick)
 
 	linhas, erro := repositorio.db.Query(
-		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE (nome ILIKE $1 OR nick ILIKE $1) AND status = 'ativo'",
+		fmt.Sprintf("SELECT %s FROM usuarios WHERE (nome ILIKE $1 OR nick ILIKE $1) AND status = 'ativo'", colunasUsuario),
 		nomeOuNick)
 	if erro != nil {
 		return nil, erro
@@ -49,20 +77,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 	usuarios := make([]modelos.Usuario, 0)
 	for linhas.Next() {
 		var usuario modelos.Usuario
-		if erro = linhas.Scan(
-			&usuario.ID,
-			&usuario.Nome,
-			&usuario.Nick,
-			&usuario.Email,
-			&usuario.RankConfiabilidade,
-			&usuario.AssinaturaID,
-			&usuario.IsAdmin,
-			&usuario.SequenciaAtual,
-			&usuario.MaiorSequencia,
-			&usuario.ModoZen,
-			&usuario.Status,
-			&usuario.CriadoEm,
-		); erro != nil {
+		if erro = scanUsuario(linhas, &usuario); erro != nil {
 			return nil, erro
 		}
 
@@ -75,7 +90,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 // BuscarTodos retorna todos os usuários (ativos e inativos) para o painel admin.
 func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios ORDER BY id",
+		fmt.Sprintf("SELECT %s FROM usuarios ORDER BY id", colunasUsuario),
 	)
 	if erro != nil {
 		return nil, erro
@@ -85,20 +100,7 @@ func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 	usuarios := make([]modelos.Usuario, 0)
 	for linhas.Next() {
 		var usuario modelos.Usuario
-		if erro = linhas.Scan(
-			&usuario.ID,
-			&usuario.Nome,
-			&usuario.Nick,
-			&usuario.Email,
-			&usuario.RankConfiabilidade,
-			&usuario.AssinaturaID,
-			&usuario.IsAdmin,
-			&usuario.SequenciaAtual,
-			&usuario.MaiorSequencia,
-			&usuario.ModoZen,
-			&usuario.Status,
-			&usuario.CriadoEm,
-		); erro != nil {
+		if erro = scanUsuario(linhas, &usuario); erro != nil {
 			return nil, erro
 		}
 		usuarios = append(usuarios, usuario)
@@ -110,7 +112,7 @@ func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 // BuscarPorID trás um usuário específico do banco de dados, com base no ID fornecido, retornando o usuário e um erro, se houver.
 func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE id = $1",
+		fmt.Sprintf("SELECT %s FROM usuarios WHERE id = $1", colunasUsuario),
 		usuarioID)
 	if erro != nil {
 		return modelos.Usuario{}, erro
@@ -119,20 +121,7 @@ func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, erro
 
 	var usuario modelos.Usuario
 	if linhas.Next() {
-		if erro = linhas.Scan(
-			&usuario.ID,
-			&usuario.Nome,
-			&usuario.Nick,
-			&usuario.Email,
-			&usuario.RankConfiabilidade,
-			&usuario.AssinaturaID,
-			&usuario.IsAdmin,
-			&usuario.SequenciaAtual,
-			&usuario.MaiorSequencia,
-			&usuario.ModoZen,
-			&usuario.Status,
-			&usuario.CriadoEm,
-		); erro != nil {
+		if erro = scanUsuario(linhas, &usuario); erro != nil {
 			return modelos.Usuario{}, erro
 		}
 	}
@@ -143,7 +132,7 @@ func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, erro
 // BuscarPorNick busca um usuário pelo nick (case insensitive).
 func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		"SELECT id, nome, nick, email, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm FROM usuarios WHERE LOWER(nick) = LOWER($1)",
+		fmt.Sprintf("SELECT %s FROM usuarios WHERE LOWER(nick) = LOWER($1)", colunasUsuario),
 		nick,
 	)
 	if erro != nil {
@@ -153,20 +142,7 @@ func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) 
 
 	var usuario modelos.Usuario
 	if linhas.Next() {
-		if erro = linhas.Scan(
-			&usuario.ID,
-			&usuario.Nome,
-			&usuario.Nick,
-			&usuario.Email,
-			&usuario.RankConfiabilidade,
-			&usuario.AssinaturaID,
-			&usuario.IsAdmin,
-			&usuario.SequenciaAtual,
-			&usuario.MaiorSequencia,
-			&usuario.ModoZen,
-			&usuario.Status,
-			&usuario.CriadoEm,
-		); erro != nil {
+		if erro = scanUsuario(linhas, &usuario); erro != nil {
 			return modelos.Usuario{}, erro
 		}
 	}
@@ -177,7 +153,7 @@ func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) 
 // Atualizar é a função responsável por atualizar um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
 func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario) error {
 	statement, erro := repositorio.db.Prepare(
-		"UPDATE usuarios SET nome = $1, nick = $2, email = $3 WHERE id = $4",
+		"UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, '') WHERE id = $5",
 	)
 	if erro != nil {
 		return erro
@@ -188,6 +164,7 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 		usuario.Nome,
 		usuario.Nick,
 		usuario.Email,
+		usuario.Image,
 		usuarioID,
 	); erro != nil {
 		return erro
@@ -199,7 +176,7 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 // AtualizarAdmin atualiza perfil, status e flag de admin (painel administrativo).
 func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usuario) error {
 	statement, erro := repositorio.db.Prepare(
-		"UPDATE usuarios SET nome = $1, nick = $2, email = $3, status = $4, is_admin = $5 WHERE id = $6",
+		"UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), status = $5, is_admin = $6 WHERE id = $7",
 	)
 	if erro != nil {
 		return erro
@@ -210,6 +187,7 @@ func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usu
 		usuario.Nome,
 		usuario.Nick,
 		usuario.Email,
+		usuario.Image,
 		usuario.Status,
 		usuario.IsAdmin,
 		usuarioID,
@@ -225,12 +203,13 @@ func (repositorio Usuarios) CriarAdmin(usuario modelos.Usuario, isAdmin bool) (u
 	var id uint64
 
 	erro := repositorio.db.QueryRow(
-		"INSERT INTO usuarios (nome, nick, email, senha, status, is_admin) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+		"INSERT INTO usuarios (nome, nick, email, senha, status, image_url, is_admin) VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), $7) RETURNING id",
 		usuario.Nome,
 		usuario.Nick,
 		usuario.Email,
 		usuario.Senha,
 		"ativo",
+		usuario.Image,
 		isAdmin,
 	).Scan(&id)
 	if erro != nil {
@@ -286,7 +265,7 @@ func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error
 // Seguir é a função responsável por permitir que um usuário siga outro usuário, com base nos IDs fornecidos, retornando um erro, se houver.
 func (repositorio Usuarios) Seguir(IDSeguido, IDSeguidor uint64) error {
 	statement, erro := repositorio.db.Prepare(
-		"INSERT INTO seguidores (id_seguido, id_seguidor) VALUES ($1,$2) ON CONFLICT (id_seguido, id_seguidor) DO NOTHING", // on conflict impede que um usuário siga o mesmo usuário mais de uma vez
+		"INSERT INTO seguidores (id_seguido, id_seguidor) VALUES ($1,$2) ON CONFLICT (id_seguido, id_seguidor) DO NOTHING",
 	)
 	if erro != nil {
 		return erro
@@ -320,7 +299,7 @@ func (repositorio Usuarios) DeixarSeguir(IDSeguido, IDSeguidor uint64) error {
 // BuscarSeguidores é a função responsável por buscar os seguidores de um usuário específico do banco de dados, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT u.id, u.nome, u.nick, u.rank_confiabilidade, u.sequencia_atual
+		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual
 		FROM usuarios u
 		INNER JOIN seguidores s ON u.id = s.id_seguidor
 		WHERE s.id_seguido = $1 AND u.status = 'ativo'
@@ -334,14 +313,19 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 	var usuarios []modelos.Usuario
 	for linhas.Next() {
 		var usuario modelos.Usuario
+		var image sql.NullString
 		if erro = linhas.Scan(
 			&usuario.ID,
 			&usuario.Nome,
 			&usuario.Nick,
+			&image,
 			&usuario.RankConfiabilidade,
 			&usuario.SequenciaAtual,
 		); erro != nil {
 			return nil, erro
+		}
+		if image.Valid {
+			usuario.Image = image.String
 		}
 		usuarios = append(usuarios, usuario)
 	}
@@ -352,7 +336,7 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 // BuscarSeguindo é a função responsável por buscar os usuários que um usuário específico está seguindo, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT u.id, u.nome, u.nick, u.rank_confiabilidade, u.sequencia_atual
+		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual
 		FROM usuarios u
 		INNER JOIN seguidores s ON u.id = s.id_seguido
 		WHERE s.id_seguidor = $1 AND u.status = 'ativo'
@@ -366,14 +350,19 @@ func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario,
 	var usuarios []modelos.Usuario
 	for linhas.Next() {
 		var usuario modelos.Usuario
+		var image sql.NullString
 		if erro = linhas.Scan(
 			&usuario.ID,
 			&usuario.Nome,
 			&usuario.Nick,
+			&image,
 			&usuario.RankConfiabilidade,
 			&usuario.SequenciaAtual,
 		); erro != nil {
 			return nil, erro
+		}
+		if image.Valid {
+			usuario.Image = image.String
 		}
 		usuarios = append(usuarios, usuario)
 	}
@@ -456,3 +445,14 @@ func (repositorio Usuarios) AtualizarStatus(usuarioID uint64, status string) err
 	return nil
 }
 
+// AtualizarRank ajusta o rank de confiabilidade do autor dentro de uma transação.
+func (repositorio Usuarios) AtualizarRank(tx *sql.Tx, usuarioID uint64, delta int) error {
+	if delta == 0 {
+		return nil
+	}
+	_, erro := tx.Exec(
+		`UPDATE usuarios SET rank_confiabilidade = GREATEST(0, rank_confiabilidade + $1) WHERE id = $2`,
+		delta, usuarioID,
+	)
+	return erro
+}

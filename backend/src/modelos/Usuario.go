@@ -23,6 +23,7 @@ type Usuario struct {
 	MaiorSequencia     int       `json:"maiorSequencia"`
 	ModoZen            bool      `json:"modoZen"`
 	Status             string    `json:"status"`
+	Image              string    `json:"image,omitempty"`
 	IsAdmin            bool      `json:"-"`
 }
 
@@ -65,6 +66,7 @@ func (usuario *Usuario) formatar(etapa string) error {
 	usuario.Nome = strings.TrimSpace(usuario.Nome)
 	usuario.Nick = strings.TrimSpace(usuario.Nick)
 	usuario.Email = strings.TrimSpace(usuario.Email)
+	usuario.Image = strings.TrimSpace(usuario.Image)
 
 	if etapa == "cadastro" {
 		senhaHash, erro := security.Hash(usuario.Senha)
@@ -79,44 +81,47 @@ func (usuario *Usuario) formatar(etapa string) error {
 
 func (usuario *Usuario) OcultarSenha() Usuario {
 	return Usuario{
-		ID: usuario.ID,
-		Nome: usuario.Nome,
-		Nick: usuario.Nick,
-		Email: usuario.Email,
-		Senha: "",
-		AssinaturaID: usuario.AssinaturaID,
-		MaiorSequencia: usuario.MaiorSequencia,
-		ModoZen: usuario.ModoZen,
-		Status: usuario.Status,
-		CriadoEm: usuario.CriadoEm,
+		ID:                 usuario.ID,
+		Nome:               usuario.Nome,
+		Nick:               usuario.Nick,
+		Email:              usuario.Email,
+		Image:              usuario.Image,
+		Senha:              "",
+		AssinaturaID:       usuario.AssinaturaID,
+		MaiorSequencia:     usuario.MaiorSequencia,
+		ModoZen:            usuario.ModoZen,
+		Status:             usuario.Status,
+		CriadoEm:           usuario.CriadoEm,
 		RankConfiabilidade: usuario.RankConfiabilidade,
-		SequenciaAtual: usuario.SequenciaAtual,
+		SequenciaAtual:     usuario.SequenciaAtual,
 	}
 }
 
 func (usuario *Usuario) ListarPublico() Usuario {
 	return Usuario{
-		ID: usuario.ID,
-		Nome: usuario.Nome,
-		Nick: usuario.Nick,
+		ID:                 usuario.ID,
+		Nome:               usuario.Nome,
+		Nick:               usuario.Nick,
+		Image:              usuario.Image,
 		RankConfiabilidade: usuario.RankConfiabilidade,
-		SequenciaAtual: usuario.SequenciaAtual,
+		SequenciaAtual:     usuario.SequenciaAtual,
 	}
 }
 
 func (usuario *Usuario) ListarPrivado() Usuario {
 	return Usuario{
-		ID: usuario.ID,
-		Nome: usuario.Nome,
-		Nick: usuario.Nick,
-		Email: usuario.Email,
-		Status: usuario.Status,
-		AssinaturaID: usuario.AssinaturaID,
-		ModoZen: usuario.ModoZen,
+		ID:                 usuario.ID,
+		Nome:               usuario.Nome,
+		Nick:               usuario.Nick,
+		Email:              usuario.Email,
+		Image:              usuario.Image,
+		Status:             usuario.Status,
+		AssinaturaID:       usuario.AssinaturaID,
+		ModoZen:            usuario.ModoZen,
 		RankConfiabilidade: usuario.RankConfiabilidade,
-		SequenciaAtual: usuario.SequenciaAtual,
-		MaiorSequencia: usuario.MaiorSequencia,
-		CriadoEm: usuario.CriadoEm,
+		SequenciaAtual:     usuario.SequenciaAtual,
+		MaiorSequencia:     usuario.MaiorSequencia,
+		CriadoEm:           usuario.CriadoEm,
 	}
 }
 
@@ -126,6 +131,7 @@ type UsuarioAdmin struct {
 	Nome               string    `json:"nome"`
 	Nick               string    `json:"nick"`
 	Email              string    `json:"email"`
+	Image              string    `json:"image,omitempty"`
 	CriadoEm           time.Time `json:"criadoEm"`
 	RankConfiabilidade int       `json:"rankConfiabilidade"`
 	AssinaturaID       uint64    `json:"assinaturaId"`
@@ -142,6 +148,7 @@ func (usuario *Usuario) ListarAdmin() UsuarioAdmin {
 		Nome:               usuario.Nome,
 		Nick:               usuario.Nick,
 		Email:              usuario.Email,
+		Image:              usuario.Image,
 		CriadoEm:           usuario.CriadoEm,
 		RankConfiabilidade: usuario.RankConfiabilidade,
 		AssinaturaID:       usuario.AssinaturaID,
