@@ -1,20 +1,27 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AnimatePresence, motion } from "framer-motion";
+import { Pencil } from "lucide-react";
 import { signIn } from "next-auth/react";
-import { X } from "lucide-react";
 import Image from "next/image";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useId, useState } from "react";
 
 type AuthMode = "login" | "cadastro";
 
 type AuthModalProps = {
+    open: boolean;
     mode: AuthMode;
     callbackUrl: string;
     onClose: () => void;
     onSwitchMode: (mode: AuthMode) => void;
 };
 
-export default function AuthModal({ mode, callbackUrl, onClose, onSwitchMode }: AuthModalProps) {
+const inputClassName =
+    "w-full px-4 py-1 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
+
+export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMode }: AuthModalProps) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [nome, setNome] = useState("");
@@ -24,6 +31,7 @@ export default function AuthModal({ mode, callbackUrl, onClose, onSwitchMode }: 
     const [previewImagem, setPreviewImagem] = useState<string | null>(null);
     const [erro, setErro] = useState("");
     const [carregando, setCarregando] = useState(false);
+    const inputImagemId = useId();
 
     function handleSelecionarImagem(e: ChangeEvent<HTMLInputElement>) {
         const arquivo = e.target.files?.[0];
@@ -141,160 +149,198 @@ export default function AuthModal({ mode, callbackUrl, onClose, onSwitchMode }: 
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <button
-                type="button"
-                aria-label="Fechar"
-                className="absolute inset-0 bg-black/50"
-                onClick={onClose}
-            />
-            <div className="relative z-10 w-full max-w-md rounded-3xl bg-background p-8 shadow-xl border-4 border-azul-600">
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-azul-900 hover:opacity-70"
-                >
-                    <X className="h-6 w-6" />
-                </button>
-
-                <div className="flex flex-col items-center gap-4 mb-6">
-                    <Image src="/assets/images/Vector.svg" width={80} height={65} alt="Logo da opinioteca" />
-                    <h2 className="font-gabarito-bold text-3xl text-azul-900">
-                        {mode === "login" ? "Entrar" : "Criar conta"}
-                    </h2>
-                </div>
-
-                {mode === "login" ? (
-                    <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="px-4 py-3 border-2 border-azul-900 rounded-full outline-none focus:border-azul-600"
-                        />
-                        <input
-                            type="password"
-                            placeholder="Senha"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            className="px-4 py-3 border-2 border-azul-900 rounded-full outline-none focus:border-azul-600"
-                        />
-                        {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
-                        <button
-                            type="submit"
-                            disabled={carregando}
-                            className="px-6 py-3 rounded-full text-white font-gabarito-bold text-xl bg-azul-600 border-4 border-azul-600 disabled:opacity-50"
-                        >
-                            {carregando ? "Entrando..." : "Entrar"}
-                        </button>
-                        <p className="text-center text-sm">
-                            Não tem conta?{" "}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setErro("");
-                                    onSwitchMode("cadastro");
-                                }}
-                                className="text-azul-600 font-bold underline"
+        <Dialog
+            open={open}
+            onOpenChange={isOpen => {
+                if (!isOpen) {
+                    onClose();
+                }
+            }}
+        >
+            <DialogContent className="bg-background sm:max-w-md gap-4">
+                <DialogHeader className="items-center text-center gap-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.08, duration: 0.25 }}
+                    >
+                        <Image src="/assets/images/Vector.svg" width={80} height={65} alt="Logo da opinioteca" />
+                    </motion.div>
+                    <DialogTitle className="font-gabarito-bold text-3xl text-azul-900">
+                        <AnimatePresence mode="wait">
+                            <motion.span
+                                key={mode}
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{ duration: 0.2 }}
                             >
-                                Criar conta
-                            </button>
-                        </p>
-                    </form>
-                ) : (
-                    <form onSubmit={handleCadastro} className="flex flex-col gap-4">
-                        <input
-                            type="text"
-                            placeholder="Nome"
-                            value={nome}
-                            onChange={(e) => setNome(e.target.value)}
-                            required
-                            className="px-4 py-3 border-2 border-azul-900 rounded-full outline-none focus:border-azul-600"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Nick"
-                            value={nick}
-                            onChange={(e) => setNick(e.target.value)}
-                            required
-                            className="px-4 py-3 border-2 border-azul-900 rounded-full outline-none focus:border-azul-600"
-                        />
-                        <div className="flex flex-col gap-2">
-                            <label className="text-sm font-bold text-azul-900 px-2">Foto de perfil (opcional)</label>
-                            <div className="flex items-center gap-4">
-                                {previewImagem ? (
-                                    <Image
-                                        src={previewImagem}
-                                        alt="Prévia da foto"
-                                        width={56}
-                                        height={56}
-                                        className="w-14 h-14 rounded-full object-cover"
-                                        unoptimized
-                                    />
-                                ) : (
-                                    <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center font-gabarito-bold text-xl">
-                                        {nome.charAt(0).toUpperCase() || "?"}
-                                    </div>
-                                )}
+                                {mode === "login" ? "Entrar" : "Criar conta"}
+                            </motion.span>
+                        </AnimatePresence>
+                    </DialogTitle>
+                </DialogHeader>
+
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={mode}
+                        initial={{ opacity: 0, x: mode === "login" ? -12 : 12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: mode === "login" ? 12 : -12 }}
+                        transition={{ duration: 0.22, ease: "easeOut" }}
+                    >
+                        {mode === "login" ? (
+                            <form onSubmit={handleLogin} className="flex flex-col gap-4">
                                 <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp,image/gif"
-                                    onChange={handleSelecionarImagem}
-                                    className="text-sm"
+                                    type="email"
+                                    placeholder="Email"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    required
+                                    className={inputClassName}
                                 />
-                            </div>
-                        </div>
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="px-4 py-3 border-2 border-azul-900 rounded-full outline-none focus:border-azul-600"
-                        />
-                        <input
-                            type="password"
-                            placeholder="Senha"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            className="px-4 py-3 border-2 border-azul-900 rounded-full outline-none focus:border-azul-600"
-                        />
-                        <input
-                            type="password"
-                            placeholder="Confirmar senha"
-                            value={confirmarSenha}
-                            onChange={(e) => setConfirmarSenha(e.target.value)}
-                            required
-                            className="px-4 py-3 border-2 border-azul-900 rounded-full outline-none focus:border-azul-600"
-                        />
-                        {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
-                        <button
-                            type="submit"
-                            disabled={carregando}
-                            className="px-6 py-3 rounded-full text-white font-gabarito-bold text-xl bg-azul-600 border-4 border-azul-600 disabled:opacity-50"
-                        >
-                            {carregando ? "Criando..." : "Criar conta"}
-                        </button>
-                        <p className="text-center text-sm">
-                            Já tem conta?{" "}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setErro("");
-                                    onSwitchMode("login");
-                                }}
-                                className="text-azul-600 font-bold underline"
+                                <input
+                                    type="password"
+                                    placeholder="Senha"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    required
+                                    className={inputClassName}
+                                />
+                                {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
+                                <Button
+                                    type="submit"
+                                    disabled={carregando}
+                                    className="cursor-pointer h-auto rounded-full px-6 py-3 font-gabarito-bold text-xl bg-azul-600 hover:bg-azul-600/90 border-4 border-azul-600"
+                                >
+                                    {carregando ? "Entrando..." : "Entrar"}
+                                </Button>
+                                <p className="text-center text-sm">
+                                    Não tem conta?{" "}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setErro("");
+                                            onSwitchMode("cadastro");
+                                        }}
+                                        className="text-azul-600 font-bold underline cursor-pointer"
+                                    >
+                                        Criar conta
+                                    </button>
+                                </p>
+                            </form>
+                        ) : (
+                            <form
+                                onSubmit={handleCadastro}
+                                className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1"
                             >
-                                Entrar
-                            </button>
-                        </p>
-                    </form>
-                )}
-            </div>
-        </div>
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="text-sm font-bold text-azul-900 px-2">Foto de perfil (opcional)</p>
+                                    <div className="flex items-center gap-4">
+                                        <p className="min-w-0 truncate text-sm text-cinza-700">
+                                            {imagem
+                                                ? imagem.name.slice(0, 10) + "..."
+                                                : "Clique no ícone para adicionar uma foto"}
+                                        </p>
+                                        <label
+                                            htmlFor={inputImagemId}
+                                            className="group relative h-14 w-14 shrink-0 cursor-pointer"
+                                        >
+                                            {previewImagem ? (
+                                                <Image
+                                                    src={previewImagem}
+                                                    alt="Prévia da foto"
+                                                    width={56}
+                                                    height={56}
+                                                    className="h-14 w-14 rounded-full object-cover"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-200">
+                                                    <Pencil className="h-5 w-5 text-azul-900" />
+                                                </div>
+                                            )}
+                                            {previewImagem && (
+                                                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                                                    <Pencil className="h-5 w-5 text-white" />
+                                                </div>
+                                            )}
+                                            <input
+                                                id={inputImagemId}
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                                onChange={handleSelecionarImagem}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Nome"
+                                    value={nome}
+                                    onChange={e => setNome(e.target.value)}
+                                    required
+                                    className={inputClassName}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Nick"
+                                    value={nick}
+                                    onChange={e => setNick(e.target.value)}
+                                    required
+                                    className={inputClassName}
+                                />
+                                <input
+                                    type="email"
+                                    placeholder="Email"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    required
+                                    className={inputClassName}
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Senha"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    required
+                                    className={inputClassName}
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Confirmar senha"
+                                    value={confirmarSenha}
+                                    onChange={e => setConfirmarSenha(e.target.value)}
+                                    required
+                                    className={inputClassName}
+                                />
+                                {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
+                                <Button
+                                    type="submit"
+                                    disabled={carregando}
+                                    className="h-auto rounded-full px-6 py-3 font-gabarito-bold text-xl bg-azul-600 hover:bg-azul-600/90 border-4 border-azul-600 cursor-pointer"
+                                >
+                                    {carregando ? "Criando..." : "Criar conta"}
+                                </Button>
+                                <p className="text-center text-sm">
+                                    Já tem conta?{" "}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setErro("");
+                                            onSwitchMode("login");
+                                        }}
+                                        className="text-azul-600 font-bold underline cursor-pointer"
+                                    >
+                                        Entrar
+                                    </button>
+                                </p>
+                            </form>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+            </DialogContent>
+        </Dialog>
     );
 }

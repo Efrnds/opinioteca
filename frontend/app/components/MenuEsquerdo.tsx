@@ -1,24 +1,24 @@
 "use client";
 
-import { Bell, Ellipsis, Home, Settings, User } from "lucide-react";
+import { Bell, Home, LogOut, Settings, User } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
 import Box from "./Box";
 
 export default function MenuEsquerdo() {
     const { data: session } = useSession();
 
-    console.log(session);
+    const nick = session?.user?.nick ?? "Usuário";
 
     async function handleSignOut() {
         await signOut({ callbackUrl: "/" });
     }
 
     return (
-        <section className="w-1/5 flex flex-col gap-11">
-            <Box className="flex flex-col gap-8 flex-1">
-                <div className="flex flex-col gap-8 flex-1">
+        <section className="flex h-full w-full flex-col gap-11 overflow-hidden">
+            <Box className="flex flex-col gap-8">
+                <div className="flex flex-col gap-8">
                     <h1 className="font-gabarito-bold text-4xl">Menu</h1>
                     <div className="flex flex-col gap-8">
                         <Link href="/home" className="flex items-center gap-2">
@@ -43,19 +43,25 @@ export default function MenuEsquerdo() {
                     Nova Resenha
                 </button>
             </Box>
-            <Box className="flex p-4 gap-8 items-center justify-between">
-                <div className="flex items-center gap-2">
+            <Box className="mt-auto flex items-center justify-between gap-8 p-4">
+                <div className="flex items-center gap-2 min-w-0">
                     {session?.user?.image ? (
-                        <Image src={session.user.image} alt="Avatar" width={49} height={49} className="rounded-full" />
+                        <Image
+                            src={session.user.image}
+                            alt="Avatar"
+                            width={49}
+                            height={49}
+                            className="rounded-full object-cover shrink-0 aspect-square"
+                        />
                     ) : (
-                        <div className="w-12 h-12 bg-gray-200 rounded-full font-gabarito-bold text-2xl flex items-center justify-center">
-                            {session?.user?.nick?.charAt(0).toUpperCase()}
+                        <div className="w-12 h-12 bg-gray-200 rounded-full font-gabarito-bold text-2xl flex items-center justify-center shrink-0">
+                            {nick.charAt(0).toUpperCase()}
                         </div>
                     )}
-                    <h2 className="font-gabarito-bold text-azul-900 text-xl">{session?.user?.nick}</h2>
+                    <h2 className="font-gabarito-bold text-azul-900 text-xl truncate">{nick}</h2>
                 </div>
-                <button type="button" onClick={handleSignOut} aria-label="Sair">
-                    <Ellipsis className="h-6 w-6 text-azul-900" />
+                <button onClick={handleSignOut} className="cursor-pointer hover:bg-gray-100 rounded-full p-2 transition">
+                    <LogOut className="h-6 w-6 text-red-600" />
                 </button>
             </Box>
         </section>

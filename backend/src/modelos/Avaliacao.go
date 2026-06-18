@@ -35,6 +35,31 @@ type CriarAvaliacaoResposta struct {
 	LivroID   uint64    `json:"livro_id"`
 }
 
+type UsuarioFeed struct {
+	ID    uint64 `json:"id"`
+	Nome  string `json:"nome"`
+	Nick  string `json:"nick"`
+	Image string `json:"image,omitempty"`
+}
+
+type LivroFeed struct {
+	ID      uint64 `json:"id"`
+	Titulo  string `json:"titulo"`
+	Autor   string `json:"autor"`
+	CapaURL string `json:"capa_url,omitempty"`
+}
+
+type AvaliacaoFeed struct {
+	ID              uint64         `json:"id"`
+	Nota            int            `json:"nota"`
+	Texto           string         `json:"texto"`
+	CriadoEm        time.Time      `json:"criado_em"`
+	Usuario         UsuarioFeed    `json:"usuario"`
+	Livro           LivroFeed      `json:"livro"`
+	Votos           ContadoresVoto `json:"votos"`
+	MeuVoto         string         `json:"meu_voto,omitempty"`
+}
+
 func (req *CriarAvaliacaoRequest) Preparar() error {
 	req.GoogleVolumeID = strings.TrimSpace(req.GoogleVolumeID)
 	req.Texto = strings.TrimSpace(req.Texto)

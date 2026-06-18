@@ -80,6 +80,38 @@ func montarAvaliacoesComVotos(db *sql.DB, avaliacoes []modelos.Avaliacao, usuari
 	return resultado, nil
 }
 
+func montarFeedComVotos(db *sql.DB, feed []modelos.AvaliacaoFeed, usuarioID *uint64) ([]modelos.AvaliacaoFeed, error) {
+	if len(feed) == 0 {
+		return []modelos.AvaliacaoFeed{}, nil
+	}
+
+	ids := make([]uint64, len(feed))
+	for i, item := range feed {
+		ids[i] = item.ID
+	}
+
+	repoVotos := repositorios.NovoRepositorioDeVotos(db)
+	contadores, erro := repoVotos.ContarPorAvaliacoes(ids)
+	if erro != nil {
+		return nil, erro
+	}
+
+	meusVotos := map[uint64]string{}
+	if usuarioID != nil {
+		meusVotos, erro = repoVotos.MeusVotosPorAvaliacoes(*usuarioID, ids)
+		if erro != nil {
+			return nil, erro
+		}
+	}
+
+	for i := range feed {
+		feed[i].Votos = contadores[feed[i].ID]
+		feed[i].MeuVoto = meusVotos[feed[i].ID]
+	}
+
+	return feed, nil
+}
+
 func usuarioIDDoTokenOpcional(r *http.Request) *uint64 {
 	usuarioID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {

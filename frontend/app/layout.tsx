@@ -4,6 +4,10 @@ import Header from "./components/Header";
 import Main from "./components/Main";
 import Providers from "./providers";
 import "./globals.css";
+import { Figtree } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
     title: "Opinioteca",
@@ -22,7 +26,7 @@ export default async function RootLayout({
     const isLoggedIn = !!session;
 
     return (
-        <html lang="pt-br">
+        <html lang="pt-br" className={cn("font-sans", figtree.variable)}>
             <body className={`antialiased ${isLoggedIn ? "h-screen w-screen" : ""}`}>
                 <Providers>
                     {isLoggedIn ? (

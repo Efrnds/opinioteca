@@ -58,61 +58,60 @@ export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingP
 
     return (
         <>
-            <div className="lg:flex grid grid-cols-1 justify-between h-screen w-screen lg:p-36 p-18">
+            <div className="lg:flex grid grid-cols-1 justify-between h-screen w-screen lg:p-36 p-18 ">
                 <section className="flex flex-col my-auto gap-12">
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 items-center md:items-start">
                         <Image src="/assets/images/Vector.svg" width={200} height={163} alt="Logo da opinioteca" />
                         <h1 className="font-gabarito-bold text-5xl">opinioteca</h1>
                     </div>
-                    <p className="font-inria-regular text-2xl">
+                    <p className="font-inria-regular text-2xl hidden md:block">
                         &quot;A alma é essa coisa que nos pergunta se a alma existe&quot; <br />
                         Mario Quintana
                     </p>
                 </section>
-                <section className="flex flex-col my-auto gap-16">
-                    <div className="flex flex-col gap-2.5">
+                <section className="flex flex-col my-auto gap-16 items-center md:items-start">
+                    <div className="flex flex-col gap-2.5 items-center md:items-start w-fit md:w-full ">
                         <button
                             type="button"
                             disabled
-                            className="flex text-center gap-2 px-6 py-2 rounded-full text-white font-bold text-2xl bg-azul-600 border-4 border-azul-600 opacity-50 cursor-not-allowed"
+                            className="flex gap-2 justify-center px-6 py-2 rounded-full text-white font-bold text-2xl bg-azul-600 w-full cursor-not-allowed opacity-50"
                         >
                             <Image src="/assets/images/google.svg" width={24} height={24} alt="" />
                             Entrar com o google
                         </button>
-                        <div className="flex gap-2 align-middle">
-                            <hr className="my-auto border flex-1" />
+                        <div className="w-full gap-2 align-middle hidden md:flex">
+                            <hr className="my-auto border border-black flex-1" />
                             <p>ou</p>
-                            <hr className="my-auto border flex-1" />
+                            <hr className="my-auto border border-black flex-1" />
                         </div>
                         <button
                             type="button"
                             onClick={() => abrirModal("cadastro")}
-                            className="flex gap-2 justify-center px-6 py-2 rounded-full text-white font-bold text-2xl bg-azul-600 border-4 border-azul-600"
+                            className="flex gap-2 justify-center px-6 py-2 rounded-full text-white font-bold text-2xl bg-azul-600 w-full cursor-pointer transition hover:bg-azul-600/75"
                         >
                             Criar conta
                         </button>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <p className="font-bold text-2xl">Já possui uma conta?</p>
+                    <div className="flex flex-col gap-2 w-full my-10 ">
+                        <p className="font-bold 2xl:text-2xl text-xl">Já possui uma conta?</p>
                         <button
                             type="button"
                             onClick={() => abrirModal("login")}
-                            className="flex gap-2 justify-center px-7 py-2.5 rounded-full text-azul-600 bg-background font-bold text-2xl border-4"
+                            className="flex gap-2 justify-center px-7 2xl:py-2.5 py-1 rounded-full text-azul-600 bg-background font-bold text-2xl border-4 border-azul-600 hover:bg-azul-600 transition hover:text-white cursor-pointer"
                         >
                             Entrar
                         </button>
                     </div>
+                    </div>
                 </section>
             </div>
 
-            {modalAberto && (
-                <AuthModal
-                    mode={modo}
-                    callbackUrl={callbackUrl}
-                    onClose={fecharModal}
-                    onSwitchMode={trocarModo}
-                />
-            )}
+            <AuthModal
+                open={modalAberto}
+                mode={modo}
+                callbackUrl={callbackUrl}
+                onClose={fecharModal}
+                onSwitchMode={trocarModo}
+            />
         </>
     );
 }

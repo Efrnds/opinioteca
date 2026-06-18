@@ -35,7 +35,7 @@ export default function MenuDireito() {
     ];
 
     return (
-        <section className=" h-full justify-between flex flex-col gap-11">
+        <section className="flex h-full w-full flex-col justify-between gap-11 overflow-hidden">
             <Box className="flex flex-col h-fit gap-2.5">
                 <div className="flex justify-between gap-8">
                     <div className="flex flex-col">

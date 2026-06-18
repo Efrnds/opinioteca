@@ -60,6 +60,58 @@ func (repositorio Avaliacoes) BuscarPorUsuario(usuarioID uint64) ([]modelos.Aval
 	return scanAvaliacoes(linhas)
 }
 
+func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.AvaliacaoFeed, error) {
+	linhas, erro := repositorio.db.Query(
+		`SELECT a.id, a.nota, a.texto, a.criadoEm,
+		        u.id, u.nome, u.nick, u.image_url,
+		        l.id, l.titulo, l.autor, l.capa_url
+		 FROM avaliacoes a
+		 INNER JOIN usuarios u ON u.id = a.usuario_id AND u.status = 'ativo'
+		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
+		 ORDER BY a.criadoEm DESC
+		 LIMIT $1 OFFSET $2`,
+		limite, offset,
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	feed := make([]modelos.AvaliacaoFeed, 0)
+	for linhas.Next() {
+		var item modelos.AvaliacaoFeed
+		var imageURL, capaURL sql.NullString
+
+		if erro := linhas.Scan(
+			&item.ID,
+			&item.Nota,
+			&item.Texto,
+			&item.CriadoEm,
+			&item.Usuario.ID,
+			&item.Usuario.Nome,
+			&item.Usuario.Nick,
+			&imageURL,
+			&item.Livro.ID,
+			&item.Livro.Titulo,
+			&item.Livro.Autor,
+			&capaURL,
+		); erro != nil {
+			return nil, erro
+		}
+
+		if imageURL.Valid {
+			item.Usuario.Image = imageURL.String
+		}
+		if capaURL.Valid {
+			item.Livro.CapaURL = capaURL.String
+		}
+
+		feed = append(feed, item)
+	}
+
+	return feed, nil
+}
+
 func (repositorio Avaliacoes) Atualizar(id, usuarioID uint64, nota int, texto string) error {
 	resultado, erro := repositorio.db.Exec(
 		"UPDATE avaliacoes SET nota = $1, texto = $2 WHERE id = $3 AND usuario_id = $4",

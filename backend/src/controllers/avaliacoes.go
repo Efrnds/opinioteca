@@ -20,6 +20,45 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+func BuscarFeed(w http.ResponseWriter, r *http.Request) {
+	limite := 20
+	offset := 0
+
+	if valor := r.URL.Query().Get("limite"); valor != "" {
+		if parsed, erro := strconv.Atoi(valor); erro == nil && parsed > 0 && parsed <= 50 {
+			limite = parsed
+		}
+	}
+	if valor := r.URL.Query().Get("offset"); valor != "" {
+		if parsed, erro := strconv.Atoi(valor); erro == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repoAvaliacoes := repositorios.NovoRepositorioDeAvaliacoes(db)
+	feed, erro := repoAvaliacoes.BuscarFeed(limite, offset)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	usuarioID := usuarioIDDoTokenOpcional(r)
+	resposta, erro := montarFeedComVotos(db, feed, usuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.JSON(w, http.StatusOK, resposta)
+}
+
 func CriarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {

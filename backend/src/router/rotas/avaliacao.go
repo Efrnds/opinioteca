@@ -8,6 +8,12 @@ import (
 var rotasAvaliacoes = []Rota{
 	{
 		URI:                "/avaliacoes",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarFeed,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/avaliacoes",
 		Metodo:             http.MethodPost,
 		Funcao:             controllers.CriarAvaliacao,
 		RequerAutenticacao: true,
