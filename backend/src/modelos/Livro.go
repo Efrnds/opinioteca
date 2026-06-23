@@ -53,6 +53,37 @@ type LivroBusca struct {
 	Sinopse        string  `json:"sinopse,omitempty"`
 }
 
+type ResultadoBuscaLivros struct {
+	Resultados []LivroBusca `json:"resultados"`
+	Aviso      string       `json:"aviso,omitempty"`
+}
+
+type CriarLivroUsuarioRequest struct {
+	LivroID        *uint64 `json:"livro_id"`
+	GoogleVolumeID string  `json:"google_volume_id"`
+	Titulo         string  `json:"titulo"`
+	Autor          string  `json:"autor"`
+	Paginas        int     `json:"paginas"`
+	CapaURL        string  `json:"capa_url"`
+	ISBN           string  `json:"isbn"`
+}
+
+func (req *CriarLivroUsuarioRequest) Preparar() error {
+	req.Titulo = strings.TrimSpace(req.Titulo)
+	req.Autor = strings.TrimSpace(req.Autor)
+	req.CapaURL = strings.TrimSpace(req.CapaURL)
+	req.ISBN = strings.TrimSpace(req.ISBN)
+	req.GoogleVolumeID = strings.TrimSpace(req.GoogleVolumeID)
+
+	if req.Titulo == "" {
+		return errors.New("O título é obrigatório.")
+	}
+	if req.Autor == "" {
+		return errors.New("O autor é obrigatório.")
+	}
+	return nil
+}
+
 func (l Livro) ParaPublico() LivroPublico {
 	return LivroPublico{
 		ID:             l.ID,
@@ -123,6 +154,10 @@ func (livro *Livro) validar(etapa string) error {
 		if livro.GoogleVolumeID == "" && livro.ISBN == "" {
 			return errors.New("É necessário ISBN ou google_volume_id para importar o livro!")
 		}
+	}
+
+	if etapa == "usuario" {
+		return nil
 	}
 
 	return nil

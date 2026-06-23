@@ -6,11 +6,13 @@ import (
 	"backend/src/modelos"
 	"backend/src/repositorios"
 	"backend/src/respostas"
+	"backend/src/servicos"
 	"backend/src/security"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -143,6 +145,34 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuario.ListarPublico())
 }
 
+func BuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
+	usuarioID, erro := strconv.ParseUint(mux.Vars(r)["usuarioId"], 10, 64)
+	if erro != nil || usuarioID == 0 {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
+	usuario, erro := repositorio.BuscarPorID(usuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if usuario.ID == 0 || usuario.Status != "ativo" {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	respostas.JSON(w, http.StatusOK, usuario.ListarPublico())
+}
+
 // AtualizarUsuario atualiza o perfil — só o dono da conta.
 func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
@@ -259,6 +289,9 @@ func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
+
+	ref := seguidor.ID
+	servicos.DispararNotificacao(db, seguido.ID, seguidor.ID, "seguidor", seguidor.Nome+" começou a seguir você", "Você tem um novo seguidor.", &ref)
 
 	respostas.NoContent(w)
 }

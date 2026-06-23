@@ -43,13 +43,19 @@ func BuscarFeed(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repoAvaliacoes := repositorios.NovoRepositorioDeAvaliacoes(db)
-	feed, erro := repoAvaliacoes.BuscarFeed(limite, offset)
+	usuarioID := usuarioIDDoTokenOpcional(r)
+
+	tipo := strings.ToLower(r.URL.Query().Get("tipo"))
+	var feed []modelos.AvaliacaoFeed
+	if tipo == "seguindo" && usuarioID != nil {
+		feed, erro = repoAvaliacoes.BuscarFeedSeguindo(*usuarioID, limite, offset)
+	} else {
+		feed, erro = repoAvaliacoes.BuscarFeed(limite, offset)
+	}
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-
-	usuarioID := usuarioIDDoTokenOpcional(r)
 	resposta, erro := montarFeedComVotos(db, feed, usuarioID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)

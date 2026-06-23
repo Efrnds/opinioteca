@@ -13,6 +13,12 @@ var rotasLivros = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
+		URI:                "/livros",
+		Metodo:             http.MethodPost,
+		Funcao:             controllers.CriarLivroUsuario,
+		RequerAutenticacao: true,
+	},
+	{
 		URI:                "/livros/{id}",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarLivroPorID,

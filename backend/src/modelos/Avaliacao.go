@@ -50,14 +50,16 @@ type LivroFeed struct {
 }
 
 type AvaliacaoFeed struct {
-	ID              uint64         `json:"id"`
-	Nota            int            `json:"nota"`
-	Texto           string         `json:"texto"`
-	CriadoEm        time.Time      `json:"criado_em"`
-	Usuario         UsuarioFeed    `json:"usuario"`
-	Livro           LivroFeed      `json:"livro"`
-	Votos           ContadoresVoto `json:"votos"`
-	MeuVoto         string         `json:"meu_voto,omitempty"`
+	ID                 uint64              `json:"id"`
+	Nota               int                 `json:"nota"`
+	Texto              string              `json:"texto"`
+	CriadoEm           time.Time           `json:"criado_em"`
+	Usuario            UsuarioFeed         `json:"usuario"`
+	Livro              LivroFeed           `json:"livro"`
+	Votos              ContadoresVoto      `json:"votos"`
+	MeuVoto            string              `json:"meu_voto,omitempty"`
+	ComentarioDestaque *ComentarioResposta `json:"comentario_destaque,omitempty"`
+	QtdComentarios     int                 `json:"qtd_comentarios"`
 }
 
 func (req *CriarAvaliacaoRequest) Preparar() error {

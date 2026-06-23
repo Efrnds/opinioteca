@@ -7,6 +7,11 @@ import AuthModal from "./AuthModal";
 
 type AuthMode = "login" | "cadastro";
 
+type Citacao = {
+    texto: string;
+    autor: string;
+};
+
 type LandingProps = {
     initialAuth?: string;
     callbackUrl?: string;
@@ -14,8 +19,21 @@ type LandingProps = {
 
 export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingProps) {
     const router = useRouter();
-    const [modalAberto, setModalAberto] = useState(false);
-    const [modo, setModo] = useState<AuthMode>("login");
+    const authInicial = initialAuth === "login" || initialAuth === "cadastro" ? initialAuth : null;
+    const [modalAberto, setModalAberto] = useState(() => authInicial !== null);
+    const [modo, setModo] = useState<AuthMode>(() => authInicial ?? "login");
+    const [citacao, setCitacao] = useState<Citacao>({ texto: "", autor: "" });
+
+    useEffect(() => {
+        fetch("/api/citacoes/aleatoria")
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data: Citacao | null) => {
+                if (data?.texto) {
+                    setCitacao({ texto: data.texto, autor: data.autor });
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     const abrirModal = useCallback(
         (mode: AuthMode) => {
@@ -49,24 +67,17 @@ export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingP
         [router, callbackUrl],
     );
 
-    useEffect(() => {
-        if (initialAuth === "login" || initialAuth === "cadastro") {
-            setModo(initialAuth);
-            setModalAberto(true);
-        }
-    }, [initialAuth]);
-
     return (
         <>
             <div className="lg:flex grid grid-cols-1 justify-between h-screen w-screen lg:p-36 p-18 ">
-                <section className="flex flex-col my-auto gap-12">
+                <section className="flex flex-col my-auto gap-8">
                     <div className="flex flex-col gap-2 items-center md:items-start">
                         <Image src="/assets/images/Vector.svg" width={200} height={163} alt="Logo da opinioteca" />
                         <h1 className="font-gabarito-bold text-5xl">opinioteca</h1>
                     </div>
-                    <p className="font-inria-regular text-2xl hidden md:block">
-                        &quot;A alma é essa coisa que nos pergunta se a alma existe&quot; <br />
-                        Mario Quintana
+                    <p className="mx-auto hidden max-w-lg text-lg wrap-break-word text-wrap font-inria-regular md:block">
+                        &quot;{citacao.texto}&quot; <br />
+                        {citacao.autor}
                     </p>
                 </section>
                 <section className="flex flex-col my-auto gap-16 items-center md:items-start">

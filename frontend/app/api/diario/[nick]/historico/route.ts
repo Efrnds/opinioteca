@@ -1,0 +1,35 @@
+import { auth } from "@/auth";
+import { NextRequest, NextResponse } from "next/server";
+
+type Params = { params: Promise<{ nick: string }> };
+
+export async function GET(req: NextRequest, { params }: Params) {
+    const session = await auth();
+
+    if (!session?.accessToken) {
+        return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+    }
+
+    const { nick } = await params;
+    const { searchParams } = new URL(req.url);
+    const limite = searchParams.get("limite");
+
+    const query = limite ? `?limite=${encodeURIComponent(limite)}` : "";
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/diario/${encodeURIComponent(nick)}/historico${query}`, {
+        headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+        },
+        cache: "no-store",
+    });
+
+    const texto = await res.text();
+    let data: unknown;
+
+    try {
+        data = texto ? JSON.parse(texto) : null;
+    } catch {
+        return NextResponse.json({ erro: "Resposta inválida do servidor" }, { status: res.status || 502 });
+    }
+
+    return NextResponse.json(data, { status: res.status });
+}

@@ -49,6 +49,66 @@ func (repositorio Avaliacoes) BuscarPorLivro(livroID uint64) ([]modelos.Avaliaca
 	return scanAvaliacoes(linhas)
 }
 
+func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.AvaliacaoFeed, error) {
+	linhas, erro := repositorio.db.Query(
+		`SELECT a.id, a.nota, a.texto, a.criadoEm,
+		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
+		        u.id, u.nome, u.nick, u.image_url,
+		        l.id, l.titulo, l.autor, l.capa_url
+		 FROM avaliacoes a
+		 INNER JOIN usuarios u ON u.id = a.usuario_id AND u.status = 'ativo'
+		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
+		 WHERE a.livro_id = $1
+		 ORDER BY a.criadoEm DESC`,
+		livroID,
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	feed := make([]modelos.AvaliacaoFeed, 0)
+	repoComentarios := NovoRepositorioDeComentarios(repositorio.db)
+	for linhas.Next() {
+		var item modelos.AvaliacaoFeed
+		var imageURL, capaURL sql.NullString
+
+		if erro := linhas.Scan(
+			&item.ID,
+			&item.Nota,
+			&item.Texto,
+			&item.CriadoEm,
+			&item.QtdComentarios,
+			&item.Usuario.ID,
+			&item.Usuario.Nome,
+			&item.Usuario.Nick,
+			&imageURL,
+			&item.Livro.ID,
+			&item.Livro.Titulo,
+			&item.Livro.Autor,
+			&capaURL,
+		); erro != nil {
+			return nil, erro
+		}
+
+		if imageURL.Valid {
+			item.Usuario.Image = imageURL.String
+		}
+		if capaURL.Valid {
+			item.Livro.CapaURL = capaURL.String
+		}
+		destaque, erro := repoComentarios.BuscarComentarioDestaque(item.ID)
+		if erro != nil {
+			return nil, erro
+		}
+		item.ComentarioDestaque = destaque
+
+		feed = append(feed, item)
+	}
+
+	return feed, nil
+}
+
 func (repositorio Avaliacoes) BuscarPorUsuario(usuarioID uint64) ([]modelos.Avaliacao, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, usuario_id, livro_id, template_id, nota, texto, score_sentimento, criadoEm
@@ -63,6 +123,7 @@ func (repositorio Avaliacoes) BuscarPorUsuario(usuarioID uint64) ([]modelos.Aval
 func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.AvaliacaoFeed, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT a.id, a.nota, a.texto, a.criadoEm,
+		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
 		        u.id, u.nome, u.nick, u.image_url,
 		        l.id, l.titulo, l.autor, l.capa_url
 		 FROM avaliacoes a
@@ -78,6 +139,7 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 	defer linhas.Close()
 
 	feed := make([]modelos.AvaliacaoFeed, 0)
+	avaliacaoIDs := make([]uint64, 0)
 	for linhas.Next() {
 		var item modelos.AvaliacaoFeed
 		var imageURL, capaURL sql.NullString
@@ -87,6 +149,7 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 			&item.Nota,
 			&item.Texto,
 			&item.CriadoEm,
+			&item.QtdComentarios,
 			&item.Usuario.ID,
 			&item.Usuario.Nome,
 			&item.Usuario.Nick,
@@ -107,6 +170,86 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 		}
 
 		feed = append(feed, item)
+		avaliacaoIDs = append(avaliacaoIDs, item.ID)
+	}
+
+	repoComentarios := NovoRepositorioDeComentarios(repositorio.db)
+	destaques, erro := repoComentarios.BuscarDestaquesPorAvaliacoes(avaliacaoIDs)
+	if erro != nil {
+		return nil, erro
+	}
+
+	for i := range feed {
+		feed[i].ComentarioDestaque = destaques[feed[i].ID]
+	}
+
+	return feed, nil
+}
+
+func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offset int) ([]modelos.AvaliacaoFeed, error) {
+	linhas, erro := repositorio.db.Query(
+		`SELECT a.id, a.nota, a.texto, a.criadoEm,
+		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
+		        u.id, u.nome, u.nick, u.image_url,
+		        l.id, l.titulo, l.autor, l.capa_url
+		 FROM avaliacoes a
+		 INNER JOIN usuarios u ON u.id = a.usuario_id AND u.status = 'ativo'
+		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
+		 WHERE (a.usuario_id IN (
+		     SELECT id_seguido FROM seguidores WHERE id_seguidor = $1
+		 ) OR a.usuario_id = $1)
+		 ORDER BY a.criadoEm DESC
+		 LIMIT $2 OFFSET $3`,
+		usuarioID, limite, offset,
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	feed := make([]modelos.AvaliacaoFeed, 0)
+	avaliacaoIDs := make([]uint64, 0)
+	for linhas.Next() {
+		var item modelos.AvaliacaoFeed
+		var imageURL, capaURL sql.NullString
+
+		if erro := linhas.Scan(
+			&item.ID,
+			&item.Nota,
+			&item.Texto,
+			&item.CriadoEm,
+			&item.QtdComentarios,
+			&item.Usuario.ID,
+			&item.Usuario.Nome,
+			&item.Usuario.Nick,
+			&imageURL,
+			&item.Livro.ID,
+			&item.Livro.Titulo,
+			&item.Livro.Autor,
+			&capaURL,
+		); erro != nil {
+			return nil, erro
+		}
+
+		if imageURL.Valid {
+			item.Usuario.Image = imageURL.String
+		}
+		if capaURL.Valid {
+			item.Livro.CapaURL = capaURL.String
+		}
+
+		feed = append(feed, item)
+		avaliacaoIDs = append(avaliacaoIDs, item.ID)
+	}
+
+	repoComentarios := NovoRepositorioDeComentarios(repositorio.db)
+	destaques, erro := repoComentarios.BuscarDestaquesPorAvaliacoes(avaliacaoIDs)
+	if erro != nil {
+		return nil, erro
+	}
+
+	for i := range feed {
+		feed[i].ComentarioDestaque = destaques[feed[i].ID]
 	}
 
 	return feed, nil

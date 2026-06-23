@@ -25,6 +25,30 @@ var rotasAvaliacoes = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
+		URI:                "/avaliacoes/{id}/comentarios",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarComentariosAvaliacao,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/avaliacoes/{id}/comentarios",
+		Metodo:             http.MethodPost,
+		Funcao:             controllers.CriarComentarioAvaliacao,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/comentarios/{id}/voto",
+		Metodo:             http.MethodPost,
+		Funcao:             controllers.VotarComentario,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/comentarios/{id}/voto",
+		Metodo:             http.MethodDelete,
+		Funcao:             controllers.RemoverVotoComentario,
+		RequerAutenticacao: true,
+	},
+	{
 		URI:                "/avaliacoes/{id}/voto",
 		Metodo:             http.MethodDelete,
 		Funcao:             controllers.RemoverVotoAvaliacao,

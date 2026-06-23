@@ -456,3 +456,43 @@ func (repositorio Usuarios) AtualizarRank(tx *sql.Tx, usuarioID uint64, delta in
 	)
 	return erro
 }
+
+func (repositorio Usuarios) AtualizarSequencia(tx *sql.Tx, usuarioID uint64, sequencia int) error {
+	_, erro := tx.Exec(
+		`UPDATE usuarios
+		 SET sequencia_atual = $1,
+		     maior_sequencia = GREATEST(maior_sequencia, $1)
+		 WHERE id = $2`,
+		sequencia,
+		usuarioID,
+	)
+	return erro
+}
+
+func (repositorio Usuarios) PesquisarGlobal(termo string, limite int) ([]modelos.UsuarioPesquisa, error) {
+	padrao := "%" + termo + "%"
+	linhas, erro := repositorio.db.Query(
+		`SELECT id, nome, nick, image_url FROM usuarios
+		 WHERE (nome ILIKE $1 OR nick ILIKE $1) AND status = 'ativo'
+		 LIMIT $2`,
+		padrao, limite,
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	resultado := make([]modelos.UsuarioPesquisa, 0)
+	for linhas.Next() {
+		var u modelos.UsuarioPesquisa
+		var image sql.NullString
+		if erro := linhas.Scan(&u.ID, &u.Nome, &u.Nick, &image); erro != nil {
+			return nil, erro
+		}
+		if image.Valid {
+			u.Image = image.String
+		}
+		resultado = append(resultado, u)
+	}
+	return resultado, nil
+}

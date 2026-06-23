@@ -23,6 +23,27 @@ var extensoesPermitidas = map[string]bool{
 
 const tamanhoMaximo = 5 << 20 // 5MB
 
+func resolverExtensao(header *multipart.FileHeader) (string, error) {
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if extensoesPermitidas[ext] {
+		return ext, nil
+	}
+
+	contentType := strings.ToLower(header.Header.Get("Content-Type"))
+	switch {
+	case strings.Contains(contentType, "image/gif"):
+		return ".gif", nil
+	case strings.Contains(contentType, "image/png"):
+		return ".png", nil
+	case strings.Contains(contentType, "image/jpeg"), strings.Contains(contentType, "image/jpg"):
+		return ".jpg", nil
+	case strings.Contains(contentType, "image/webp"):
+		return ".webp", nil
+	}
+
+	return "", errors.New("Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF")
+}
+
 // SalvarAvatar salva a imagem em uploads/avatars e retorna a URL pública.
 func SalvarAvatar(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	defer arquivo.Close()
@@ -31,9 +52,9 @@ func SalvarAvatar(arquivo multipart.File, header *multipart.FileHeader) (string,
 		return "", errors.New("A imagem deve ter no máximo 5MB")
 	}
 
-	extensao := strings.ToLower(filepath.Ext(header.Filename))
-	if !extensoesPermitidas[extensao] {
-		return "", errors.New("Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF")
+	extensao, erro := resolverExtensao(header)
+	if erro != nil {
+		return "", erro
 	}
 
 	pastaAvatars := filepath.Join(config.UploadsDir, "avatars")

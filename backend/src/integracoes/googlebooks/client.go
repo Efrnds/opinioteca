@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"backend/src/config"
@@ -24,13 +25,13 @@ func NovoClient() *Client {
 	}
 }
 
-type volumesResponse struct {
-	Items []volumeItem `json:"items"`
-}
-
-type volumeItem struct {
+type VolumeItem struct {
 	ID         string     `json:"id"`
 	VolumeInfo volumeInfo `json:"volumeInfo"`
+}
+
+type volumesResponse struct {
+	Items []VolumeItem `json:"items"`
 }
 
 type volumeInfo struct {
@@ -41,6 +42,8 @@ type volumeInfo struct {
 	PageCount           int                  `json:"pageCount"`
 	PrintedPageCount    int                  `json:"printedPageCount"`
 	PublishedDate       string               `json:"publishedDate"`
+	AverageRating       float64              `json:"averageRating"`
+	RatingsCount        int                  `json:"ratingsCount"`
 	ImageLinks          imageLinks           `json:"imageLinks"`
 	IndustryIdentifiers []industryIdentifier `json:"industryIdentifiers"`
 }
@@ -54,7 +57,57 @@ type industryIdentifier struct {
 	Identifier string `json:"identifier"`
 }
 
-func (c *Client) Buscar(q string, max int) ([]volumeItem, error) {
+func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
+	if max <= 0 {
+		max = 10
+	}
+
+	buscarAte := max
+	if buscarAte < 25 {
+		buscarAte = 25
+	}
+
+	vistos := map[string]struct{}{}
+	merged := make([]VolumeItem, 0, buscarAte)
+	var ultimoErro error
+
+	for _, query := range montarQueriesBusca(q) {
+		itens, erro := c.buscarRaw(query, buscarAte)
+		if erro != nil {
+			ultimoErro = erro
+			continue
+		}
+		for _, item := range itens {
+			if _, ok := vistos[item.ID]; ok {
+				continue
+			}
+			vistos[item.ID] = struct{}{}
+			merged = append(merged, item)
+		}
+	}
+
+	if len(merged) == 0 && ultimoErro != nil {
+		return nil, ultimoErro
+	}
+
+	return merged, nil
+}
+
+func montarQueriesBusca(q string) []string {
+	q = strings.TrimSpace(q)
+	if q == "" {
+		return nil
+	}
+
+	palavras := strings.Fields(q)
+	if len(palavras) >= 2 {
+		return []string{fmt.Sprintf(`intitle:"%s"`, q), q}
+	}
+
+	return []string{q}
+}
+
+func (c *Client) buscarRaw(q string, max int) ([]VolumeItem, error) {
 	if max <= 0 {
 		max = 10
 	}
@@ -63,6 +116,7 @@ func (c *Client) Buscar(q string, max int) ([]volumeItem, error) {
 	params.Set("q", q)
 	params.Set("maxResults", strconv.Itoa(max))
 	params.Set("printType", "books")
+	params.Set("orderBy", "relevance")
 	if config.GoogleBooksAPIKey != "" {
 		params.Set("key", config.GoogleBooksAPIKey)
 	}
@@ -70,7 +124,7 @@ func (c *Client) Buscar(q string, max int) ([]volumeItem, error) {
 	reqURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
 	resp, erro := c.httpClient.Get(reqURL)
 	if erro != nil {
-		return nil, erro
+		return nil, erroRequisicao(erro)
 	}
 	defer resp.Body.Close()
 
@@ -85,13 +139,13 @@ func (c *Client) Buscar(q string, max int) ([]volumeItem, error) {
 	}
 
 	if resultado.Items == nil {
-		return []volumeItem{}, nil
+		return []VolumeItem{}, nil
 	}
 
 	return resultado.Items, nil
 }
 
-func (c *Client) BuscarPorVolumeID(volumeID string) (volumeItem, error) {
+func (c *Client) BuscarPorVolumeID(volumeID string) (VolumeItem, error) {
 	params := url.Values{}
 	if config.GoogleBooksAPIKey != "" {
 		params.Set("key", config.GoogleBooksAPIKey)
@@ -100,23 +154,45 @@ func (c *Client) BuscarPorVolumeID(volumeID string) (volumeItem, error) {
 	reqURL := fmt.Sprintf("%s/%s?%s", baseURL, url.PathEscape(volumeID), params.Encode())
 	resp, erro := c.httpClient.Get(reqURL)
 	if erro != nil {
-		return volumeItem{}, erro
+		return VolumeItem{}, erroRequisicao(erro)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return volumeItem{}, fmt.Errorf("volume não encontrado no Google Books")
+		return VolumeItem{}, fmt.Errorf("volume não encontrado no Google Books")
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		corpo, _ := io.ReadAll(resp.Body)
-		return volumeItem{}, fmt.Errorf("google books retornou %d: %s", resp.StatusCode, string(corpo))
+		return VolumeItem{}, fmt.Errorf("google books retornou %d: %s", resp.StatusCode, string(corpo))
 	}
 
-	var item volumeItem
+	var item VolumeItem
 	if erro = json.NewDecoder(resp.Body).Decode(&item); erro != nil {
-		return volumeItem{}, erro
+		return VolumeItem{}, erro
 	}
 
 	return item, nil
+}
+
+func erroRequisicao(erro error) error {
+	msg := strings.ToLower(erro.Error())
+	indicadores := []string{
+		"no such host",
+		"connection refused",
+		"connection reset",
+		"i/o timeout",
+		"timeout",
+		"network is unreachable",
+		"dial tcp",
+		"tls handshake timeout",
+		"server misbehaving",
+		"temporary failure in name resolution",
+	}
+	for _, indicador := range indicadores {
+		if strings.Contains(msg, indicador) {
+			return fmt.Errorf("sem conexão com Google Books: %w", erro)
+		}
+	}
+	return fmt.Errorf("falha na requisição ao Google Books: %w", erro)
 }

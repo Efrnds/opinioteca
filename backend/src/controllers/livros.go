@@ -71,12 +71,41 @@ func BuscarLivrosUnificado(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	servico := servicos.NovoServicoLivros(db)
-	livros, erro := servico.BuscarUnificado(q)
+	resultado, erro := servico.BuscarUnificado(q)
 	if erro != nil {
-		respostas.Erro(w, http.StatusServiceUnavailable, erro)
+		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-	respostas.JSON(w, http.StatusOK, livros)
+	respostas.JSON(w, http.StatusOK, resultado)
+}
+
+func CriarLivroUsuario(w http.ResponseWriter, r *http.Request) {
+	corpoRequest, erro := io.ReadAll(r.Body)
+	if erro != nil {
+		respostas.Erro(w, http.StatusUnprocessableEntity, erro)
+		return
+	}
+
+	var req modelos.CriarLivroUsuarioRequest
+	if erro = json.Unmarshal(corpoRequest, &req); erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	servico := servicos.NovoServicoLivros(db)
+	livro, erro := servico.RegistrarLivroUsuario(req)
+	if erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+	respostas.JSON(w, http.StatusCreated, livro.ParaBusca())
 }
 
 func AdminListarLivros(w http.ResponseWriter, r *http.Request) {
@@ -212,14 +241,14 @@ func BuscarAvaliacoesPorLivro(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repoAvaliacoes := repositorios.NovoRepositorioDeAvaliacoes(db)
-	avaliacoes, erro := repoAvaliacoes.BuscarPorLivro(livroID)
+	feed, erro := repoAvaliacoes.BuscarFeedPorLivro(livroID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
 	usuarioID := usuarioIDDoTokenOpcional(r)
-	resposta, erro := montarAvaliacoesComVotos(db, avaliacoes, usuarioID)
+	resposta, erro := montarFeedComVotos(db, feed, usuarioID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return

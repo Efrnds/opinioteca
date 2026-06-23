@@ -344,3 +344,37 @@ func (repositorio Livros) Inativar(ID uint64) error {
 	_, erro := repositorio.db.Exec("UPDATE livros SET status = 'inativo' WHERE id = $1", ID)
 	return erro
 }
+
+func (repositorio Livros) PesquisarGlobal(termo string, limite int) ([]modelos.LivroPesquisa, error) {
+	padrao := "%" + termo + "%"
+	linhas, erro := repositorio.db.Query(
+		`SELECT id, titulo, autor, capa_url, google_volume_id, ISBN FROM livros
+		 WHERE status = 'ativo' AND (titulo ILIKE $1 OR autor ILIKE $1)
+		 LIMIT $2`,
+		padrao, limite,
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	resultado := make([]modelos.LivroPesquisa, 0)
+	for linhas.Next() {
+		var l modelos.LivroPesquisa
+		var capa, googleVolumeID, isbn sql.NullString
+		if erro := linhas.Scan(&l.ID, &l.Titulo, &l.Autor, &capa, &googleVolumeID, &isbn); erro != nil {
+			return nil, erro
+		}
+		if capa.Valid {
+			l.CapaURL = capa.String
+		}
+		if googleVolumeID.Valid {
+			l.GoogleVolumeID = googleVolumeID.String
+		}
+		if isbn.Valid {
+			l.ISBN = isbn.String
+		}
+		resultado = append(resultado, l)
+	}
+	return resultado, nil
+}

@@ -178,6 +178,11 @@ func VotarAvaliacao(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	votante, _ := repositorios.NovoRepositorioDeUsuarios(db).BuscarPorID(votanteID)
+	ref := avaliacaoID
+	servicos.DispararNotificacao(db, avaliacao.UsuarioID, votanteID, "voto_avaliacao", votante.Nome+" reagiu à sua avaliação", "Sua avaliação recebeu um novo voto.", &ref)
+	servicos.BroadcastVotosAvaliacao(db, avaliacaoID)
+
 	resposta, erro := montarAvaliacaoComVotos(db, avaliacao, &votanteID)
 	if erro != nil {
 		respostas.JSON(w, http.StatusCreated, voto)
@@ -237,6 +242,8 @@ func RemoverVotoAvaliacao(w http.ResponseWriter, r *http.Request) {
 		respostas.NoContent(w)
 		return
 	}
+
+	servicos.BroadcastVotosAvaliacao(db, avaliacaoID)
 
 	respostas.JSON(w, http.StatusOK, resposta)
 }
