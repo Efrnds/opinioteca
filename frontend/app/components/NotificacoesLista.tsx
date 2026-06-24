@@ -6,6 +6,7 @@ import {
     resolverDestinoNotificacao,
     textoAcaoNotificacao,
 } from "@/lib/notificacoes";
+import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import type { Notificacao } from "@/types/notificacao";
 import { Loader2 } from "lucide-react";
@@ -106,7 +107,7 @@ export default function NotificacoesLista() {
                             <div className="flex min-w-0 items-center gap-3">
                                 {avatar ? (
                                     <Image
-                                        src={avatar}
+                                        src={mediaUrl(avatar)!}
                                         alt={nick}
                                         width={40}
                                         height={40}

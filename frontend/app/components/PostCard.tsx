@@ -1,6 +1,7 @@
 "use client";
 
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
+import { mediaUrl } from "@/lib/media";
 import { ArrowBigDown, ArrowBigUp, Loader2, MessageCircle, MoreHorizontal, Send, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -385,7 +386,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                     <Link href={`/perfil/${no.usuario.nick}`} className="shrink-0 transition hover:opacity-80">
                         {no.usuario.image ? (
                             <Image
-                                src={no.usuario.image}
+                                src={mediaUrl(no.usuario.image)!}
                                 alt={no.usuario.nome}
                                 width={24}
                                 height={24}
@@ -477,7 +478,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                 <Link href={`/perfil/${usuario.nick}`} className="flex min-w-0 items-center gap-3 transition hover:opacity-80">
                     {usuario.image ? (
                         <Image
-                            src={usuario.image}
+                            src={mediaUrl(usuario.image)!}
                             alt={usuario.nome}
                             width={44}
                             height={44}
@@ -567,7 +568,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                                 >
                                     {comentarioDestaque.usuario.image ? (
                                         <Image
-                                            src={comentarioDestaque.usuario.image}
+                                            src={mediaUrl(comentarioDestaque.usuario.image)!}
                                             alt={comentarioDestaque.usuario.nome}
                                             width={20}
                                             height={20}

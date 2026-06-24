@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaUrl } from "@/lib/media";
 import type { PesquisaResultado } from "@/types/pesquisa";
 import { hrefLivroPesquisa, keyLivroPesquisa } from "@/types/pesquisa";
 import { BookOpen, Loader2, Search, User } from "lucide-react";
@@ -117,7 +118,7 @@ export default function Header() {
                                     >
                                         {usuario.image ? (
                                             <Image
-                                                src={usuario.image}
+                                                src={mediaUrl(usuario.image)!}
                                                 alt={usuario.nome}
                                                 width={32}
                                                 height={32}

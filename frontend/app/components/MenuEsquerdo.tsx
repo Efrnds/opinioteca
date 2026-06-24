@@ -1,5 +1,6 @@
 "use client";
 
+import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { Bell, Home, LogOut, Mail, MoreHorizontal, Plus, Settings, User, type LucideIcon } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -94,7 +95,7 @@ export default function MenuEsquerdo() {
                 <Link href="/perfil" className="flex min-w-0 items-center gap-2">
                     {session?.user?.image ? (
                         <Image
-                            src={session.user.image}
+                            src={mediaUrl(session.user.image)!}
                             alt="Avatar"
                             width={49}
                             height={49}

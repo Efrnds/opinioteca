@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { mediaUrl } from "@/lib/media";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     providers: [
@@ -28,7 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         email: usuario?.email,
                         name: usuario?.nome,
                         nick: usuario?.nick,
-                        image: usuario?.image || undefined,
+                        image: mediaUrl(usuario?.image),
                         accessToken: data.token,
                         isAdmin: data.isAdmin,
                     };
@@ -47,7 +48,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 if (user.email) token.email = user.email;
                 if (user.name) token.name = user.name;
                 if (user.nick) token.nick = user.nick;
-                if (user.image) token.image = user.image;
+                if (user.image) token.image = mediaUrl(user.image);
             }
             return token;
         },
@@ -58,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (token.email) session.user.email = token.email;
             if (token.name) session.user.name = token.name;
             if (token.nick) session.user.nick = token.nick;
-            if (token.image) session.user.image = token.image;
+            if (token.image) session.user.image = mediaUrl(token.image as string);
             return session;
         },
     },

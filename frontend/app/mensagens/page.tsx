@@ -1,6 +1,7 @@
 "use client";
 
 import type { ConversaResumo, Mensagem, MensagemResumo } from "@/types/mensagem";
+import { mediaUrl } from "@/lib/media";
 import type { PesquisaResultado, PesquisaUsuario } from "@/types/pesquisa";
 import {
     Dialog,
@@ -567,7 +568,7 @@ function MensagensConteudo() {
                                     >
                                         {conversa.image ? (
                                             <Image
-                                                src={conversa.image}
+                                                src={mediaUrl(conversa.image)!}
                                                 alt={conversa.nome}
                                                 width={40}
                                                 height={40}
@@ -627,7 +628,7 @@ function MensagensConteudo() {
                             <header className="flex items-center gap-3 border-b border-cinza-200 px-4 py-3">
                                 {conversaAtiva.image ? (
                                     <Image
-                                        src={conversaAtiva.image}
+                                        src={mediaUrl(conversaAtiva.image)!}
                                         alt={conversaAtiva.nome}
                                         width={40}
                                         height={40}
@@ -1020,7 +1021,7 @@ function MensagensConteudo() {
                                 >
                                     {usuario.image ? (
                                         <Image
-                                            src={usuario.image}
+                                            src={mediaUrl(usuario.image)!}
                                             alt={usuario.nome}
                                             width={36}
                                             height={36}

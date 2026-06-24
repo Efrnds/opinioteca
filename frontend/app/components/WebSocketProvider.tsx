@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
+import { toWsUrl, wsBaseUrl } from "@/lib/media";
 import type { Mensagem } from "@/types/mensagem";
 import type { Notificacao } from "@/types/notificacao";
 import { useSession } from "next-auth/react";
@@ -132,8 +132,7 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
         const token = session?.accessToken;
         if (!token) return;
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:9000";
-        const wsUrl = `${apiUrl.replace(/^http/, "ws")}/ws?token=${encodeURIComponent(token)}`;
+        const wsUrl = `${toWsUrl(wsBaseUrl())}/ws?token=${encodeURIComponent(token)}`;
 
         const ws = new WebSocket(wsUrl);
 

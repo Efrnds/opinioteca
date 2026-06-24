@@ -1,6 +1,7 @@
 "use client";
 
 import type { PesquisaResultado } from "@/types/pesquisa";
+import { mediaUrl } from "@/lib/media";
 import { hrefLivroPesquisa, keyLivroPesquisa } from "@/types/pesquisa";
 import { BookOpen, Loader2, User } from "lucide-react";
 import Image from "next/image";
@@ -106,7 +107,7 @@ function PesquisaConteudo() {
                             >
                                 {usuario.image ? (
                                     <Image
-                                        src={usuario.image}
+                                        src={mediaUrl(usuario.image)!}
                                         alt={usuario.nome}
                                         width={48}
                                         height={48}

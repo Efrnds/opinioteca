@@ -1,6 +1,7 @@
 "use client";
 
 import type { AvaliacaoFeed } from "@/types/avaliacao";
+import { mediaUrl } from "@/lib/media";
 import type { DiarioHistoricoResposta, DiarioResposta } from "@/types/diario";
 import type { LivroPublico } from "@/types/livro";
 import { Book, ChevronLeft, Loader2, Mail } from "lucide-react";
@@ -488,7 +489,7 @@ export default function PerfilNickPage() {
                     <div className="-mt-12 flex items-end justify-between gap-3">
                         {perfil.image ? (
                             <Image
-                                src={perfil.image}
+                                src={mediaUrl(perfil.image)!}
                                 alt={perfil.nome}
                                 width={96}
                                 height={96}
