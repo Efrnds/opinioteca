@@ -119,7 +119,8 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
     const menuRef = useRef<HTMLDivElement | null>(null);
 
     const ehProprioPost = session?.user?.id === String(usuario.id);
-    const ocultarSpoiler = !!post.contem_spoiler && !ehProprioPost;
+    const temSpoiler = post.contem_spoiler === true;
+    const ocultarSpoiler = temSpoiler;
     const meuID = session?.user?.id ?? "";
     const comentariosArvore = useMemo(() => montarArvoreComentarios(comentarios), [comentarios]);
 
@@ -451,7 +452,14 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                     )}
                     <div className="min-w-0">
                         <p className="truncate font-gabarito-bold text-lg text-azul-900 hover:underline">{usuario.nome}</p>
-                        <p className="truncate font-gabarito-regular text-sm text-cinza-700 hover:underline">@{usuario.nick}</p>
+                        <p className="truncate font-gabarito-regular text-sm text-cinza-700 hover:underline">
+                            @{usuario.nick}
+                            {temSpoiler && (
+                                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 font-gabarito-bold text-[10px] uppercase text-amber-800">
+                                    Spoiler
+                                </span>
+                            )}
+                        </p>
                     </div>
                 </Link>
                 <div ref={menuRef} className="relative flex shrink-0 items-center gap-1">
@@ -516,7 +524,14 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                 </div>
             </Link>
 
-            <SpoilerGuard ativo={ocultarSpoiler}>
+            <SpoilerGuard
+                ativo={ocultarSpoiler}
+                mensagem={
+                    ehProprioPost
+                        ? "Você marcou esta resenha como spoiler"
+                        : "Esta avaliação contém spoiler"
+                }
+            >
                 {textoPost && (
                     <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
                         {textoPost}

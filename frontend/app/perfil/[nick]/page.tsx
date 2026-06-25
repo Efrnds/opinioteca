@@ -61,19 +61,22 @@ function normalizarAvaliacoes(
     }
 
     return raw.map((item) => {
-        const avaliacao = (item ?? {}) as Partial<AvaliacaoFeed>;
-        const usuarioOriginal = avaliacao.usuario;
-        const livroID = extrairLivroID(avaliacao as Partial<AvaliacaoFeed> & { livro_id?: number });
+        const avaliacao = (item ?? {}) as Partial<AvaliacaoFeed> & {
+            avaliacao?: Partial<AvaliacaoFeed>;
+        };
+        const dados = avaliacao.avaliacao ?? avaliacao;
+        const usuarioOriginal = dados.usuario ?? avaliacao.usuario;
+        const livroID = extrairLivroID(dados as Partial<AvaliacaoFeed> & { livro_id?: number });
         const livroDoMapa = livroID > 0 ? livrosPorID.get(livroID) : undefined;
-        const livroOriginal = avaliacao.livro;
+        const livroOriginal = dados.livro ?? avaliacao.livro;
 
         return {
-            id: Number(avaliacao.id ?? 0),
-            nota: Number(avaliacao.nota ?? 0),
-            texto: avaliacao.texto ?? "",
-            contem_spoiler: !!avaliacao.contem_spoiler,
-            anexo_url: avaliacao.anexo_url,
-            criado_em: avaliacao.criado_em ?? new Date().toISOString(),
+            id: Number(dados.id ?? avaliacao.id ?? 0),
+            nota: Number(dados.nota ?? avaliacao.nota ?? 0),
+            texto: dados.texto ?? avaliacao.texto ?? "",
+            contem_spoiler: dados.contem_spoiler === true || avaliacao.contem_spoiler === true,
+            anexo_url: dados.anexo_url ?? avaliacao.anexo_url,
+            criado_em: dados.criado_em ?? avaliacao.criado_em ?? new Date().toISOString(),
             usuario: {
                 id: Number(usuarioOriginal?.id ?? perfil.id ?? 0),
                 nome: usuarioOriginal?.nome || perfil.nome || "Usuário",
