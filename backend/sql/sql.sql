@@ -86,6 +86,8 @@
         template_id INTEGER REFERENCES templates(id),
         nota INTEGER NOT NULL CHECK (nota >= 1 AND nota <= 5),
         texto TEXT NOT NULL,
+        contem_spoiler BOOLEAN NOT NULL DEFAULT FALSE,
+        anexo_url VARCHAR(512),
         score_sentimento FLOAT DEFAULT NULL,
         criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (usuario_id, livro_id)
@@ -110,6 +112,7 @@
         avaliacao_id INTEGER NOT NULL REFERENCES avaliacoes(id),
         pai_id INTEGER REFERENCES comentarios(id) ON DELETE CASCADE,
         texto TEXT NOT NULL,
+        anexo_url VARCHAR(512),
         criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 

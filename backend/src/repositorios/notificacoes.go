@@ -52,7 +52,7 @@ func (repositorio Notificacoes) BuscarNaoLidas(usuarioID uint64) ([]modelos.Noti
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, usuario_id, tipo_notificacao, titulo, conteudo, referencia_id, lida, criadoEm
 		 FROM notificacoes
-		 WHERE usuario_id = $1 AND lida = FALSE
+		 WHERE usuario_id = $1 AND lida = FALSE AND tipo_notificacao <> 'mensagem'
 		 ORDER BY criadoEm DESC
 		 LIMIT 50`,
 		usuarioID,
@@ -69,7 +69,7 @@ func (repositorio Notificacoes) BuscarTodas(usuarioID uint64) ([]modelos.Notific
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, usuario_id, tipo_notificacao, titulo, conteudo, referencia_id, lida, criadoEm
 		 FROM notificacoes
-		 WHERE usuario_id = $1
+		 WHERE usuario_id = $1 AND tipo_notificacao <> 'mensagem'
 		 ORDER BY criadoEm DESC
 		 LIMIT 100`,
 		usuarioID,
@@ -85,7 +85,7 @@ func (repositorio Notificacoes) BuscarTodas(usuarioID uint64) ([]modelos.Notific
 func (repositorio Notificacoes) ContarNaoLidas(usuarioID uint64) (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(
-		`SELECT COUNT(*) FROM notificacoes WHERE usuario_id = $1 AND lida = FALSE`,
+		`SELECT COUNT(*) FROM notificacoes WHERE usuario_id = $1 AND lida = FALSE AND tipo_notificacao <> 'mensagem'`,
 		usuarioID,
 	).Scan(&total)
 	return total, erro

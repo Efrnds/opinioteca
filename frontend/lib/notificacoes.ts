@@ -1,4 +1,14 @@
 import type { Notificacao } from "@/types/notificacao";
+import { notificacaoEhMensagem } from "@/lib/ws/types";
+
+/** Normaliza `lida` vindo da API (bool, string, número). */
+export function notificacaoEstaLida(valor: unknown): boolean {
+    return valor === true || valor === "true" || valor === 1 || valor === "1";
+}
+
+export function contarNotificacoesNaoLidas(notificacoes: Notificacao[]): number {
+    return notificacoes.filter((n) => !notificacaoEhMensagem(n) && !notificacaoEstaLida(n.lida)).length;
+}
 
 export async function resolverDestinoNotificacao(notif: Notificacao): Promise<string> {
     const ref = notif.referencia_id;

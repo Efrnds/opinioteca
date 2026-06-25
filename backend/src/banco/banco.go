@@ -11,6 +11,12 @@ func garantirSchemaComentarios(db *sql.DB) error {
 	comandos := []string{
 		`ALTER TABLE comentarios
 		 ADD COLUMN IF NOT EXISTS pai_id INTEGER`,
+		`ALTER TABLE comentarios
+		 ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512)`,
+		`ALTER TABLE avaliacoes
+		 ADD COLUMN IF NOT EXISTS contem_spoiler BOOLEAN NOT NULL DEFAULT FALSE`,
+		`ALTER TABLE avaliacoes
+		 ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512)`,
 		`CREATE TABLE IF NOT EXISTS voto_comentarios (
 			id SERIAL PRIMARY KEY,
 			usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,

@@ -25,7 +25,7 @@ export function toWsUrl(base: string, path = ""): string {
 /** URL base para WebSocket no browser. */
 export function wsBaseUrl(): string {
     const wsExplicit = process.env.NEXT_PUBLIC_WS_URL?.replace(/\/$/, "");
-    if (wsExplicit && !wsExplicit.includes("localhost") && !wsExplicit.includes("127.0.0.1")) {
+    if (wsExplicit) {
         return wsExplicit;
     }
 
@@ -38,14 +38,16 @@ export function wsBaseUrl(): string {
         if (onLocalhost && apiUrl && (apiUrl.includes("localhost") || apiUrl.includes("127.0.0.1"))) {
             return apiUrl;
         }
-        if (onLocalhost && wsExplicit) {
-            return wsExplicit;
+
+        // Produção: usar a mesma base da API quando configurada (ex.: subdomínio do backend)
+        if (!onLocalhost && apiUrl && !apiUrl.includes("localhost") && !apiUrl.includes("127.0.0.1")) {
+            return apiUrl;
         }
 
-        // Produção: mesmo domínio (nginx faz proxy /ws → backend)
+        // Fallback: mesmo domínio do front (nginx deve fazer proxy de /ws → backend)
         const protocol = window.location.protocol === "https:" ? "https:" : "http:";
         return `${protocol}//${window.location.host}`;
     }
 
-    return wsExplicit || process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:4668";
+    return process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:4668";
 }

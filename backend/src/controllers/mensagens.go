@@ -16,8 +16,6 @@ import (
 
 	"backend/src/servicos"
 
-	"backend/src/websockets"
-
 	"database/sql"
 
 	"encoding/json"
@@ -29,8 +27,7 @@ import (
 	"net/http"
 
 	"strconv"
-
-
+	"time"
 
 	"github.com/gorilla/mux"
 
@@ -89,6 +86,52 @@ func BuscarInboxMensagens(w http.ResponseWriter, r *http.Request) {
 
 
 	respostas.JSON(w, http.StatusOK, conversas)
+
+}
+
+
+
+func ContarMensagensNaoLidas(w http.ResponseWriter, r *http.Request) {
+
+	meuID, erro := auth.ExtrairUsuarioID(r)
+
+	if erro != nil {
+
+		respostas.Erro(w, http.StatusUnauthorized, erro)
+
+		return
+
+	}
+
+
+
+	db, erro := banco.Conectar()
+
+	if erro != nil {
+
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+
+		return
+
+	}
+
+	defer db.Close()
+
+
+
+	total, erro := repositorios.NovoRepositorioDeMensagens(db).ContarNaoLidasTotal(meuID)
+
+	if erro != nil {
+
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+
+		return
+
+	}
+
+
+
+	respostas.JSON(w, http.StatusOK, map[string]int{"total": total})
 
 }
 
@@ -154,7 +197,11 @@ func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
+	if erro = repo.MarcarConversaComoLida(meuID, outroID); erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	servicos.BroadcastConversaLida(db, meuID, outroID)
 
 	respostas.JSON(w, http.StatusOK, mensagens)
 
@@ -298,15 +345,7 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	remetente, _ := repoUsuarios.BuscarPorID(meuID)
-	titulo := remetente.Nome + " enviou uma mensagem"
-	conteudoNotif := req.Conteudo
-	if conteudoNotif == "" {
-		conteudoNotif = "📷 Imagem"
-	}
-	ref := meuID
-	servicos.DispararNotificacao(db, destinatarioID, meuID, "mensagem", titulo, conteudoNotif, &ref)
-	websockets.EnviarParaUsuario(destinatarioID, "NOVA_MENSAGEM", mensagem)
+	servicos.BroadcastNovaMensagem(db, mensagem)
 
 	respostas.JSON(w, http.StatusCreated, mensagem)
 
@@ -414,7 +453,9 @@ func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
-	if erro = repo.ApagarMensagem(meuID, mensagemID); erro != nil {
+	mensagem, erro := repo.ApagarMensagem(meuID, mensagemID)
+
+	if erro != nil {
 
 		if errors.Is(erro, sql.ErrNoRows) {
 
@@ -430,7 +471,18 @@ func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
+	servicos.BroadcastMensagemApagada(
+		mensagem.RemetenteID,
+		mensagem.DestinatarioID,
+		modelos.WsMensagemApagadaPayload{
+			MensagemID:             mensagem.ID,
+			RemetenteID:            mensagem.RemetenteID,
+			DestinatarioID:         mensagem.DestinatarioID,
+			ApagadoPorRemetente:    mensagem.ApagadoPorRemetente,
+			ApagadoPorDestinatario: mensagem.ApagadoPorDestinatario,
+			CriadoEm:               mensagem.CriadoEm.Format(time.RFC3339Nano),
+		},
+	)
 
 	respostas.JSON(w, http.StatusOK, map[string]string{"mensagem": "Mensagem apagada"})
 
@@ -530,7 +582,10 @@ func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
+	servicos.BroadcastMensagemAtualizada(
+		[]uint64{mensagem.RemetenteID, mensagem.DestinatarioID},
+		mensagem,
+	)
 
 	respostas.JSON(w, http.StatusOK, mensagem)
 
@@ -630,7 +685,10 @@ func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
+	servicos.BroadcastMensagemAtualizada(
+		[]uint64{mensagem.RemetenteID, mensagem.DestinatarioID},
+		mensagem,
+	)
 
 	respostas.JSON(w, http.StatusOK, mensagem)
 
@@ -717,6 +775,15 @@ func MarcarMensagemComoLida(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repo := repositorios.NovoRepositorioDeMensagens(db)
+	msg, erro := repo.BuscarMensagemPorID(meuID, mensagemID)
+	if erro != nil {
+		if errors.Is(erro, sql.ErrNoRows) {
+			respostas.Erro(w, http.StatusNotFound, errors.New("mensagem não encontrada"))
+			return
+		}
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
 	if erro = repo.MarcarComoLida(meuID, mensagemID); erro != nil {
 		if errors.Is(erro, sql.ErrNoRows) {
 			respostas.Erro(w, http.StatusNotFound, errors.New("mensagem não encontrada"))
@@ -725,6 +792,7 @@ func MarcarMensagemComoLida(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
+	servicos.BroadcastConversaLida(db, meuID, msg.RemetenteID)
 
 	respostas.NoContent(w)
 }

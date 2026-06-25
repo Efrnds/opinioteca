@@ -7,6 +7,7 @@ import (
 	"backend/src/modelos"
 
 	"database/sql"
+	"errors"
 
 )
 
@@ -192,7 +193,17 @@ func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaRe
 
 		       c.criadoEm, c.remetente_id,
 
-		       (cf.usuario_id IS NOT NULL) AS fixada
+		       (cf.usuario_id IS NOT NULL) AS fixada,
+
+		       (SELECT COUNT(*)::int FROM mensagens m2
+
+		        WHERE m2.destinatario_id = $1
+
+		          AND m2.remetente_id = c.outro_id
+
+		          AND m2.lida = FALSE
+
+		          AND m2.apagado_por_destinatario = FALSE) AS nao_lidas
 
 		FROM conversas c
 
@@ -247,6 +258,8 @@ func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaRe
 			&remetenteID,
 
 			&c.Fixada,
+
+			&c.NaoLidas,
 
 		); erro != nil {
 
@@ -454,66 +467,47 @@ func (repositorio Mensagens) ApagarConversa(meuID, outroID uint64) error {
 
 
 
-func (repositorio Mensagens) ApagarMensagem(meuID, mensagemID uint64) error {
+func (repositorio Mensagens) ApagarMensagem(meuID, mensagemID uint64) (modelos.Mensagem, error) {
+	var m modelos.Mensagem
 
-	res, erro := repositorio.db.Exec(
-
+	erro := repositorio.db.QueryRow(
 		`UPDATE mensagens SET apagado_por_remetente = TRUE
-
-		 WHERE id = $1 AND remetente_id = $2`,
-
+		 WHERE id = $1 AND remetente_id = $2
+		 RETURNING id, remetente_id, destinatario_id, apagado_por_remetente, apagado_por_destinatario, criadoEm`,
 		mensagemID, meuID,
-
+	).Scan(
+		&m.ID,
+		&m.RemetenteID,
+		&m.DestinatarioID,
+		&m.ApagadoPorRemetente,
+		&m.ApagadoPorDestinatario,
+		&m.CriadoEm,
 	)
-
-	if erro != nil {
-
-		return erro
-
+	if erro == nil {
+		return m, nil
+	}
+	if !errors.Is(erro, sql.ErrNoRows) {
+		return modelos.Mensagem{}, erro
 	}
 
-
-
-	linhas, _ := res.RowsAffected()
-
-	if linhas > 0 {
-
-		return nil
-
-	}
-
-
-
-	res, erro = repositorio.db.Exec(
-
+	erro = repositorio.db.QueryRow(
 		`UPDATE mensagens SET apagado_por_destinatario = TRUE
-
-		 WHERE id = $1 AND destinatario_id = $2`,
-
+		 WHERE id = $1 AND destinatario_id = $2
+		 RETURNING id, remetente_id, destinatario_id, apagado_por_remetente, apagado_por_destinatario, criadoEm`,
 		mensagemID, meuID,
-
+	).Scan(
+		&m.ID,
+		&m.RemetenteID,
+		&m.DestinatarioID,
+		&m.ApagadoPorRemetente,
+		&m.ApagadoPorDestinatario,
+		&m.CriadoEm,
 	)
-
 	if erro != nil {
-
-		return erro
-
+		return modelos.Mensagem{}, erro
 	}
 
-
-
-	linhas, _ = res.RowsAffected()
-
-	if linhas == 0 {
-
-		return sql.ErrNoRows
-
-	}
-
-
-
-	return nil
-
+	return m, nil
 }
 
 
@@ -733,5 +727,34 @@ func (repositorio Mensagens) MarcarComoLida(meuID, mensagemID uint64) error {
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (repositorio Mensagens) MarcarConversaComoLida(meuID, outroID uint64) error {
+	_, erro := repositorio.db.Exec(
+		`UPDATE mensagens SET lida = TRUE
+		 WHERE destinatario_id = $1 AND remetente_id = $2 AND lida = FALSE`,
+		meuID, outroID,
+	)
+	return erro
+}
+
+func (repositorio Mensagens) ContarNaoLidasTotal(meuID uint64) (int, error) {
+	var total int
+	erro := repositorio.db.QueryRow(
+		`SELECT COUNT(*)::int FROM mensagens
+		 WHERE destinatario_id = $1 AND lida = FALSE AND apagado_por_destinatario = FALSE`,
+		meuID,
+	).Scan(&total)
+	return total, erro
+}
+
+func (repositorio Mensagens) ContarNaoLidasComUsuario(meuID, outroID uint64) (int, error) {
+	var total int
+	erro := repositorio.db.QueryRow(
+		`SELECT COUNT(*)::int FROM mensagens
+		 WHERE destinatario_id = $1 AND remetente_id = $2 AND lida = FALSE AND apagado_por_destinatario = FALSE`,
+		meuID, outroID,
+	).Scan(&total)
+	return total, erro
 }
 

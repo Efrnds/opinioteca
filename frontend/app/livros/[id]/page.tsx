@@ -1,6 +1,7 @@
 "use client";
 
 import type { AvaliacaoFeed } from "@/types/avaliacao";
+import { normalizarPostFeed } from "@/lib/avaliacao";
 import type { LivroPublico } from "@/types/livro";
 import { BookOpen, ChevronLeft, Loader2, Share2 } from "lucide-react";
 import Image from "next/image";
@@ -50,7 +51,8 @@ export default function LivroPage() {
                 }
 
                 setLivro(dataLivro as LivroPublico);
-                setAvaliacoes(Array.isArray(dataAvaliacoes) ? dataAvaliacoes : []);
+                const lista = Array.isArray(dataAvaliacoes) ? (dataAvaliacoes as AvaliacaoFeed[]) : [];
+                setAvaliacoes(lista.map(normalizarPostFeed));
                 setErro("");
             } catch {
                 setErro("Não foi possível carregar o livro.");
@@ -150,7 +152,13 @@ export default function LivroPage() {
                     <p className="font-gabarito-bold text-xl text-azul-900">Nenhuma avaliação para este livro ainda.</p>
                 </Box>
             ) : (
-                avaliacoes.map(avaliacao => <PostCard key={avaliacao.id} post={avaliacao} />)
+                avaliacoes.map((avaliacao) => (
+                    <PostCard
+                        key={avaliacao.id}
+                        post={avaliacao}
+                        onRemovido={(id) => setAvaliacoes((lista) => lista.filter((a) => a.id !== id))}
+                    />
+                ))
             )}
         </div>
     );

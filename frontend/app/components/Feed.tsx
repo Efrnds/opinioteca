@@ -1,6 +1,7 @@
 "use client";
 
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
+import { normalizarPostFeed } from "@/lib/avaliacao";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "./WebSocketProvider";
 import PostCard from "./PostCard";
@@ -63,7 +64,8 @@ export default function Feed() {
                 return;
             }
 
-            setPosts((atual) => (append ? [...atual, ...data] : data));
+            const normalizados = (data as AvaliacaoFeed[]).map(normalizarPostFeed);
+            setPosts((atual) => (append ? [...atual, ...normalizados] : normalizados));
             setTemMais(data.length === LIMITE);
             setErro("");
         } catch {
@@ -152,6 +154,10 @@ export default function Feed() {
             }
         });
     }, [subscribe]);
+
+    const removerDoFeed = useCallback((avaliacaoId: number) => {
+        setPosts((atual) => atual.filter((post) => post.id !== avaliacaoId));
+    }, []);
 
     useEffect(() => {
         if (!temMais || carregando || carregandoMais || posts.length === 0) return;
@@ -243,7 +249,11 @@ export default function Feed() {
         <div className="flex flex-col gap-4">
             {abas}
             {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                    key={post.id}
+                    post={post}
+                    onRemovido={removerDoFeed}
+                />
             ))}
             <div id="feed-lazy-sentinel" className="h-8" />
             {carregandoMais && <div className="h-24 animate-pulse rounded-2xl bg-white/70" />}

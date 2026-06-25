@@ -31,6 +31,7 @@ export default function ComentarioComposer({
     const [erro, setErro] = useState("");
     const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
     const [previewImagem, setPreviewImagem] = useState<string | null>(null);
+    const [anexoUrlDireto, setAnexoUrlDireto] = useState<string | null>(null);
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [termoGifBusca, setTermoGifBusca] = useState("");
     const [gifsGiphy, setGifsGiphy] = useState<GiphyGif[]>([]);
@@ -41,6 +42,7 @@ export default function ComentarioComposer({
         if (previewImagem) URL.revokeObjectURL(previewImagem);
         setArquivoImagem(null);
         setPreviewImagem(null);
+        setAnexoUrlDireto(null);
     }
 
     function definirArquivo(arquivo: File) {
@@ -81,7 +83,7 @@ export default function ComentarioComposer({
             setErro("Links não são permitidos em comentários.");
             return;
         }
-        if (!textoFinal && !arquivoImagem) {
+        if (!textoFinal && !arquivoImagem && !anexoUrlDireto) {
             setErro("Escreva algo ou anexe uma imagem.");
             return;
         }
@@ -91,6 +93,8 @@ export default function ComentarioComposer({
             let anexoUrl: string | undefined;
             if (arquivoImagem) {
                 anexoUrl = await enviarImagemAvatar(arquivoImagem);
+            } else if (anexoUrlDireto) {
+                anexoUrl = anexoUrlDireto;
             }
             await onEnviar({ texto: textoFinal, anexoUrl });
             setTexto("");
@@ -101,25 +105,23 @@ export default function ComentarioComposer({
         }
     }
 
-    async function selecionarGif(url: string) {
+    function selecionarGif(url: string) {
+        limparAnexo();
+        setAnexoUrlDireto(url);
         setShowGifPicker(false);
         setTermoGifBusca("");
-        limparAnexo();
         setErro("");
-        try {
-            await onEnviar({ texto: "", anexoUrl: url });
-            setTexto("");
-        } catch (uploadErro) {
-            setErro(uploadErro instanceof Error ? uploadErro.message : "Não foi possível enviar o GIF.");
-        }
     }
+
+    const previewAnexo = previewImagem ?? anexoUrlDireto;
+    const temAnexo = !!arquivoImagem || !!anexoUrlDireto;
 
     return (
         <form onSubmit={handleSubmit} className="space-y-2">
-            {previewImagem && (
+            {previewAnexo && (
                 <div className="relative w-fit">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previewImagem} alt="Preview" className="h-16 w-16 rounded-xl object-cover" />
+                    <img src={previewAnexo} alt="Preview" className="max-h-24 max-w-full rounded-xl object-contain" />
                     <button
                         type="button"
                         onClick={limparAnexo}
@@ -227,7 +229,7 @@ export default function ComentarioComposer({
                     />
                     <button
                         type="submit"
-                        disabled={enviando || (!texto.trim() && !arquivoImagem)}
+                        disabled={enviando || (!texto.trim() && !temAnexo)}
                         className="rounded-full bg-azul-600 p-1.5 text-white transition hover:bg-azul-700 disabled:opacity-40"
                         aria-label="Enviar comentário"
                     >
@@ -240,11 +242,38 @@ export default function ComentarioComposer({
     );
 }
 
-export function ComentarioMidia({ url, alt = "Anexo" }: { url?: string | null; alt?: string }) {
+function ehGif(url: string) {
+    return /\.gif($|\?)/i.test(url) || url.includes("giphy.com");
+}
+
+export function ComentarioMidia({
+    url,
+    alt = "Anexo",
+    expandido = false,
+}: {
+    url?: string | null;
+    alt?: string;
+    expandido?: boolean;
+}) {
     if (!url) return null;
     const src = mediaUrl(url) ?? url;
+    const gif = ehGif(url);
+
     return (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} className="mt-2 max-h-48 max-w-full rounded-xl object-cover" loading="lazy" />
+        <img
+            src={src}
+            alt={alt}
+            className={`mt-2 max-w-full rounded-xl ${
+                expandido
+                    ? gif
+                        ? "max-h-80 object-contain"
+                        : "max-h-72 object-cover"
+                    : gif
+                      ? "max-h-56 object-contain"
+                      : "max-h-48 object-cover"
+            }`}
+            loading="lazy"
+        />
     );
 }

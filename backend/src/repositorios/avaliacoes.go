@@ -16,13 +16,15 @@ func NovoRepositorioDeAvaliacoes(db *sql.DB) *Avaliacoes {
 func (repositorio Avaliacoes) Criar(tx *sql.Tx, avaliacao modelos.Avaliacao) (uint64, error) {
 	var id uint64
 	erro := tx.QueryRow(
-		`INSERT INTO avaliacoes (usuario_id, livro_id, template_id, nota, texto, score_sentimento)
-		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+		`INSERT INTO avaliacoes (usuario_id, livro_id, template_id, nota, texto, contem_spoiler, anexo_url, score_sentimento)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
 		avaliacao.UsuarioID,
 		avaliacao.LivroID,
 		avaliacao.TemplateID,
 		avaliacao.Nota,
 		avaliacao.Texto,
+		avaliacao.ContemSpoiler,
+		avaliacao.AnexoURL,
 		avaliacao.ScoreSentimento,
 	).Scan(&id)
 	if erro != nil {
@@ -33,14 +35,14 @@ func (repositorio Avaliacoes) Criar(tx *sql.Tx, avaliacao modelos.Avaliacao) (ui
 
 func (repositorio Avaliacoes) BuscarPorID(id uint64) (modelos.Avaliacao, error) {
 	linha := repositorio.db.QueryRow(
-		`SELECT id, usuario_id, livro_id, template_id, nota, texto, score_sentimento, criadoEm
+		`SELECT id, usuario_id, livro_id, template_id, nota, texto, contem_spoiler, anexo_url, score_sentimento, criadoEm
 		 FROM avaliacoes WHERE id = $1`, id)
 	return scanAvaliacao(linha)
 }
 
 func (repositorio Avaliacoes) BuscarPorLivro(livroID uint64) ([]modelos.Avaliacao, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT id, usuario_id, livro_id, template_id, nota, texto, score_sentimento, criadoEm
+		`SELECT id, usuario_id, livro_id, template_id, nota, texto, contem_spoiler, anexo_url, score_sentimento, criadoEm
 		 FROM avaliacoes WHERE livro_id = $1 ORDER BY criadoEm DESC`, livroID)
 	if erro != nil {
 		return nil, erro
@@ -51,7 +53,7 @@ func (repositorio Avaliacoes) BuscarPorLivro(livroID uint64) ([]modelos.Avaliaca
 
 func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.AvaliacaoFeed, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT a.id, a.nota, a.texto, a.criadoEm,
+		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
 		        u.id, u.nome, u.nick, u.image_url,
 		        l.id, l.titulo, l.autor, l.capa_url
@@ -71,12 +73,14 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 	repoComentarios := NovoRepositorioDeComentarios(repositorio.db)
 	for linhas.Next() {
 		var item modelos.AvaliacaoFeed
-		var imageURL, capaURL sql.NullString
+		var imageURL, capaURL, anexoURL sql.NullString
 
 		if erro := linhas.Scan(
 			&item.ID,
 			&item.Nota,
 			&item.Texto,
+			&item.ContemSpoiler,
+			&anexoURL,
 			&item.CriadoEm,
 			&item.QtdComentarios,
 			&item.Usuario.ID,
@@ -97,6 +101,9 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 		if capaURL.Valid {
 			item.Livro.CapaURL = capaURL.String
 		}
+		if anexoURL.Valid {
+			item.AnexoURL = &anexoURL.String
+		}
 		destaque, erro := repoComentarios.BuscarComentarioDestaque(item.ID)
 		if erro != nil {
 			return nil, erro
@@ -111,7 +118,7 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 
 func (repositorio Avaliacoes) BuscarPorUsuario(usuarioID uint64) ([]modelos.Avaliacao, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT id, usuario_id, livro_id, template_id, nota, texto, score_sentimento, criadoEm
+		`SELECT id, usuario_id, livro_id, template_id, nota, texto, contem_spoiler, anexo_url, score_sentimento, criadoEm
 		 FROM avaliacoes WHERE usuario_id = $1 ORDER BY criadoEm DESC`, usuarioID)
 	if erro != nil {
 		return nil, erro
@@ -122,7 +129,7 @@ func (repositorio Avaliacoes) BuscarPorUsuario(usuarioID uint64) ([]modelos.Aval
 
 func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.AvaliacaoFeed, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT a.id, a.nota, a.texto, a.criadoEm,
+		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
 		        u.id, u.nome, u.nick, u.image_url,
 		        l.id, l.titulo, l.autor, l.capa_url
@@ -142,12 +149,14 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 	avaliacaoIDs := make([]uint64, 0)
 	for linhas.Next() {
 		var item modelos.AvaliacaoFeed
-		var imageURL, capaURL sql.NullString
+		var imageURL, capaURL, anexoURL sql.NullString
 
 		if erro := linhas.Scan(
 			&item.ID,
 			&item.Nota,
 			&item.Texto,
+			&item.ContemSpoiler,
+			&anexoURL,
 			&item.CriadoEm,
 			&item.QtdComentarios,
 			&item.Usuario.ID,
@@ -167,6 +176,9 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 		}
 		if capaURL.Valid {
 			item.Livro.CapaURL = capaURL.String
+		}
+		if anexoURL.Valid {
+			item.AnexoURL = &anexoURL.String
 		}
 
 		feed = append(feed, item)
@@ -188,7 +200,7 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 
 func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offset int) ([]modelos.AvaliacaoFeed, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT a.id, a.nota, a.texto, a.criadoEm,
+		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
 		        u.id, u.nome, u.nick, u.image_url,
 		        l.id, l.titulo, l.autor, l.capa_url
@@ -211,12 +223,14 @@ func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offse
 	avaliacaoIDs := make([]uint64, 0)
 	for linhas.Next() {
 		var item modelos.AvaliacaoFeed
-		var imageURL, capaURL sql.NullString
+		var imageURL, capaURL, anexoURL sql.NullString
 
 		if erro := linhas.Scan(
 			&item.ID,
 			&item.Nota,
 			&item.Texto,
+			&item.ContemSpoiler,
+			&anexoURL,
 			&item.CriadoEm,
 			&item.QtdComentarios,
 			&item.Usuario.ID,
@@ -236,6 +250,9 @@ func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offse
 		}
 		if capaURL.Valid {
 			item.Livro.CapaURL = capaURL.String
+		}
+		if anexoURL.Valid {
+			item.AnexoURL = &anexoURL.String
 		}
 
 		feed = append(feed, item)
@@ -293,6 +310,7 @@ func scanAvaliacao(linha *sql.Row) (modelos.Avaliacao, error) {
 	var avaliacao modelos.Avaliacao
 	var templateID sql.NullInt64
 	var score sql.NullFloat64
+	var anexoURL sql.NullString
 
 	erro := linha.Scan(
 		&avaliacao.ID,
@@ -301,6 +319,8 @@ func scanAvaliacao(linha *sql.Row) (modelos.Avaliacao, error) {
 		&templateID,
 		&avaliacao.Nota,
 		&avaliacao.Texto,
+		&avaliacao.ContemSpoiler,
+		&anexoURL,
 		&score,
 		&avaliacao.CriadoEm,
 	)
@@ -315,6 +335,9 @@ func scanAvaliacao(linha *sql.Row) (modelos.Avaliacao, error) {
 		valor := score.Float64
 		avaliacao.ScoreSentimento = &valor
 	}
+	if anexoURL.Valid {
+		avaliacao.AnexoURL = &anexoURL.String
+	}
 	return avaliacao, nil
 }
 
@@ -324,6 +347,7 @@ func scanAvaliacoes(linhas *sql.Rows) ([]modelos.Avaliacao, error) {
 		var avaliacao modelos.Avaliacao
 		var templateID sql.NullInt64
 		var score sql.NullFloat64
+		var anexoURL sql.NullString
 
 		if erro := linhas.Scan(
 			&avaliacao.ID,
@@ -332,6 +356,8 @@ func scanAvaliacoes(linhas *sql.Rows) ([]modelos.Avaliacao, error) {
 			&templateID,
 			&avaliacao.Nota,
 			&avaliacao.Texto,
+			&avaliacao.ContemSpoiler,
+			&anexoURL,
 			&score,
 			&avaliacao.CriadoEm,
 		); erro != nil {
@@ -344,6 +370,9 @@ func scanAvaliacoes(linhas *sql.Rows) ([]modelos.Avaliacao, error) {
 		if score.Valid {
 			valor := score.Float64
 			avaliacao.ScoreSentimento = &valor
+		}
+		if anexoURL.Valid {
+			avaliacao.AnexoURL = &anexoURL.String
 		}
 		avaliacoes = append(avaliacoes, avaliacao)
 	}

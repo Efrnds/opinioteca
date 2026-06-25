@@ -2,6 +2,7 @@
 
 import {
     nomeDoTituloNotificacao,
+    notificacaoEstaLida,
     referenciaEhUsuario,
     resolverDestinoNotificacao,
     textoAcaoNotificacao,
@@ -64,12 +65,16 @@ function useAtores(notificacoes: Notificacao[]) {
 
 export default function NotificacoesLista() {
     const router = useRouter();
-    const { notificacoes, notificacoesCarregando, marcarNotificacaoLida } = useWebSocket();
+    const { notificacoes, notificacoesCarregando, marcarNotificacaoLida, carregarNotificacoes } = useWebSocket();
     const notificacoesVisiveis = notificacoes.filter((n) => !notificacaoEhMensagem(n));
     const { nomeExibicao, avatarExibicao } = useAtores(notificacoesVisiveis);
 
+    useEffect(() => {
+        void carregarNotificacoes();
+    }, [carregarNotificacoes]);
+
     function abrirNotificacao(notif: Notificacao) {
-        if (!notif.lida) {
+        if (!notificacaoEstaLida(notif.lida)) {
             marcarNotificacaoLida(notif.id);
         }
         resolverDestinoNotificacao(notif).then(destino => router.push(destino));
@@ -91,7 +96,7 @@ export default function NotificacoesLista() {
 
     return (
         <ul className="flex flex-col gap-3">
-            {notificacoes.map(notif => {
+            {notificacoesVisiveis.map((notif) => {
                 const nick = nomeExibicao(notif);
                 const avatar = avatarExibicao(notif);
                 const acao = textoAcaoNotificacao(notif.tipo_notificacao);
@@ -103,7 +108,7 @@ export default function NotificacoesLista() {
                             onClick={() => abrirNotificacao(notif)}
                             className={cn(
                                 "flex w-full items-center justify-between gap-4 rounded-xl border-2 px-4 py-3 text-left transition hover:opacity-90",
-                                !notif.lida ? "border-azul-600 bg-[#EAF1FF]" : "border-gray-300 bg-white",
+                                !notificacaoEstaLida(notif.lida) ? "border-azul-600 bg-[#EAF1FF]" : "border-gray-300 bg-white",
                             )}
                         >
                             <div className="flex min-w-0 items-center gap-3">
@@ -119,7 +124,7 @@ export default function NotificacoesLista() {
                                     <div
                                         className={cn(
                                             "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-gabarito-bold text-sm",
-                                            !notif.lida ? "bg-azul-600 text-white" : "bg-gray-200 text-gray-600",
+                                            !notificacaoEstaLida(notif.lida) ? "bg-azul-600 text-white" : "bg-gray-200 text-gray-600",
                                         )}
                                     >
                                         {nick.charAt(0).toUpperCase()}
@@ -128,7 +133,7 @@ export default function NotificacoesLista() {
                                 <span
                                     className={cn(
                                         "truncate text-base",
-                                        !notif.lida
+                                        !notificacaoEstaLida(notif.lida)
                                             ? "font-gabarito-bold text-azul-600"
                                             : "font-gabarito-regular text-gray-500",
                                     )}

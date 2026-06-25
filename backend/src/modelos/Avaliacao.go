@@ -13,6 +13,8 @@ type Avaliacao struct {
 	TemplateID      *uint64   `json:"template_id,omitempty"`
 	Nota            int       `json:"nota"`
 	Texto           string    `json:"texto"`
+	ContemSpoiler   bool      `json:"contem_spoiler"`
+	AnexoURL        *string   `json:"anexo_url,omitempty"`
 	ScoreSentimento *float64  `json:"score_sentimento,omitempty"`
 	CriadoEm        time.Time `json:"criado_em"`
 }
@@ -22,6 +24,8 @@ type CriarAvaliacaoRequest struct {
 	GoogleVolumeID string  `json:"google_volume_id"`
 	Nota           int     `json:"nota"`
 	Texto          string  `json:"texto"`
+	AnexoURL       string  `json:"anexo_url"`
+	ContemSpoiler  bool    `json:"contem_spoiler"`
 	TemplateID     *uint64 `json:"template_id"`
 }
 
@@ -53,6 +57,8 @@ type AvaliacaoFeed struct {
 	ID                 uint64              `json:"id"`
 	Nota               int                 `json:"nota"`
 	Texto              string              `json:"texto"`
+	ContemSpoiler      bool                `json:"contem_spoiler"`
+	AnexoURL           *string             `json:"anexo_url,omitempty"`
 	CriadoEm           time.Time           `json:"criado_em"`
 	Usuario            UsuarioFeed         `json:"usuario"`
 	Livro              LivroFeed           `json:"livro"`
@@ -65,6 +71,7 @@ type AvaliacaoFeed struct {
 func (req *CriarAvaliacaoRequest) Preparar() error {
 	req.GoogleVolumeID = strings.TrimSpace(req.GoogleVolumeID)
 	req.Texto = strings.TrimSpace(req.Texto)
+	req.AnexoURL = strings.TrimSpace(req.AnexoURL)
 
 	temLivroID := req.LivroID != nil && *req.LivroID > 0
 	temGoogleID := req.GoogleVolumeID != ""
@@ -75,8 +82,11 @@ func (req *CriarAvaliacaoRequest) Preparar() error {
 	if req.Nota < 1 || req.Nota > 5 {
 		return errors.New("A nota deve ser entre 1 e 5!")
 	}
-	if req.Texto == "" {
-		return errors.New("O texto da avaliação é obrigatório!")
+	if req.Texto != "" && textoContemLink(req.Texto) {
+		return errors.New("Links não são permitidos em resenhas")
+	}
+	if req.Texto == "" && req.AnexoURL == "" {
+		return errors.New("Informe o texto da resenha ou anexe uma imagem")
 	}
 
 	return nil

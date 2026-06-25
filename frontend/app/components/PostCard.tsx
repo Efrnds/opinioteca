@@ -1,6 +1,7 @@
 "use client";
 
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
+import { avaliacaoTemSpoiler } from "@/lib/avaliacao";
 import { mediaUrl } from "@/lib/media";
 import { ArrowBigDown, ArrowBigUp, Loader2, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -29,6 +30,7 @@ type PostCardProps = {
     post: AvaliacaoFeed;
     podeApagar?: boolean;
     aoApagar?: (avaliacaoId: number) => Promise<void> | void;
+    onRemovido?: (avaliacaoId: number) => void;
 };
 
 type VotoResposta = {
@@ -93,7 +95,7 @@ function adicionarComentarioUnico(lista: ComentarioAvaliacao[], comentario: Come
     return [...lista, comentario];
 }
 
-export default function PostCard({ post, podeApagar = false, aoApagar }: PostCardProps) {
+export default function PostCard({ post, podeApagar = false, aoApagar, onRemovido }: PostCardProps) {
     const { data: session } = useSession();
     const { subscribe } = useWebSocket();
     const usuario = post?.usuario ?? { id: 0, nome: "Usuário", nick: "desconhecido", image: undefined };
@@ -116,10 +118,12 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
     const [comentarioPaiAtivo, setComentarioPaiAtivo] = useState<number | null>(null);
     const [enviandoResposta, setEnviandoResposta] = useState(false);
     const [erroComentario, setErroComentario] = useState("");
+    const [erroApagar, setErroApagar] = useState("");
     const menuRef = useRef<HTMLDivElement | null>(null);
 
     const ehProprioPost = session?.user?.id === String(usuario.id);
-    const temSpoiler = post.contem_spoiler === true;
+    const podeExcluir = ehProprioPost || (podeApagar && !!aoApagar);
+    const temSpoiler = avaliacaoTemSpoiler(post.contem_spoiler);
     const ocultarSpoiler = temSpoiler;
     const meuID = session?.user?.id ?? "";
     const comentariosArvore = useMemo(() => montarArvoreComentarios(comentarios), [comentarios]);
@@ -205,11 +209,25 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
     }
 
     async function handleApagar() {
-        if (!aoApagar || apagando) return;
+        if (!podeExcluir || apagando) return;
+
         setApagando(true);
+        setErroApagar("");
         try {
-            await aoApagar(post.id);
+            if (aoApagar) {
+                await aoApagar(post.id);
+            } else {
+                const res = await fetch(`/api/avaliacoes/${post.id}`, { method: "DELETE" });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    setErroApagar((data as { erro?: string }).erro || "Não foi possível apagar a avaliação.");
+                    return;
+                }
+                onRemovido?.(post.id);
+            }
             setMenuAberto(false);
+        } catch {
+            setErroApagar("Não foi possível apagar a avaliação.");
         } finally {
             setApagando(false);
         }
@@ -379,7 +397,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                                     {no.texto}
                                 </p>
                             )}
-                            <ComentarioMidia url={no.anexo_url} />
+                            <ComentarioMidia url={no.anexo_url} expandido />
                         </div>
                         <div className="mt-1.5 flex items-center gap-2 px-1">
                             <button
@@ -464,7 +482,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                 </Link>
                 <div ref={menuRef} className="relative flex shrink-0 items-center gap-1">
                     <span className="font-gabarito-regular text-sm text-cinza-700">{tempoRelativo(post.criado_em)}</span>
-                    {podeApagar && aoApagar && (
+                    {podeExcluir && (
                         <>
                             <button
                                 type="button"
@@ -525,6 +543,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
             </Link>
 
             <SpoilerGuard
+                key={`spoiler-${post.id}-${temSpoiler}`}
                 ativo={ocultarSpoiler}
                 mensagem={
                     ehProprioPost
@@ -532,13 +551,17 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                         : "Esta avaliação contém spoiler"
                 }
             >
-                {textoPost && (
-                    <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
-                        {textoPost}
-                    </p>
-                )}
-                <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" />
+                <div className="flex flex-col gap-3">
+                    {textoPost && (
+                        <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
+                            {textoPost}
+                        </p>
+                    )}
+                    <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" expandido />
+                </div>
             </SpoilerGuard>
+
+            {erroApagar && <p className="font-gabarito-regular text-xs text-red-600">{erroApagar}</p>}
 
             <div className="flex items-center gap-4 text-cinza-700">
                 <button

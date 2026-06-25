@@ -1,6 +1,7 @@
 "use client";
 
 import type { AvaliacaoFeed } from "@/types/avaliacao";
+import { avaliacaoTemSpoiler } from "@/lib/avaliacao";
 import { mediaUrl } from "@/lib/media";
 import type { DiarioHistoricoResposta, DiarioResposta } from "@/types/diario";
 import type { LivroPublico } from "@/types/livro";
@@ -74,7 +75,7 @@ function normalizarAvaliacoes(
             id: Number(dados.id ?? avaliacao.id ?? 0),
             nota: Number(dados.nota ?? avaliacao.nota ?? 0),
             texto: dados.texto ?? avaliacao.texto ?? "",
-            contem_spoiler: dados.contem_spoiler === true || avaliacao.contem_spoiler === true,
+            contem_spoiler: avaliacaoTemSpoiler(dados.contem_spoiler ?? avaliacao.contem_spoiler),
             anexo_url: dados.anexo_url ?? avaliacao.anexo_url,
             criado_em: dados.criado_em ?? avaliacao.criado_em ?? new Date().toISOString(),
             usuario: {
@@ -650,12 +651,13 @@ export default function PerfilNickPage() {
                             </p>
                         </Box>
                     ) : (
-                        avaliacoes.map((avaliacao) => (
+                avaliacoes.map((avaliacao) => (
                             <PostCard
                                 key={avaliacao.id}
                                 post={avaliacao}
                                 podeApagar={ehMeuPerfil}
                                 aoApagar={ehMeuPerfil ? apagarAvaliacao : undefined}
+                                onRemovido={(id) => setAvaliacoes((lista) => lista.filter((a) => a.id !== id))}
                             />
                         ))
                     )}

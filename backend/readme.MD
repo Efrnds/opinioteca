@@ -19,3 +19,13 @@ Esta é a documentação oficial do backend do TCC Opinioteca, nele você pode e
 
 ### Parar banco e recriar o schema do zero (Apaga os dados atuais!)
 `docker compose down -v && docker compose up -d`
+
+### WebSocket em produção (erro 502 em `/ws`)
+
+O front conecta em `wss://SEU_DOMINIO/ws`. O **502 Bad Gateway** significa que o nginx não está repassando o upgrade WebSocket para o backend Go.
+
+1. Configure o proxy conforme `deploy/nginx-opinioteca.conf`
+2. Garanta que o backend Go está rodando (porta padrão `4668`)
+3. Opcional no front: `NEXT_PUBLIC_WS_URL=wss://seu-dominio` (se o WS estiver em outro host)
+
+Migração do banco (spoiler, mídia, etc.): `psql ... -f sql/migration_prod.sql`

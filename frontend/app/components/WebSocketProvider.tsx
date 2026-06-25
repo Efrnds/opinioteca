@@ -1,6 +1,7 @@
 "use client";
 
 import { toWsUrl, wsBaseUrl } from "@/lib/media";
+import { contarNotificacoesNaoLidas, notificacaoEstaLida } from "@/lib/notificacoes";
 import { wsClient } from "@/lib/ws/client";
 import {
     isNotificacao,
@@ -68,7 +69,7 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
             const res = await fetch("/api/notificacoes");
             if (res.ok) {
                 const data = (await res.json()) as Notificacao[];
-                setContagemNaoLidas(data.length);
+                setContagemNaoLidas(contarNotificacoesNaoLidas(data));
             }
         } catch {
             /* ignore */
@@ -93,7 +94,9 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
             const res = await fetch("/api/notificacoes?todas=true");
             if (res.ok) {
                 const lista = (await res.json()) as Notificacao[];
-                setNotificacoes(lista.filter((n) => !notificacaoEhMensagem(n)));
+                const visiveis = lista.filter((n) => !notificacaoEhMensagem(n));
+                setNotificacoes(visiveis);
+                setContagemNaoLidas(contarNotificacoesNaoLidas(visiveis));
             }
         } catch {
             /* ignore */
@@ -110,7 +113,7 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
         (id: number) => {
             setNotificacoes((atual) => {
                 const alvo = atual.find((n) => n.id === id);
-                if (alvo && !alvo.lida) {
+                if (alvo && !notificacaoEstaLida(alvo.lida)) {
                     decrementarContagem();
                 }
                 return atual.map((n) => (n.id === id ? { ...n, lida: true } : n));

@@ -13,6 +13,12 @@ var rotasMensagens = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
+		URI:                "/mensagens/contagem-nao-lidas",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.ContarMensagensNaoLidas,
+		RequerAutenticacao: true,
+	},
+	{
 		URI:                "/mensagens/conversa/{outroId}",
 		Metodo:             http.MethodDelete,
 		Funcao:             controllers.ApagarConversaMensagens,

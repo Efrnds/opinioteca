@@ -17,6 +17,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func stringPtrOuNil(valor string) *string {
+	if valor == "" {
+		return nil
+	}
+	return &valor
+}
+
 func BuscarComentariosAvaliacao(w http.ResponseWriter, r *http.Request) {
 	avaliacaoID, erro := avaliacaoIDDaURL(r)
 	if erro != nil {
@@ -121,6 +128,7 @@ func CriarComentarioAvaliacao(w http.ResponseWriter, r *http.Request) {
 		AvaliacaoID: avaliacaoID,
 		PaiID:       req.PaiID,
 		Texto:       req.Texto,
+		AnexoURL:    stringPtrOuNil(req.AnexoURL),
 	})
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -144,6 +152,7 @@ func CriarComentarioAvaliacao(w http.ResponseWriter, r *http.Request) {
 		ID:          comentario.ID,
 		PaiID:       comentario.PaiID,
 		Texto:       comentario.Texto,
+		AnexoURL:    comentario.AnexoURL,
 		CriadoEm:    comentario.CriadoEm,
 		Votos:       0,
 		VotoUsuario: "",

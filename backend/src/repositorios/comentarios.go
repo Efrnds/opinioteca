@@ -15,24 +15,34 @@ func NovoRepositorioDeComentarios(db *sql.DB) *Comentarios {
 
 func (repositorio Comentarios) Criar(comentario modelos.Comentario) (modelos.Comentario, error) {
 	var criado modelos.Comentario
+	var anexo sql.NullString
+	if comentario.AnexoURL != nil && *comentario.AnexoURL != "" {
+		anexo = sql.NullString{String: *comentario.AnexoURL, Valid: true}
+	}
+
 	erro := repositorio.db.QueryRow(
-		`INSERT INTO comentarios (usuario_id, avaliacao_id, pai_id, texto)
-		 VALUES ($1, $2, $3, $4)
-		 RETURNING id, usuario_id, avaliacao_id, pai_id, texto, criadoEm`,
+		`INSERT INTO comentarios (usuario_id, avaliacao_id, pai_id, texto, anexo_url)
+		 VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, usuario_id, avaliacao_id, pai_id, texto, anexo_url, criadoEm`,
 		comentario.UsuarioID,
 		comentario.AvaliacaoID,
 		comentario.PaiID,
 		comentario.Texto,
+		anexo,
 	).Scan(
 		&criado.ID,
 		&criado.UsuarioID,
 		&criado.AvaliacaoID,
 		&criado.PaiID,
 		&criado.Texto,
+		&anexo,
 		&criado.CriadoEm,
 	)
 	if erro != nil {
 		return modelos.Comentario{}, erro
+	}
+	if anexo.Valid {
+		criado.AnexoURL = &anexo.String
 	}
 	return criado, nil
 }
@@ -73,7 +83,7 @@ func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID 
 	}
 
 	linhas, erro := repositorio.db.Query(
-		`SELECT c.id, c.pai_id, c.texto, c.criadoEm, u.id, u.nome, u.nick, COALESCE(u.image_url, ''),
+		`SELECT c.id, c.pai_id, c.texto, c.anexo_url, c.criadoEm, u.id, u.nome, u.nick, COALESCE(u.image_url, ''),
 		        COALESCE(v.saldo, 0) AS votos,
 				COALESCE(vu.tipo_voto, '') AS voto_usuario
 		 FROM comentarios c
@@ -99,10 +109,12 @@ func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID 
 	for linhas.Next() {
 		var item modelos.ComentarioResposta
 		var paiID sql.NullInt64
+		var anexo sql.NullString
 		if erro := linhas.Scan(
 			&item.ID,
 			&paiID,
 			&item.Texto,
+			&anexo,
 			&item.CriadoEm,
 			&item.Usuario.ID,
 			&item.Usuario.Nome,
@@ -116,6 +128,9 @@ func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID 
 		if paiID.Valid {
 			valor := uint64(paiID.Int64)
 			item.PaiID = &valor
+		}
+		if anexo.Valid {
+			item.AnexoURL = &anexo.String
 		}
 		comentarios = append(comentarios, item)
 	}

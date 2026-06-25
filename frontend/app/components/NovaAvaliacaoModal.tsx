@@ -540,6 +540,8 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
                         </div>
                     )}
 
+                    {exibirFormularioLivro && (
+                        <>
                     <div>
                         <p className="mb-2 font-gabarito-bold text-sm text-azul-900">Sua nota</p>
                         <div className="flex gap-1">
@@ -567,7 +569,7 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
                         <div>
                             <p className="font-gabarito-bold text-sm text-azul-900">Contém spoiler</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">
-                                Oculta o texto da resenha no feed até o leitor escolher ver
+                                Oculta texto e mídia no feed até o leitor escolher ver
                             </p>
                         </div>
                         <Switch
@@ -581,14 +583,35 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
                         <label htmlFor="texto-resenha" className="mb-2 block font-gabarito-bold text-sm text-azul-900">
                             Sua resenha
                         </label>
+                        <textarea
+                            id="texto-resenha"
+                            value={texto}
+                            onChange={(e) => setTexto(e.target.value)}
+                            onPaste={(e: ClipboardEvent<HTMLTextAreaElement>) => {
+                                const items = e.clipboardData?.items;
+                                if (!items) return;
+                                for (const item of items) {
+                                    if (item.kind === "file" && item.type.startsWith("image/")) {
+                                        const arquivo = item.getAsFile();
+                                        if (!arquivo) continue;
+                                        e.preventDefault();
+                                        definirArquivo(arquivo);
+                                        return;
+                                    }
+                                }
+                            }}
+                            rows={5}
+                            placeholder="O que você achou do livro? Você pode combinar texto com imagem ou GIF."
+                            className="w-full resize-none rounded-2xl border-2 border-[#515151] bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"
+                        />
 
                         {(previewImagem || anexoUrlDireto) && (
-                            <div className="relative mb-3 w-fit">
+                            <div className="relative mt-3 w-fit">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={previewImagem ?? anexoUrlDireto ?? ""}
                                     alt="Preview"
-                                    className="max-h-40 max-w-full rounded-xl object-cover"
+                                    className="max-h-48 max-w-full rounded-xl object-contain"
                                 />
                                 <button
                                     type="button"
@@ -601,7 +624,7 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
                             </div>
                         )}
 
-                        <div className="relative mb-2 rounded-2xl border border-cinza-200 bg-white p-2">
+                        <div className="relative mt-2 rounded-2xl border border-cinza-200 bg-white p-2">
                             {showGifPicker && (
                                 <div className="absolute bottom-full left-0 z-50 mb-2 w-full rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
                                     <input
@@ -673,39 +696,17 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
                                     GIF
                                 </button>
                                 <span className="font-gabarito-regular text-xs text-cinza-600">
-                                    Imagem ou GIF opcional na resenha
+                                    Texto + imagem/GIF na mesma resenha
                                 </span>
                             </div>
                         </div>
-
-                        <textarea
-                            id="texto-resenha"
-                            value={texto}
-                            onChange={(e) => setTexto(e.target.value)}
-                            onPaste={(e: ClipboardEvent<HTMLTextAreaElement>) => {
-                                const items = e.clipboardData?.items;
-                                if (!items) return;
-                                for (const item of items) {
-                                    if (item.kind === "file" && item.type.startsWith("image/")) {
-                                        const arquivo = item.getAsFile();
-                                        if (!arquivo) continue;
-                                        e.preventDefault();
-                                        definirArquivo(arquivo);
-                                        return;
-                                    }
-                                }
-                            }}
-                            rows={5}
-                            placeholder="O que você achou do livro?"
-                            className="w-full resize-none rounded-2xl border-2 border-[#515151] bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"
-                        />
                     </div>
 
                     {erro && <p className="text-center font-gabarito-regular text-sm text-red-600">{erro}</p>}
 
                     <Button
                         type="submit"
-                        disabled={enviando || !dadosLivro}
+                        disabled={enviando}
                         className="w-full rounded-full bg-azul-600 py-5 font-gabarito-bold text-lg text-white hover:bg-azul-700"
                     >
                         {enviando ? (
@@ -717,6 +718,8 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
                             "Publicar resenha"
                         )}
                     </Button>
+                        </>
+                    )}
                 </form>
             </DialogContent>
         </Dialog>

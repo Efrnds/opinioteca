@@ -118,11 +118,13 @@ func CriarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	avaliacao := modelos.Avaliacao{
-		UsuarioID:  usuarioID,
-		LivroID:    livroID,
-		TemplateID: req.TemplateID,
-		Nota:       req.Nota,
-		Texto:      req.Texto,
+		UsuarioID:     usuarioID,
+		LivroID:       livroID,
+		TemplateID:    req.TemplateID,
+		Nota:          req.Nota,
+		Texto:         req.Texto,
+		ContemSpoiler: req.ContemSpoiler,
+		AnexoURL:      stringPtrOuNil(req.AnexoURL),
 	}
 
 	repoAvaliacoes := repositorios.NovoRepositorioDeAvaliacoes(db)
