@@ -22,16 +22,30 @@ export function toWsUrl(base: string, path = ""): string {
     return `${normalized.replace(/\/$/, "")}${path}`;
 }
 
-/** URL base para WebSocket no browser (evita localhost em produção). */
+/** URL base para WebSocket no browser. */
 export function wsBaseUrl(): string {
-    const env = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL || "";
-
-    if (typeof window !== "undefined") {
-        if (!env || env.includes("localhost") || env.includes("127.0.0.1")) {
-            const protocol = window.location.protocol === "https:" ? "https:" : "http:";
-            return `${protocol}//${window.location.host}`;
-        }
+    const wsExplicit = process.env.NEXT_PUBLIC_WS_URL?.replace(/\/$/, "");
+    if (wsExplicit && !wsExplicit.includes("localhost") && !wsExplicit.includes("127.0.0.1")) {
+        return wsExplicit;
     }
 
-    return env.replace(/\/$/, "") || "http://localhost:9000";
+    if (typeof window !== "undefined") {
+        const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+        const onLocalhost =
+            window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+        // Dev: backend Go em porta separada do Next
+        if (onLocalhost && apiUrl && (apiUrl.includes("localhost") || apiUrl.includes("127.0.0.1"))) {
+            return apiUrl;
+        }
+        if (onLocalhost && wsExplicit) {
+            return wsExplicit;
+        }
+
+        // Produção: mesmo domínio (nginx faz proxy /ws → backend)
+        const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+        return `${protocol}//${window.location.host}`;
+    }
+
+    return wsExplicit || process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:4668";
 }

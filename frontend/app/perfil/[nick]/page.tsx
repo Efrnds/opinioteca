@@ -4,12 +4,14 @@ import type { AvaliacaoFeed } from "@/types/avaliacao";
 import { mediaUrl } from "@/lib/media";
 import type { DiarioHistoricoResposta, DiarioResposta } from "@/types/diario";
 import type { LivroPublico } from "@/types/livro";
-import { Book, ChevronLeft, Loader2, Mail } from "lucide-react";
+import { Book, ChevronLeft, Loader2, Mail, MoreVertical } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AlterarNickModal from "../../components/AlterarNickModal";
+import AvatarPerfilEditavel from "../../components/AvatarPerfilEditavel";
 import Box from "../../components/Box";
 import PerfilLivroModal, { type LivroPerfilItem } from "../../components/PerfilLivroModal";
 import PostCard from "../../components/PostCard";
@@ -19,6 +21,7 @@ type UsuarioPublico = {
     nome: string;
     nick: string;
     image?: string;
+    email?: string;
 };
 
 type AbaPerfil = "avaliacoes" | "diario" | "livros";
@@ -68,6 +71,8 @@ function normalizarAvaliacoes(
             id: Number(avaliacao.id ?? 0),
             nota: Number(avaliacao.nota ?? 0),
             texto: avaliacao.texto ?? "",
+            contem_spoiler: !!avaliacao.contem_spoiler,
+            anexo_url: avaliacao.anexo_url,
             criado_em: avaliacao.criado_em ?? new Date().toISOString(),
             usuario: {
                 id: Number(usuarioOriginal?.id ?? perfil.id ?? 0),
@@ -120,6 +125,9 @@ export default function PerfilNickPage() {
     const [livroModalAberto, setLivroModalAberto] = useState(false);
     const [livroSelecionadoId, setLivroSelecionadoId] = useState<number | null>(null);
     const [atualizandoStatusLivro, setAtualizandoStatusLivro] = useState(false);
+    const [menuOpcoesAberto, setMenuOpcoesAberto] = useState(false);
+    const [alterarNickAberto, setAlterarNickAberto] = useState(false);
+    const menuOpcoesRef = useRef<HTMLDivElement | null>(null);
 
     const meuNick = session?.user?.nick?.toLowerCase();
     const meuID = Number(session?.user?.id || 0);
@@ -343,6 +351,19 @@ export default function PerfilNickPage() {
         carregarDados();
     }, [carregarDados]);
 
+    useEffect(() => {
+        if (!menuOpcoesAberto) return;
+
+        function handleClickFora(evento: MouseEvent) {
+            if (menuOpcoesRef.current && !menuOpcoesRef.current.contains(evento.target as Node)) {
+                setMenuOpcoesAberto(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickFora);
+        return () => document.removeEventListener("mousedown", handleClickFora);
+    }, [menuOpcoesAberto]);
+
     async function alternarFollow() {
         if (!nick || alternandoFollow || ehMeuPerfil) {
             return;
@@ -487,7 +508,18 @@ export default function PerfilNickPage() {
 
                 <div className="px-4 pb-4">
                     <div className="-mt-12 flex items-end justify-between gap-3">
-                        {perfil.image ? (
+                        {ehMeuPerfil ? (
+                            <AvatarPerfilEditavel
+                                nome={perfil.nome}
+                                nick={perfil.nick}
+                                email={perfil.email ?? session?.user?.email ?? ""}
+                                image={perfil.image}
+                                onAtualizado={(novaImage) => {
+                                    setPerfil((atual) => (atual ? { ...atual, image: novaImage } : atual));
+                                    cachePerfilPorNick.delete(nick);
+                                }}
+                            />
+                        ) : perfil.image ? (
                             <Image
                                 src={mediaUrl(perfil.image)!}
                                 alt={perfil.nome}
@@ -501,7 +533,7 @@ export default function PerfilNickPage() {
                             </div>
                         )}
 
-                        {!ehMeuPerfil && (
+                        {!ehMeuPerfil ? (
                             <div className="flex items-center gap-2">
                                 <Link
                                     href={`/mensagens?novoChat=${perfil.id}`}
@@ -522,6 +554,31 @@ export default function PerfilNickPage() {
                                 >
                                     {alternandoFollow ? "Atualizando..." : sigoPerfil ? "Seguindo" : "Seguir"}
                                 </button>
+                            </div>
+                        ) : (
+                            <div ref={menuOpcoesRef} className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setMenuOpcoesAberto((estado) => !estado)}
+                                    className="rounded-full p-2 text-azul-900 transition hover:bg-white/80"
+                                    aria-label="Opções do perfil"
+                                >
+                                    <MoreVertical className="h-5 w-5" />
+                                </button>
+                                {menuOpcoesAberto && (
+                                    <div className="absolute right-0 top-10 z-10 min-w-40 rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuOpcoesAberto(false);
+                                                setAlterarNickAberto(true);
+                                            }}
+                                            className="w-full rounded-lg px-3 py-2 text-left font-gabarito-regular text-sm text-azul-900 transition hover:bg-azul-50"
+                                        >
+                                            Alterar nick
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -729,6 +786,24 @@ export default function PerfilNickPage() {
                 podeAtualizarStatus={ehMeuPerfil}
                 atualizandoStatus={atualizandoStatusLivro}
                 onAtualizarStatus={atualizarStatusLivro}
+            />
+
+            <AlterarNickModal
+                open={alterarNickAberto}
+                onClose={() => setAlterarNickAberto(false)}
+                nickAtual={perfil.nick}
+                nome={perfil.nome}
+                email={perfil.email ?? session?.user?.email ?? ""}
+                image={perfil.image}
+                onSalvo={(novoNick) => {
+                    cachePerfilPorNick.delete(nick);
+                    cachePerfilPorNick.delete(novoNick);
+                    if (novoNick !== nick) {
+                        router.replace(`/perfil/${encodeURIComponent(novoNick)}`);
+                    } else {
+                        setPerfil((atual) => (atual ? { ...atual, nick: novoNick } : atual));
+                    }
+                }}
             />
         </div>
     );

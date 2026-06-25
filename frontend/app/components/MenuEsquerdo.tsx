@@ -36,7 +36,7 @@ function itemAtivo(pathname: string, href: string) {
 export default function MenuEsquerdo() {
     const pathname = usePathname();
     const { data: session } = useSession();
-    const { contagemNaoLidas } = useWebSocket();
+    const { contagemNaoLidas, mensagensNaoLidasTotal } = useWebSocket();
     const [modalAberto, setModalAberto] = useState(false);
     const [menuContaAberto, setMenuContaAberto] = useState(false);
 
@@ -69,6 +69,11 @@ export default function MenuEsquerdo() {
                                         {href === "/notificacoes" && contagemNaoLidas > 0 && (
                                             <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
                                                 {contagemNaoLidas > 9 ? "9+" : contagemNaoLidas}
+                                            </span>
+                                        )}
+                                        {href === "/mensagens" && mensagensNaoLidasTotal > 0 && (
+                                            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+                                                {mensagensNaoLidasTotal > 9 ? "9+" : mensagensNaoLidasTotal}
                                             </span>
                                         )}
                                     </span>

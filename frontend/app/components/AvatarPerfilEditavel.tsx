@@ -1,0 +1,108 @@
+"use client";
+
+import { mediaUrl } from "@/lib/media";
+import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
+import { Camera, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Image from "next/image";
+import { useId, useRef, useState } from "react";
+
+type AvatarPerfilEditavelProps = {
+    nome: string;
+    nick: string;
+    email: string;
+    image?: string;
+    onAtualizado: (image?: string) => void;
+};
+
+export default function AvatarPerfilEditavel({
+    nome,
+    nick,
+    email,
+    image,
+    onAtualizado,
+}: AvatarPerfilEditavelProps) {
+    const { update } = useSession();
+    const inputId = useId();
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [enviando, setEnviando] = useState(false);
+    const [erro, setErro] = useState("");
+
+    const inicial = nome?.charAt(0).toUpperCase() || nick.charAt(0).toUpperCase();
+
+    async function handleArquivo(arquivo: File) {
+        const erroValidacao = validarArquivoImagem(arquivo);
+        if (erroValidacao) {
+            setErro(erroValidacao);
+            return;
+        }
+
+        setEnviando(true);
+        setErro("");
+        try {
+            const novaUrl = await enviarImagemAvatar(arquivo);
+            const res = await fetch(`/api/usuarios/${encodeURIComponent(nick)}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nome, nick, email, image: novaUrl }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                setErro((data as { erro?: string }).erro || "Não foi possível atualizar a foto.");
+                return;
+            }
+            const imagemFinal = mediaUrl(novaUrl) || undefined;
+            await update({ image: imagemFinal });
+            onAtualizado(novaUrl);
+        } catch (uploadErro) {
+            setErro(uploadErro instanceof Error ? uploadErro.message : "Erro ao enviar imagem.");
+        } finally {
+            setEnviando(false);
+        }
+    }
+
+    return (
+        <div className="flex flex-col items-start gap-1">
+            <label
+                htmlFor={inputId}
+                className="group relative h-24 w-24 shrink-0 cursor-pointer"
+                title="Alterar foto de perfil"
+            >
+                {image ? (
+                    <Image
+                        src={mediaUrl(image)!}
+                        alt={nome}
+                        width={96}
+                        height={96}
+                        className="h-24 w-24 rounded-full border-4 border-white object-cover"
+                    />
+                ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
+                        {inicial}
+                    </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+                    {enviando ? (
+                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    ) : (
+                        <Camera className="h-6 w-6 text-white" />
+                    )}
+                </div>
+                <input
+                    ref={inputRef}
+                    id={inputId}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={enviando}
+                    onChange={e => {
+                        const arquivo = e.target.files?.[0];
+                        if (arquivo) void handleArquivo(arquivo);
+                        e.target.value = "";
+                    }}
+                />
+            </label>
+            {erro && <p className="max-w-28 font-gabarito-regular text-[10px] text-red-600">{erro}</p>}
+        </div>
+    );
+}

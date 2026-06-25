@@ -2,12 +2,14 @@
 
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
 import { mediaUrl } from "@/lib/media";
-import { ArrowBigDown, ArrowBigUp, Loader2, MessageCircle, MoreHorizontal, Send, Trash2 } from "lucide-react";
+import { ArrowBigDown, ArrowBigUp, Loader2, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Box from "./Box";
+import ComentarioComposer, { ComentarioMidia } from "./ComentarioComposer";
+import SpoilerGuard from "./SpoilerGuard";
 import { useWebSocket } from "./WebSocketProvider";
 
 function tempoRelativo(dataISO: string) {
@@ -86,6 +88,11 @@ function montarArvoreComentarios(lista: ComentarioAvaliacao[]) {
     return raizes;
 }
 
+function adicionarComentarioUnico(lista: ComentarioAvaliacao[], comentario: ComentarioAvaliacao) {
+    if (lista.some((c) => c.id === comentario.id)) return lista;
+    return [...lista, comentario];
+}
+
 export default function PostCard({ post, podeApagar = false, aoApagar }: PostCardProps) {
     const { data: session } = useSession();
     const { subscribe } = useWebSocket();
@@ -105,16 +112,15 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
     const [comentariosCarregados, setComentariosCarregados] = useState(false);
     const [comentarios, setComentarios] = useState<ComentarioAvaliacao[]>([]);
     const [carregandoComentarios, setCarregandoComentarios] = useState(false);
-    const [novoComentario, setNovoComentario] = useState("");
     const [enviandoComentario, setEnviandoComentario] = useState(false);
     const [comentarioPaiAtivo, setComentarioPaiAtivo] = useState<number | null>(null);
-    const [textoResposta, setTextoResposta] = useState("");
     const [enviandoResposta, setEnviandoResposta] = useState(false);
-    const [comentarioDestaque, setComentarioDestaque] = useState(post.comentario_destaque);
     const [erroComentario, setErroComentario] = useState("");
     const menuRef = useRef<HTMLDivElement | null>(null);
 
     const ehProprioPost = session?.user?.id === String(usuario.id);
+    const ocultarSpoiler = !!post.contem_spoiler && !ehProprioPost;
+    const meuID = session?.user?.id ?? "";
     const comentariosArvore = useMemo(() => montarArvoreComentarios(comentarios), [comentarios]);
 
     useEffect(() => {
@@ -123,17 +129,11 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
     }, [post.votos, post.meu_voto]);
 
     useEffect(() => {
-        setComentarioDestaque(post.comentario_destaque);
-    }, [post.comentario_destaque]);
-
-    useEffect(() => {
         return subscribe((tipo, payload) => {
             const dados = payload as {
                 avaliacao_id: number;
                 votos?: typeof votos;
-                qtd_comentarios?: number;
                 comentario?: ComentarioAvaliacao;
-                comentario_destaque?: ComentarioAvaliacao | null;
             };
 
             if (dados.avaliacao_id !== post.id) return;
@@ -143,14 +143,11 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
             }
 
             if (tipo === "NOVO_COMENTARIO" && dados.comentario) {
-                setComentarios((lista) => {
-                    if (lista.some((c) => c.id === dados.comentario!.id)) return lista;
-                    return [...lista, dados.comentario!];
-                });
-                setComentariosCarregados(true);
-                if (dados.comentario_destaque !== undefined) {
-                    setComentarioDestaque(dados.comentario_destaque ?? undefined);
+                const euEnviei = meuID === String(dados.comentario.usuario.id);
+                if (!euEnviei) {
+                    setComentarios((lista) => adicionarComentarioUnico(lista, dados.comentario!));
                 }
+                setComentariosCarregados(true);
             }
 
             if (tipo === "COMENTARIO_ATUALIZADO" && dados.comentario) {
@@ -159,18 +156,9 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                         item.id === dados.comentario!.id ? { ...item, ...dados.comentario! } : item,
                     ),
                 );
-                setComentarioDestaque((atual) => {
-                    if (dados.comentario_destaque !== undefined) {
-                        return dados.comentario_destaque ?? undefined;
-                    }
-                    if (atual?.id === dados.comentario!.id) {
-                        return dados.comentario!;
-                    }
-                    return atual;
-                });
             }
         });
-    }, [subscribe, post.id]);
+    }, [subscribe, post.id, meuID]);
 
     async function handleVoto(tipo: "upvote" | "downvote") {
         if (votando || ehProprioPost) return;
@@ -249,38 +237,51 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
         }
     }
 
-    async function handleEnviarComentario(e: FormEvent) {
-        e.preventDefault();
-        if (enviandoComentario) return;
-        if (!novoComentario.trim()) {
-            setErroComentario("Digite um comentário.");
-            return;
+    async function postarComentario(
+        payload: { texto: string; anexoUrl?: string },
+        paiId?: number,
+    ) {
+        if (paiId) {
+            setEnviandoResposta(true);
+        } else {
+            setEnviandoComentario(true);
         }
-
-        setEnviandoComentario(true);
         setErroComentario("");
 
         try {
+            const body: Record<string, string | number> = { texto: payload.texto };
+            if (payload.anexoUrl) body.anexo_url = payload.anexoUrl;
+            if (paiId) body.pai_id = paiId;
+
             const res = await fetch(`/api/avaliacoes/${post.id}/comentarios`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ texto: novoComentario.trim() }),
+                body: JSON.stringify(body),
             });
             const data = await res.json();
 
             if (!res.ok) {
                 setErroComentario(data.erro || "Não foi possível enviar comentário.");
-                return;
+                throw new Error(data.erro || "erro");
             }
 
-            setComentarios((lista) => [...lista, data as ComentarioAvaliacao]);
-            setNovoComentario("");
+            setComentarios((lista) => adicionarComentarioUnico(lista, data as ComentarioAvaliacao));
             setComentariosCarregados(true);
             setComentariosAbertos(true);
-        } catch {
-            setErroComentario("Não foi possível enviar comentário.");
+            if (paiId) setComentarioPaiAtivo(null);
+        } catch (erro) {
+            if (erro instanceof Error && erro.message !== "erro") {
+                setErroComentario(erro.message);
+            } else if (!(erro instanceof Error)) {
+                setErroComentario("Não foi possível enviar comentário.");
+            }
+            throw erro;
         } finally {
-            setEnviandoComentario(false);
+            if (paiId) {
+                setEnviandoResposta(false);
+            } else {
+                setEnviandoComentario(false);
+            }
         }
     }
 
@@ -308,51 +309,14 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
 
             const atualizado = data as ComentarioAvaliacao;
             atualizarComentarioLocal(atualizado);
-            if (comentarioDestaque?.id === atualizado.id) {
-                setComentarioDestaque(atualizado);
-            }
         } catch {
             setErroComentario("Não foi possível votar no comentário.");
         }
     }
 
-    async function handleVotoComentarioDestaque(tipo: "upvote" | "downvote") {
-        if (!comentarioDestaque) return;
-        await handleVotoComentario(comentarioDestaque, tipo);
-    }
-
-    async function handleEnviarResposta(e: FormEvent) {
-        e.preventDefault();
+    async function handleEnviarResposta(payload: { texto: string; anexoUrl?: string }) {
         if (!comentarioPaiAtivo) return;
-        if (enviandoResposta) return;
-        if (!textoResposta.trim()) {
-            setErroComentario("Digite uma resposta.");
-            return;
-        }
-
-        setEnviandoResposta(true);
-        setErroComentario("");
-        try {
-            const res = await fetch(`/api/avaliacoes/${post.id}/comentarios`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ texto: textoResposta.trim(), pai_id: comentarioPaiAtivo }),
-            });
-            const data = await res.json();
-
-            if (!res.ok) {
-                setErroComentario(data.erro || "Não foi possível enviar resposta.");
-                return;
-            }
-
-            setComentarios((lista) => [...lista, data as ComentarioAvaliacao]);
-            setTextoResposta("");
-            setComentarioPaiAtivo(null);
-        } catch {
-            setErroComentario("Não foi possível enviar resposta.");
-        } finally {
-            setEnviandoResposta(false);
-        }
+        await postarComentario(payload, comentarioPaiAtivo);
     }
 
     useEffect(() => {
@@ -380,7 +344,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
         return (
             <div
                 key={no.id}
-                className={`${margem} mt-2 border-l-2 border-cinza-200 pl-4 transition-colors hover:border-cinza-400`}
+                className={`${margem} mt-3 border-l border-white/80 pl-3 first:mt-0`}
             >
                 <div className="flex gap-2.5">
                     <Link href={`/perfil/${no.usuario.nick}`} className="shrink-0 transition hover:opacity-80">
@@ -388,43 +352,50 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                             <Image
                                 src={mediaUrl(no.usuario.image)!}
                                 alt={no.usuario.nome}
-                                width={24}
-                                height={24}
-                                className="h-6 w-6 rounded-full object-cover"
+                                width={28}
+                                height={28}
+                                className="h-7 w-7 rounded-full object-cover ring-1 ring-black/5"
                             />
                         ) : (
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-cinza-200 font-gabarito-bold text-[10px] text-azul-900">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 font-gabarito-bold text-[10px] text-azul-900 ring-1 ring-black/5">
                                 {inicialComentario}
                             </div>
                         )}
                     </Link>
                     <div className="min-w-0 flex-1">
-                        <p className="font-gabarito-bold text-xs text-azul-900">
-                            <Link
-                                href={`/perfil/${no.usuario.nick}`}
-                                className="cursor-pointer transition hover:underline"
-                            >
-                                {no.usuario.nome}{" "}
-                                <span className="font-gabarito-regular text-cinza-700">@{no.usuario.nick}</span>
-                            </Link>
-                        </p>
-                        <p className="mt-0.5 whitespace-pre-wrap font-gabarito-regular text-sm text-cinza-700">{no.texto}</p>
-                        <div className="mt-1 flex items-center gap-2">
+                        <div className="rounded-2xl bg-white/70 px-3 py-2 ring-1 ring-black/5 backdrop-blur-sm">
+                            <p className="font-gabarito-bold text-xs text-azul-900">
+                                <Link
+                                    href={`/perfil/${no.usuario.nick}`}
+                                    className="cursor-pointer transition hover:underline"
+                                >
+                                    {no.usuario.nome}{" "}
+                                    <span className="font-gabarito-regular text-cinza-600">@{no.usuario.nick}</span>
+                                </Link>
+                            </p>
+                            {no.texto && (
+                                <p className="mt-0.5 whitespace-pre-wrap font-gabarito-regular text-sm text-azul-900/90">
+                                    {no.texto}
+                                </p>
+                            )}
+                            <ComentarioMidia url={no.anexo_url} />
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-2 px-1">
                             <button
                                 type="button"
                                 onClick={() => handleVotoComentario(no, "upvote")}
-                                className={`rounded-full px-2 py-0.5 text-xs transition hover:bg-background ${
-                                    meuVotoComentario === "upvote" ? "text-orange-500" : "text-cinza-700"
+                                className={`rounded-full px-2 py-0.5 text-xs transition hover:bg-white/60 ${
+                                    meuVotoComentario === "upvote" ? "text-orange-500" : "text-cinza-600"
                                 }`}
                             >
                                 ▲
                             </button>
-                            <span className="font-gabarito-bold text-xs text-cinza-700">{no.votos}</span>
+                            <span className="font-gabarito-bold text-xs text-cinza-600">{no.votos}</span>
                             <button
                                 type="button"
                                 onClick={() => handleVotoComentario(no, "downvote")}
-                                className={`rounded-full px-2 py-0.5 text-xs transition hover:bg-background ${
-                                    meuVotoComentario === "downvote" ? "text-blue-500" : "text-cinza-700"
+                                className={`rounded-full px-2 py-0.5 text-xs transition hover:bg-white/60 ${
+                                    meuVotoComentario === "downvote" ? "text-blue-500" : "text-cinza-600"
                                 }`}
                             >
                                 ▼
@@ -433,36 +404,25 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                                 type="button"
                                 onClick={() => {
                                     setComentarioPaiAtivo((atual) => (atual === no.id ? null : no.id));
-                                    setTextoResposta("");
                                 }}
-                                className="rounded-full px-2 py-0.5 text-xs text-azul-600 transition hover:bg-background"
+                                className="rounded-full px-2 py-0.5 text-xs text-azul-600 transition hover:bg-white/60"
                             >
                                 Responder
                             </button>
+                            <span className="font-gabarito-regular text-[10px] text-cinza-500">
+                                {tempoRelativo(no.criado_em)}
+                            </span>
                         </div>
 
                         {respostaAtiva && (
-                            <form onSubmit={handleEnviarResposta} className="mt-2 flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    value={textoResposta}
-                                    onChange={(e) => setTextoResposta(e.target.value)}
-                                    placeholder="Responder comentário..."
-                                    className="w-full rounded-full border border-gray-300 bg-white px-3 py-1.5 font-gabarito-regular text-xs outline-none focus:border-azul-600"
+                            <div className="mt-2">
+                                <ComentarioComposer
+                                    compacto
+                                    placeholder="Responder..."
+                                    enviando={enviandoResposta}
+                                    onEnviar={handleEnviarResposta}
                                 />
-                                <button
-                                    type="submit"
-                                    disabled={enviandoResposta}
-                                    className="rounded-full bg-azul-600 p-1.5 text-white transition hover:bg-azul-700 disabled:opacity-60"
-                                    aria-label="Enviar resposta"
-                                >
-                                    {enviandoResposta ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                        <Send className="h-3.5 w-3.5" />
-                                    )}
-                                </button>
-                            </form>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -556,107 +516,14 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
                 </div>
             </Link>
 
-            <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">{textoPost}</p>
-            {comentarioDestaque && (
-                <div className="mt-1 border-l-2 border-cinza-300 pl-3">
-                    <div className="flex items-start gap-2.5">
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                                <Link
-                                    href={`/perfil/${comentarioDestaque.usuario.nick}`}
-                                    className="flex items-center gap-1.5 transition hover:opacity-80"
-                                >
-                                    {comentarioDestaque.usuario.image ? (
-                                        <Image
-                                            src={mediaUrl(comentarioDestaque.usuario.image)!}
-                                            alt={comentarioDestaque.usuario.nome}
-                                            width={20}
-                                            height={20}
-                                            className="h-5 w-5 shrink-0 rounded-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cinza-200 font-gabarito-bold text-[9px] text-azul-900">
-                                            {comentarioDestaque.usuario.nome.charAt(0).toUpperCase()}
-                                        </div>
-                                    )}
-                                    <span className="truncate font-gabarito-bold text-xs text-cinza-600 hover:underline">
-                                        @{comentarioDestaque.usuario.nick}
-                                    </span>
-                                </Link>
-                            </div>
-                            <p className="mt-0.5 line-clamp-3 font-gabarito-regular text-sm leading-snug text-azul-900/75">
-                                {comentarioDestaque.texto}
-                            </p>
-                            <div className="mt-1 flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => handleVotoComentarioDestaque("upvote")}
-                                    className={`rounded-full px-2 py-0.5 text-xs transition hover:bg-background ${
-                                        comentarioDestaque.voto_usuario === "upvote"
-                                            ? "text-orange-500"
-                                            : "text-cinza-700"
-                                    }`}
-                                >
-                                    ▲
-                                </button>
-                                <span className="font-gabarito-bold text-xs text-cinza-700">
-                                    {comentarioDestaque.votos}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => handleVotoComentarioDestaque("downvote")}
-                                    className={`rounded-full px-2 py-0.5 text-xs transition hover:bg-background ${
-                                        comentarioDestaque.voto_usuario === "downvote"
-                                            ? "text-blue-500"
-                                            : "text-cinza-700"
-                                    }`}
-                                >
-                                    ▼
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setComentarioPaiAtivo((atual) =>
-                                            atual === comentarioDestaque.id ? null : comentarioDestaque.id,
-                                        );
-                                        setTextoResposta("");
-                                        setComentariosAbertos(true);
-                                        if (!comentariosCarregados) {
-                                            carregarComentarios();
-                                        }
-                                    }}
-                                    className="rounded-full px-2 py-0.5 text-xs text-azul-600 transition hover:bg-background"
-                                >
-                                    Responder
-                                </button>
-                            </div>
-                            {comentarioPaiAtivo === comentarioDestaque.id && (
-                                <form onSubmit={handleEnviarResposta} className="mt-2 flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={textoResposta}
-                                        onChange={(e) => setTextoResposta(e.target.value)}
-                                        placeholder="Responder comentário..."
-                                        className="w-full rounded-full border border-gray-300 bg-white px-3 py-1.5 font-gabarito-regular text-xs outline-none focus:border-azul-600"
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={enviandoResposta}
-                                        className="rounded-full bg-azul-600 p-1.5 text-white transition hover:bg-azul-700 disabled:opacity-60"
-                                        aria-label="Enviar resposta"
-                                    >
-                                        {enviandoResposta ? (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                        ) : (
-                                            <Send className="h-3.5 w-3.5" />
-                                        )}
-                                    </button>
-                                </form>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            <SpoilerGuard ativo={ocultarSpoiler}>
+                {textoPost && (
+                    <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
+                        {textoPost}
+                    </p>
+                )}
+                <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" />
+            </SpoilerGuard>
 
             <div className="flex items-center gap-4 text-cinza-700">
                 <button
@@ -710,31 +577,23 @@ export default function PostCard({ post, podeApagar = false, aoApagar }: PostCar
 
             {erroVoto && <p className="font-gabarito-regular text-xs text-red-600">{erroVoto}</p>}
             {comentariosAbertos && (
-                <div className="space-y-3 rounded-xl border border-gray-200 bg-background p-3">
-                    <form onSubmit={handleEnviarComentario} className="flex items-center gap-2">
-                        <input
-                            type="text"
-                            value={novoComentario}
-                            onChange={(e) => setNovoComentario(e.target.value)}
-                            placeholder="Escreva um comentário..."
-                            className="w-full rounded-full border border-gray-300 bg-white px-3 py-2 font-gabarito-regular text-sm outline-none focus:border-azul-600"
-                        />
-                        <button
-                            type="submit"
-                            disabled={enviandoComentario}
-                            className="rounded-full bg-azul-600 p-2 text-white transition hover:bg-azul-700 disabled:opacity-60"
-                            aria-label="Enviar comentário"
-                        >
-                            {enviandoComentario ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </button>
-                    </form>
+                <div className="space-y-3 rounded-2xl border border-white/60 bg-white/40 p-3 shadow-sm ring-1 ring-black/5 backdrop-blur-md">
+                    <ComentarioComposer
+                        enviando={enviandoComentario}
+                        onEnviar={(payload) => postarComentario(payload)}
+                    />
 
                     {carregandoComentarios ? (
-                        <p className="font-gabarito-regular text-xs text-cinza-700">Carregando comentários...</p>
+                        <div className="flex items-center gap-2 py-2">
+                            <Loader2 className="h-4 w-4 animate-spin text-azul-600" />
+                            <p className="font-gabarito-regular text-xs text-cinza-600">Carregando comentários...</p>
+                        </div>
                     ) : comentarios.length === 0 ? (
-                        <p className="font-gabarito-regular text-xs text-cinza-700">Nenhum comentário ainda.</p>
+                        <p className="py-2 text-center font-gabarito-regular text-xs text-cinza-600">
+                            Nenhum comentário ainda. Seja o primeiro!
+                        </p>
                     ) : (
-                        <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
+                        <div className="max-h-80 space-y-1 overflow-y-auto pr-1">
                             {comentariosArvore.map((comentario) => renderComentario(comentario))}
                         </div>
                     )}

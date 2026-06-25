@@ -1,21 +1,27 @@
 "use client";
 
 import { toWsUrl, wsBaseUrl } from "@/lib/media";
-import type { Mensagem } from "@/types/mensagem";
+import { wsClient } from "@/lib/ws/client";
+import {
+    isNotificacao,
+    notificacaoEhMensagem,
+    parseNovaMensagem,
+    type WsListener,
+} from "@/lib/ws/types";
 import type { Notificacao } from "@/types/notificacao";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-type Listener = (tipo: string, payload: unknown) => void;
-
 type WebSocketContextValue = {
-    subscribe: (fn: Listener) => () => void;
+    subscribe: (fn: WsListener) => () => void;
     setChatAtivo: (id: number | null) => void;
     contagemNaoLidas: number;
+    mensagensNaoLidasTotal: number;
     decrementarContagem: () => void;
     recarregarContagem: () => Promise<void>;
+    recarregarMensagensNaoLidas: () => Promise<void>;
     notificacoes: Notificacao[];
     notificacoesCarregando: boolean;
     carregarNotificacoes: () => Promise<void>;
@@ -26,8 +32,10 @@ const WebSocketContext = createContext<WebSocketContextValue>({
     subscribe: () => () => {},
     setChatAtivo: () => {},
     contagemNaoLidas: 0,
+    mensagensNaoLidasTotal: 0,
     decrementarContagem: () => {},
     recarregarContagem: async () => {},
+    recarregarMensagensNaoLidas: async () => {},
     notificacoes: [],
     notificacoesCarregando: false,
     carregarNotificacoes: async () => {},
@@ -46,10 +54,10 @@ function chatAtivoComRemetente(pathname: string, chatAtivo: number | null, remet
 export default function WebSocketProvider({ children }: { children: React.ReactNode }) {
     const { data: session } = useSession();
     const pathname = usePathname();
-    const listenersRef = useRef<Set<Listener>>(new Set());
     const chatAtivoRef = useRef<number | null>(null);
     const pathnameRef = useRef(pathname);
     const [contagemNaoLidas, setContagemNaoLidas] = useState(0);
+    const [mensagensNaoLidasTotal, setMensagensNaoLidasTotal] = useState(0);
     const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
     const [notificacoesCarregando, setNotificacoesCarregando] = useState(false);
 
@@ -67,12 +75,25 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
         }
     }, []);
 
+    const recarregarMensagensNaoLidas = useCallback(async () => {
+        try {
+            const res = await fetch("/api/mensagens/contagem-nao-lidas");
+            if (res.ok) {
+                const data = (await res.json()) as { total?: number };
+                setMensagensNaoLidasTotal(data.total ?? 0);
+            }
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
     const carregarNotificacoes = useCallback(async () => {
         setNotificacoesCarregando(true);
         try {
             const res = await fetch("/api/notificacoes?todas=true");
             if (res.ok) {
-                setNotificacoes((await res.json()) as Notificacao[]);
+                const lista = (await res.json()) as Notificacao[];
+                setNotificacoes(lista.filter((n) => !notificacaoEhMensagem(n)));
             }
         } catch {
             /* ignore */
@@ -99,22 +120,10 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
         [decrementarContagem],
     );
 
-    const subscribe = useCallback((fn: Listener) => {
-        listenersRef.current.add(fn);
-        return () => listenersRef.current.delete(fn);
-    }, []);
+    const subscribe = useCallback((fn: WsListener) => wsClient.subscribe(fn), []);
 
     const setChatAtivo = useCallback((id: number | null) => {
         chatAtivoRef.current = id;
-    }, []);
-
-    const emitir = useCallback((tipo: string, payload: unknown) => {
-        listenersRef.current.forEach((fn) => fn(tipo, payload));
-    }, []);
-
-    const marcarNotificacaoLidaSilenciosa = useCallback((id: number) => {
-        setNotificacoes((atual) => atual.map((n) => (n.id === id ? { ...n, lida: true } : n)));
-        fetch(`/api/notificacoes/${id}/ler`, { method: "PUT" }).catch(() => {});
     }, []);
 
     const marcarMensagemLidaSilenciosa = useCallback((id: number) => {
@@ -124,69 +133,66 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
     useEffect(() => {
         if (session?.accessToken) {
             recarregarContagem();
+            recarregarMensagensNaoLidas();
             carregarNotificacoes();
         }
-    }, [session?.accessToken, recarregarContagem, carregarNotificacoes]);
+    }, [session?.accessToken, recarregarContagem, recarregarMensagensNaoLidas, carregarNotificacoes]);
 
     useEffect(() => {
         const token = session?.accessToken;
-        if (!token) return;
+        if (!token) {
+            wsClient.disconnect();
+            return;
+        }
 
-        const wsUrl = `${toWsUrl(wsBaseUrl())}/ws?token=${encodeURIComponent(token)}`;
+        const wsUrl = `${toWsUrl(wsBaseUrl())}/ws`;
+        wsClient.connect(wsUrl, token);
 
-        const ws = new WebSocket(wsUrl);
+        return () => wsClient.disconnect();
+    }, [session?.accessToken]);
 
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data) as { tipo: string; payload: unknown };
-                const chatAtivo = chatAtivoRef.current;
-                const rota = pathnameRef.current;
+    useEffect(() => {
+        if (!session?.accessToken) return;
 
-                emitir(data.tipo, data.payload);
+        return wsClient.subscribe((tipo, payload) => {
+            const chatAtivo = chatAtivoRef.current;
+            const rota = pathnameRef.current;
 
-                if (data.tipo === "NOVA_MENSAGEM") {
-                    const msg = data.payload as Mensagem;
-                    const silenciar = chatAtivoComRemetente(rota, chatAtivo, msg.remetente_id);
+            if (tipo === "NOVA_MENSAGEM") {
+                const parsed = parseNovaMensagem(payload);
+                if (!parsed) return;
 
-                    if (silenciar) {
-                        marcarMensagemLidaSilenciosa(msg.id);
-                        return;
-                    }
+                const { mensagem, nao_lidas_total } = parsed;
+                const silenciar = chatAtivoComRemetente(rota, chatAtivo, mensagem.remetente_id);
 
-                    toast.info("Nova mensagem", {
-                        description: msg.conteudo?.trim() || "📷 Imagem",
-                    });
-                    return;
+                if (silenciar) {
+                    marcarMensagemLidaSilenciosa(mensagem.id);
+                } else {
+                    setMensagensNaoLidasTotal(nao_lidas_total);
                 }
-
-                if (data.tipo === "NOVA_NOTIFICACAO") {
-                    const notif = data.payload as Notificacao;
-                    const silenciarMensagem =
-                        notif.tipo_notificacao === "mensagem" &&
-                        chatAtivoComRemetente(rota, chatAtivo, notif.referencia_id ?? 0);
-
-                    setNotificacoes((atual) => {
-                        if (atual.some((n) => n.id === notif.id)) return atual;
-                        return [notif, ...atual];
-                    });
-
-                    if (silenciarMensagem) {
-                        marcarNotificacaoLidaSilenciosa(notif.id);
-                        return;
-                    }
-
-                    setContagemNaoLidas((c) => c + 1);
-                    if (notif.tipo_notificacao !== "mensagem") {
-                        toast.info(notif.titulo, { description: notif.conteudo });
-                    }
-                }
-            } catch {
-                /* ignore */
+                return;
             }
-        };
 
-        return () => ws.close();
-    }, [session?.accessToken, emitir, marcarMensagemLidaSilenciosa, marcarNotificacaoLidaSilenciosa]);
+            if (tipo === "CONVERSA_LIDA" && typeof payload === "object" && payload !== null) {
+                const p = payload as { nao_lidas_total?: number };
+                if (typeof p.nao_lidas_total === "number") {
+                    setMensagensNaoLidasTotal(p.nao_lidas_total);
+                }
+                return;
+            }
+
+            if (tipo === "NOVA_NOTIFICACAO" && isNotificacao(payload)) {
+                if (notificacaoEhMensagem(payload)) return;
+
+                setNotificacoes((atual) => {
+                    if (atual.some((n) => n.id === payload.id)) return atual;
+                    return [payload, ...atual];
+                });
+                setContagemNaoLidas((c) => c + 1);
+                toast.info(payload.titulo, { description: payload.conteudo });
+            }
+        });
+    }, [session?.accessToken, marcarMensagemLidaSilenciosa]);
 
     return (
         <WebSocketContext.Provider
@@ -194,8 +200,10 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
                 subscribe,
                 setChatAtivo,
                 contagemNaoLidas,
+                mensagensNaoLidasTotal,
                 decrementarContagem,
                 recarregarContagem,
+                recarregarMensagensNaoLidas,
                 notificacoes,
                 notificacoesCarregando,
                 carregarNotificacoes,

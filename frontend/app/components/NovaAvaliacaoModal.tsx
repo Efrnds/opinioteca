@@ -1,11 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { BuscaLivrosResposta, CriarLivroPayload, LivroBusca } from "@/types/livro";
-import { BookPlus, Loader2, Search, Star, X } from "lucide-react";
+import { textoContemLink } from "@/lib/texto";
+import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
+import { BookPlus, ImageIcon, Loader2, Search, Star, X } from "lucide-react";
 import Image from "next/image";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, ClipboardEvent, FormEvent, useEffect, useId, useRef, useState } from "react";
 
 type NovaAvaliacaoModalProps = {
     open: boolean;
@@ -23,6 +26,14 @@ type DadosLivro = {
 
 const DEBOUNCE_MS = 500;
 const MIN_CARACTERES_BUSCA = 2;
+
+type GiphyGif = {
+    id: string;
+    images: {
+        fixed_height: { url: string };
+        original: { url: string };
+    };
+};
 
 const inputClassName =
     "w-full px-4 py-2 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
@@ -82,8 +93,17 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
     const [nota, setNota] = useState(0);
     const [notaHover, setNotaHover] = useState(0);
     const [texto, setTexto] = useState("");
+    const [contemSpoiler, setContemSpoiler] = useState(false);
+    const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
+    const [previewImagem, setPreviewImagem] = useState<string | null>(null);
+    const [anexoUrlDireto, setAnexoUrlDireto] = useState<string | null>(null);
+    const [showGifPicker, setShowGifPicker] = useState(false);
+    const [termoGifBusca, setTermoGifBusca] = useState("");
+    const [gifsGiphy, setGifsGiphy] = useState<GiphyGif[]>([]);
+    const [buscandoGifs, setBuscandoGifs] = useState(false);
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
+    const inputImagemId = useId();
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
 
@@ -97,9 +117,56 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
             setNota(0);
             setNotaHover(0);
             setTexto("");
+            setContemSpoiler(false);
+            limparAnexo();
+            setShowGifPicker(false);
             setErro("");
         }
     }, [open]);
+
+    function limparAnexo() {
+        if (previewImagem) URL.revokeObjectURL(previewImagem);
+        setArquivoImagem(null);
+        setPreviewImagem(null);
+        setAnexoUrlDireto(null);
+    }
+
+    function definirArquivo(arquivo: File) {
+        const erroValidacao = validarArquivoImagem(arquivo);
+        if (erroValidacao) {
+            setErro(erroValidacao);
+            return;
+        }
+        limparAnexo();
+        setArquivoImagem(arquivo);
+        setPreviewImagem(URL.createObjectURL(arquivo));
+        setErro("");
+    }
+
+    async function buscarGifs(termo: string) {
+        setBuscandoGifs(true);
+        try {
+            const res = await fetch(`/api/gifs?q=${encodeURIComponent(termo)}`);
+            if (res.ok) {
+                const data = (await res.json()) as { data?: GiphyGif[] };
+                setGifsGiphy(data.data ?? []);
+            } else {
+                setGifsGiphy([]);
+            }
+        } catch {
+            setGifsGiphy([]);
+        } finally {
+            setBuscandoGifs(false);
+        }
+    }
+
+    function selecionarGif(url: string) {
+        limparAnexo();
+        setAnexoUrlDireto(url);
+        setShowGifPicker(false);
+        setTermoGifBusca("");
+        setErro("");
+    }
 
     useEffect(() => {
         if (!open || modoManual || dadosLivro) {
@@ -250,8 +317,13 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
             setErro("Selecione uma nota de 1 a 5.");
             return;
         }
-        if (!texto.trim()) {
-            setErro("Escreva o texto da resenha.");
+        const textoFinal = texto.trim();
+        if (textoFinal && textoContemLink(textoFinal)) {
+            setErro("Links não são permitidos na resenha.");
+            return;
+        }
+        if (!textoFinal && !arquivoImagem && !anexoUrlDireto) {
+            setErro("Escreva a resenha ou anexe uma imagem.");
             return;
         }
 
@@ -259,10 +331,25 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
         try {
             const livroId = await registrarLivro(dadosLivro);
 
+            let anexoUrl: string | undefined;
+            if (arquivoImagem) {
+                anexoUrl = await enviarImagemAvatar(arquivoImagem);
+            } else if (anexoUrlDireto) {
+                anexoUrl = anexoUrlDireto;
+            }
+
+            const payload: Record<string, unknown> = {
+                livro_id: livroId,
+                nota,
+                texto: textoFinal,
+                contem_spoiler: contemSpoiler,
+            };
+            if (anexoUrl) payload.anexo_url = anexoUrl;
+
             const res = await fetch("/api/avaliacoes", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ livro_id: livroId, nota, texto: texto.trim() }),
+                body: JSON.stringify(payload),
             });
             const data = await res.json();
 
@@ -476,14 +563,138 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
                         </div>
                     </div>
 
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-cinza-200 bg-background px-4 py-3">
+                        <div>
+                            <p className="font-gabarito-bold text-sm text-azul-900">Contém spoiler</p>
+                            <p className="font-gabarito-regular text-xs text-cinza-700">
+                                Oculta o texto da resenha no feed até o leitor escolher ver
+                            </p>
+                        </div>
+                        <Switch
+                            checked={contemSpoiler}
+                            onCheckedChange={setContemSpoiler}
+                            aria-label="Marcar resenha como contendo spoiler"
+                        />
+                    </div>
+
                     <div>
                         <label htmlFor="texto-resenha" className="mb-2 block font-gabarito-bold text-sm text-azul-900">
                             Sua resenha
                         </label>
+
+                        {(previewImagem || anexoUrlDireto) && (
+                            <div className="relative mb-3 w-fit">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={previewImagem ?? anexoUrlDireto ?? ""}
+                                    alt="Preview"
+                                    className="max-h-40 max-w-full rounded-xl object-cover"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={limparAnexo}
+                                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-azul-900 text-white"
+                                    aria-label="Remover imagem"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="relative mb-2 rounded-2xl border border-cinza-200 bg-white p-2">
+                            {showGifPicker && (
+                                <div className="absolute bottom-full left-0 z-50 mb-2 w-full rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+                                    <input
+                                        type="text"
+                                        value={termoGifBusca}
+                                        onChange={(e) => {
+                                            setTermoGifBusca(e.target.value);
+                                            void buscarGifs(e.target.value.trim());
+                                        }}
+                                        placeholder="Buscar GIFs..."
+                                        className="mb-2 w-full rounded-full border border-cinza-200 px-3 py-1.5 font-gabarito-regular text-xs outline-none focus:border-azul-600"
+                                    />
+                                    <div className="grid max-h-40 grid-cols-3 gap-1.5 overflow-y-auto">
+                                        {buscandoGifs ? (
+                                            <div className="col-span-3 flex justify-center py-4">
+                                                <Loader2 className="h-4 w-4 animate-spin text-azul-600" />
+                                            </div>
+                                        ) : gifsGiphy.length === 0 ? (
+                                            <p className="col-span-3 py-3 text-center font-gabarito-regular text-xs text-cinza-700">
+                                                Nenhum GIF encontrado.
+                                            </p>
+                                        ) : (
+                                            gifsGiphy.map((gif) => (
+                                                <button
+                                                    key={gif.id}
+                                                    type="button"
+                                                    onClick={() => selecionarGif(gif.images.original.url)}
+                                                    className="overflow-hidden rounded-lg"
+                                                >
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img
+                                                        src={gif.images.fixed_height.url}
+                                                        alt="GIF"
+                                                        className="h-20 w-full object-cover"
+                                                    />
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <input
+                                    id={inputImagemId}
+                                    type="file"
+                                    accept="image/*,image/gif"
+                                    className="hidden"
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                        const arquivo = e.target.files?.[0];
+                                        if (arquivo) definirArquivo(arquivo);
+                                        e.target.value = "";
+                                    }}
+                                />
+                                <label
+                                    htmlFor={inputImagemId}
+                                    className="cursor-pointer rounded-full p-1.5 text-azul-600 transition hover:bg-azul-50"
+                                    aria-label="Anexar imagem"
+                                >
+                                    <ImageIcon className="h-4 w-4" />
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowGifPicker((v) => !v);
+                                        if (!showGifPicker && gifsGiphy.length === 0) void buscarGifs("");
+                                    }}
+                                    className="rounded border border-azul-600 px-1.5 py-0.5 font-gabarito-bold text-[10px] text-azul-600"
+                                >
+                                    GIF
+                                </button>
+                                <span className="font-gabarito-regular text-xs text-cinza-600">
+                                    Imagem ou GIF opcional na resenha
+                                </span>
+                            </div>
+                        </div>
+
                         <textarea
                             id="texto-resenha"
                             value={texto}
                             onChange={(e) => setTexto(e.target.value)}
+                            onPaste={(e: ClipboardEvent<HTMLTextAreaElement>) => {
+                                const items = e.clipboardData?.items;
+                                if (!items) return;
+                                for (const item of items) {
+                                    if (item.kind === "file" && item.type.startsWith("image/")) {
+                                        const arquivo = item.getAsFile();
+                                        if (!arquivo) continue;
+                                        e.preventDefault();
+                                        definirArquivo(arquivo);
+                                        return;
+                                    }
+                                }
+                            }}
                             rows={5}
                             placeholder="O que você achou do livro?"
                             className="w-full resize-none rounded-2xl border-2 border-[#515151] bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"

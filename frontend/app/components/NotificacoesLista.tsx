@@ -6,6 +6,7 @@ import {
     resolverDestinoNotificacao,
     textoAcaoNotificacao,
 } from "@/lib/notificacoes";
+import { notificacaoEhMensagem } from "@/lib/ws/types";
 import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import type { Notificacao } from "@/types/notificacao";
@@ -64,7 +65,8 @@ function useAtores(notificacoes: Notificacao[]) {
 export default function NotificacoesLista() {
     const router = useRouter();
     const { notificacoes, notificacoesCarregando, marcarNotificacaoLida } = useWebSocket();
-    const { nomeExibicao, avatarExibicao } = useAtores(notificacoes);
+    const notificacoesVisiveis = notificacoes.filter((n) => !notificacaoEhMensagem(n));
+    const { nomeExibicao, avatarExibicao } = useAtores(notificacoesVisiveis);
 
     function abrirNotificacao(notif: Notificacao) {
         if (!notif.lida) {
@@ -73,7 +75,7 @@ export default function NotificacoesLista() {
         resolverDestinoNotificacao(notif).then(destino => router.push(destino));
     }
 
-    if (notificacoesCarregando && notificacoes.length === 0) {
+    if (notificacoesCarregando && notificacoesVisiveis.length === 0) {
         return (
             <div className="flex justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-azul-600" />
@@ -81,7 +83,7 @@ export default function NotificacoesLista() {
         );
     }
 
-    if (notificacoes.length === 0) {
+    if (notificacoesVisiveis.length === 0) {
         return (
             <p className="py-12 text-center font-gabarito-regular text-sm text-cinza-700">Nenhuma notificação ainda.</p>
         );

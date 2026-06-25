@@ -8,6 +8,8 @@ export type AvaliacaoFeed = {
     id: number;
     nota: number;
     texto: string;
+    contem_spoiler?: boolean;
+    anexo_url?: string;
     criado_em: string;
     usuario: {
         id: number;
@@ -31,6 +33,7 @@ export type ComentarioAvaliacao = {
     id: number;
     pai_id?: number;
     texto: string;
+    anexo_url?: string;
     criado_em: string;
     votos: number;
     voto_usuario?: string;

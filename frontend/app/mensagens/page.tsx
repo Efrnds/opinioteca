@@ -1,26 +1,46 @@
 "use client";
 
-import type { ConversaResumo, Mensagem, MensagemResumo } from "@/types/mensagem";
-import { mediaUrl } from "@/lib/media";
-import type { PesquisaResultado, PesquisaUsuario } from "@/types/pesquisa";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ImageIcon, Loader2, MoreHorizontal, Pencil, Plus, Reply, Search, Send, Smile, Trash2, User, X } from "lucide-react";
-import Image from "next/image";
+import { mediaUrl } from "@/lib/media";
+import { parseNovaMensagem, type WsConversaLidaPayload, type WsMensagemApagadaPayload, type WsMensagemAtualizadaPayload } from "@/lib/ws/types";
+import type { ConversaResumo, Mensagem, MensagemResumo } from "@/types/mensagem";
+import type { PesquisaResultado, PesquisaUsuario } from "@/types/pesquisa";
 import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
-import { ChangeEvent, ClipboardEvent, FormEvent, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import {
+    ImageIcon,
+    Loader2,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Reply,
+    Search,
+    Send,
+    Smile,
+    Trash2,
+    User,
+    X,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import {
+    ChangeEvent,
+    ClipboardEvent,
+    FormEvent,
+    Suspense,
+    useCallback,
+    useEffect,
+    useId,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import Box from "../components/Box";
 import { useWebSocket } from "../components/WebSocketProvider";
 
@@ -78,13 +98,59 @@ function conversaVazia(usuario: UsuarioMinimo): ConversaResumo {
         ultima_mensagem_em: new Date(0).toISOString(),
         enviada_por_mim: false,
         fixada: false,
+        nao_lidas: 0,
+    };
+}
+
+function previewMensagem(msg: Mensagem) {
+    if (msg.conteudo?.trim()) return msg.conteudo.trim();
+    if (msg.anexo_url) return "📷 Imagem";
+    return "Mensagem";
+}
+
+function reordenarConversas(lista: ConversaResumo[]) {
+    return [...lista].sort((a, b) => {
+        if (a.fixada !== b.fixada) return a.fixada ? -1 : 1;
+        return new Date(b.ultima_mensagem_em).getTime() - new Date(a.ultima_mensagem_em).getTime();
+    });
+}
+
+function outroIdDaMensagem(msg: Mensagem, meuID: number) {
+    return msg.remetente_id === meuID ? msg.destinatario_id : msg.remetente_id;
+}
+
+function mensagemVisivelParaUsuario(msg: Mensagem, usuarioId: number) {
+    if (msg.remetente_id === usuarioId && msg.apagado_por_remetente) return false;
+    if (msg.destinatario_id === usuarioId && msg.apagado_por_destinatario) return false;
+    return true;
+}
+
+function mensagemPertenceAoChat(msg: Pick<Mensagem, "remetente_id" | "destinatario_id">, chatOutroId: number) {
+    return msg.remetente_id === chatOutroId || msg.destinatario_id === chatOutroId;
+}
+
+function mesmoInstante(a?: string, b?: string) {
+    if (!a || !b) return false;
+    return new Date(a).getTime() === new Date(b).getTime();
+}
+
+function previewAPartirDoHistorico(mensagens: Mensagem[], meuID: number) {
+    const visiveis = mensagens.filter(m => mensagemVisivelParaUsuario(m, meuID));
+    const ultima = visiveis[visiveis.length - 1];
+    if (!ultima) {
+        return { ultima_mensagem: "", ultima_mensagem_em: new Date(0).toISOString(), enviada_por_mim: false };
+    }
+    return {
+        ultima_mensagem: previewMensagem(ultima),
+        ultima_mensagem_em: ultima.criado_em,
+        enviada_por_mim: ultima.remetente_id === meuID,
     };
 }
 
 function MensagensConteudo() {
     const { data: session } = useSession();
     const searchParams = useSearchParams();
-    const { subscribe, setChatAtivo: setChatAtivoWS } = useWebSocket();
+    const { subscribe, setChatAtivo: setChatAtivoWS, recarregarMensagensNaoLidas } = useWebSocket();
     const meuID = Number(session?.user?.id || 0);
 
     const [conversas, setConversas] = useState<ConversaResumo[]>([]);
@@ -112,22 +178,24 @@ function MensagensConteudo() {
     const [reacaoMsgId, setReacaoMsgId] = useState<number | null>(null);
     const fimRef = useRef<HTMLDivElement>(null);
     const inputRodapeRef = useRef<HTMLDivElement>(null);
+    const chatAtivoRef = useRef<number | null>(null);
     const novoChatProcessado = useRef<string | null>(null);
+    const carregarInboxRef = useRef<() => Promise<void>>(async () => {});
     const inputImagemId = useId();
 
-    const conversaAtiva = conversas.find((c) => c.usuario_id === chatAtivo) ?? null;
+    chatAtivoRef.current = chatAtivo;
+
+    const conversaAtiva = conversas.find(c => c.usuario_id === chatAtivo) ?? null;
 
     const conversasFiltradas = useMemo(() => {
         const t = termoBusca.trim().toLowerCase();
         if (!t) return conversas;
-        return conversas.filter(
-            (c) => c.nome.toLowerCase().includes(t) || c.nick.toLowerCase().includes(t),
-        );
+        return conversas.filter(c => c.nome.toLowerCase().includes(t) || c.nick.toLowerCase().includes(t));
     }, [conversas, termoBusca]);
 
     const garantirConversaNaLista = useCallback((usuario: UsuarioMinimo) => {
-        setConversas((atual) => {
-            if (atual.some((c) => c.usuario_id === usuario.id)) return atual;
+        setConversas(atual => {
+            if (atual.some(c => c.usuario_id === usuario.id)) return atual;
             return [conversaVazia(usuario), ...atual];
         });
     }, []);
@@ -153,17 +221,23 @@ function MensagensConteudo() {
         }
     }, []);
 
-    const carregarHistorico = useCallback(async (usuarioId: number) => {
-        setCarregandoChat(true);
-        try {
-            const res = await fetch(`/api/mensagens/${usuarioId}`);
-            if (res.ok) {
-                setMensagens((await res.json()) as Mensagem[]);
+    carregarInboxRef.current = carregarInbox;
+
+    const carregarHistorico = useCallback(
+        async (usuarioId: number) => {
+            setCarregandoChat(true);
+            try {
+                const res = await fetch(`/api/mensagens/${usuarioId}`);
+                if (res.ok) {
+                    setMensagens((await res.json()) as Mensagem[]);
+                    await recarregarMensagensNaoLidas();
+                }
+            } finally {
+                setCarregandoChat(false);
             }
-        } finally {
-            setCarregandoChat(false);
-        }
-    }, []);
+        },
+        [recarregarMensagensNaoLidas],
+    );
 
     const buscarUsuarioPorID = useCallback(async (id: number): Promise<UsuarioMinimo | null> => {
         const res = await fetch(`/api/usuarios/id/${id}`);
@@ -177,17 +251,154 @@ function MensagensConteudo() {
     }, [chatAtivo, setChatAtivoWS]);
 
     useEffect(() => {
-        return subscribe((tipo, payload) => {
-            if (tipo !== "NOVA_MENSAGEM" || !chatAtivo) return;
-            const msg = payload as Mensagem;
-            if (msg.remetente_id !== chatAtivo && msg.destinatario_id !== chatAtivo) return;
-            setMensagens((atual) => {
-                if (atual.some((m) => m.id === msg.id)) return atual;
-                return [...atual, msg];
-            });
-            carregarInbox();
+        return () => setChatAtivoWS(null);
+    }, [setChatAtivoWS]);
+
+    const marcarMensagemLida = useCallback((mensagemId: number) => {
+        fetch(`/api/mensagens/msg/${mensagemId}/ler`, { method: "PUT" }).catch(() => {});
+    }, []);
+
+    const limparInteracoesMensagem = useCallback((mensagemId: number) => {
+        setRespostaA(atual => (atual?.id === mensagemId ? null : atual));
+        setEditandoId(atual => {
+            if (atual === mensagemId) {
+                setEditandoTexto("");
+            }
+            return atual === mensagemId ? null : atual;
         });
-    }, [subscribe, chatAtivo, carregarInbox]);
+        setReacaoMsgId(atual => (atual === mensagemId ? null : atual));
+    }, []);
+
+    const removerMensagemInvalida = useCallback(
+        (mensagemId: number) => {
+            setMensagens(atual => atual.filter(m => m.id !== mensagemId));
+            limparInteracoesMensagem(mensagemId);
+        },
+        [limparInteracoesMensagem],
+    );
+
+    useEffect(() => {
+        return subscribe((tipo, payload) => {
+            if (tipo === "NOVA_MENSAGEM") {
+                const parsed = parseNovaMensagem(payload);
+                if (!parsed) return;
+
+                const { mensagem, nao_lidas_conversa } = parsed;
+                const outroId = outroIdDaMensagem(mensagem, meuID);
+                const chatAtual = chatAtivoRef.current;
+                const emChatAtivo =
+                    chatAtual != null &&
+                    (mensagem.remetente_id === chatAtual || mensagem.destinatario_id === chatAtual);
+
+                setConversas(atual => {
+                    const existente = atual.find(c => c.usuario_id === outroId);
+                    const atualizada: ConversaResumo = {
+                        usuario_id: outroId,
+                        nome: existente?.nome ?? "Usuário",
+                        nick: existente?.nick ?? "",
+                        image: existente?.image,
+                        ultima_mensagem: previewMensagem(mensagem),
+                        ultima_mensagem_em: mensagem.criado_em,
+                        enviada_por_mim: mensagem.remetente_id === meuID,
+                        fixada: existente?.fixada ?? false,
+                        nao_lidas: emChatAtivo ? 0 : nao_lidas_conversa,
+                    };
+                    const restantes = atual.filter(c => c.usuario_id !== outroId);
+                    return reordenarConversas([atualizada, ...restantes]);
+                });
+
+                if (emChatAtivo && mensagem.remetente_id !== meuID) {
+                    setMensagens(atual => {
+                        if (atual.some(m => m.id === mensagem.id)) return atual;
+                        return [...atual, mensagem];
+                    });
+                    marcarMensagemLida(mensagem.id);
+                }
+                return;
+            }
+
+            if (tipo === "CONVERSA_LIDA") {
+                const p = payload as WsConversaLidaPayload;
+                setConversas(atual =>
+                    atual.map(c => (c.usuario_id === p.usuario_id ? { ...c, nao_lidas: p.nao_lidas_conversa } : c)),
+                );
+                return;
+            }
+
+            if (tipo === "MENSAGEM_ATUALIZADA") {
+                const p = payload as WsMensagemAtualizadaPayload;
+                const outroId = outroIdDaMensagem(p.mensagem, meuID);
+                const chatAtual = chatAtivoRef.current;
+                const emChatAtivo =
+                    chatAtual != null && mensagemPertenceAoChat(p.mensagem, chatAtual);
+
+                if (emChatAtivo) {
+                    setMensagens(atual =>
+                        atual.map(m => (m.id === p.mensagem.id ? { ...m, ...p.mensagem } : m)),
+                    );
+                }
+
+                setConversas(atual =>
+                    atual.map(c => {
+                        if (c.usuario_id !== outroId) return c;
+                        if (!mesmoInstante(c.ultima_mensagem_em, p.mensagem.criado_em)) return c;
+                        return {
+                            ...c,
+                            ultima_mensagem: previewMensagem(p.mensagem),
+                            enviada_por_mim: p.mensagem.remetente_id === meuID,
+                        };
+                    }),
+                );
+                return;
+            }
+
+            if (tipo === "MENSAGEM_APAGADA") {
+                const p = payload as WsMensagemApagadaPayload;
+                const outroId = p.remetente_id === meuID ? p.destinatario_id : p.remetente_id;
+                const chatAtual = chatAtivoRef.current;
+                const emChatAtivo = chatAtual != null && (p.remetente_id === chatAtual || p.destinatario_id === chatAtual);
+
+                const flags = {
+                    apagado_por_remetente: p.apagado_por_remetente,
+                    apagado_por_destinatario: p.apagado_por_destinatario,
+                };
+
+                const apagadaParaMim =
+                    (p.apagado_por_remetente && p.remetente_id === meuID) ||
+                    (p.apagado_por_destinatario && p.destinatario_id === meuID);
+
+                if (emChatAtivo) {
+                    setMensagens(atual => {
+                        const comFlags = atual.map(m => (m.id === p.mensagem_id ? { ...m, ...flags } : m));
+                        const visiveis = comFlags.filter(m => mensagemVisivelParaUsuario(m, meuID));
+                        const preview = previewAPartirDoHistorico(visiveis, meuID);
+                        setConversas(conv =>
+                            conv.map(c => (c.usuario_id === outroId ? { ...c, ...preview } : c)),
+                        );
+                        return visiveis;
+                    });
+                    if (apagadaParaMim) {
+                        setRespostaA(atual => (atual?.id === p.mensagem_id ? null : atual));
+                        setEditandoId(atual => (atual === p.mensagem_id ? null : atual));
+                        setReacaoMsgId(atual => (atual === p.mensagem_id ? null : atual));
+                    }
+                } else {
+                    const eraUltima = !!p.criado_em;
+                    setConversas(atual =>
+                        atual.map(c => {
+                            if (c.usuario_id !== outroId) return c;
+                            if (p.criado_em && !mesmoInstante(c.ultima_mensagem_em, p.criado_em)) return c;
+                            if (!apagadaParaMim) return c;
+                            return { ...c, ultima_mensagem: "Mensagem apagada" };
+                        }),
+                    );
+                    if (eraUltima && apagadaParaMim) {
+                        carregarInboxRef.current();
+                    }
+                }
+            }
+        });
+    }, [subscribe, meuID, marcarMensagemLida]);
 
     useEffect(() => {
         carregarInbox();
@@ -205,7 +416,7 @@ function MensagensConteudo() {
         novoChatProcessado.current = param;
 
         async function abrirNovoChat() {
-            const existe = conversas.some((c) => c.usuario_id === id);
+            const existe = conversas.some(c => c.usuario_id === id);
             if (existe) {
                 setChatAtivo(id);
                 return;
@@ -223,6 +434,7 @@ function MensagensConteudo() {
 
     useEffect(() => {
         if (chatAtivo) {
+            setConversas(atual => atual.map(c => (c.usuario_id === chatAtivo ? { ...c, nao_lidas: 0 } : c)));
             carregarHistorico(chatAtivo);
         } else {
             setMensagens([]);
@@ -251,7 +463,7 @@ function MensagensConteudo() {
                 const res = await fetch(`/api/pesquisa?q=${encodeURIComponent(termoModal.trim())}&limite=10`);
                 if (res.ok) {
                     const data = (await res.json()) as PesquisaResultado;
-                    setUsuariosModal(data.usuarios.filter((u) => u.id !== meuID));
+                    setUsuariosModal(data.usuarios.filter(u => u.id !== meuID));
                 } else {
                     setUsuariosModal([]);
                 }
@@ -340,12 +552,7 @@ function MensagensConteudo() {
         }
 
         if (!arquivo.name || !arquivo.name.includes(".")) {
-            const ext =
-                arquivo.type === "image/png"
-                    ? ".png"
-                    : arquivo.type === "image/webp"
-                      ? ".webp"
-                      : ".jpg";
+            const ext = arquivo.type === "image/png" ? ".png" : arquivo.type === "image/webp" ? ".webp" : ".jpg";
             return new File([arquivo], `anexo-${Date.now()}${ext}`, { type: arquivo.type });
         }
 
@@ -417,13 +624,16 @@ function MensagensConteudo() {
             });
             if (res.ok) {
                 const nova = (await res.json()) as Mensagem;
-                setMensagens((atual) => [...atual, nova]);
+                setMensagens(atual => (atual.some(m => m.id === nova.id) ? atual : [...atual, nova]));
                 setTexto("");
                 setRespostaA(null);
                 limparImagem();
                 setShowEmojiPicker(false);
                 setShowGifPicker(false);
                 carregarInbox();
+            } else if (res.status === 404 && respostaA) {
+                removerMensagemInvalida(respostaA.id);
+                setRespostaA(null);
             }
         } finally {
             setEnviando(false);
@@ -433,8 +643,13 @@ function MensagensConteudo() {
     async function apagarMensagem(id: number) {
         const res = await fetch(`/api/mensagens/msg/${id}`, { method: "DELETE" });
         if (res.ok) {
-            setMensagens((atual) => atual.filter((m) => m.id !== id));
+            setMensagens(atual => atual.filter(m => m.id !== id));
+            limparInteracoesMensagem(id);
             carregarInbox();
+            return;
+        }
+        if (res.status === 404) {
+            removerMensagemInvalida(id);
         }
     }
 
@@ -449,10 +664,14 @@ function MensagensConteudo() {
         });
         if (res.ok) {
             const atualizada = (await res.json()) as Mensagem;
-            setMensagens((atual) => atual.map((m) => (m.id === id ? atualizada : m)));
+            setMensagens(atual => atual.map(m => (m.id === id ? atualizada : m)));
             setEditandoId(null);
             setEditandoTexto("");
             carregarInbox();
+            return;
+        }
+        if (res.status === 404) {
+            removerMensagemInvalida(id);
         }
     }
 
@@ -464,15 +683,19 @@ function MensagensConteudo() {
         });
         if (res.ok) {
             const atualizada = (await res.json()) as Mensagem;
-            setMensagens((atual) => atual.map((m) => (m.id === id ? atualizada : m)));
+            setMensagens(atual => atual.map(m => (m.id === id ? atualizada : m)));
             setReacaoMsgId(null);
+            return;
+        }
+        if (res.status === 404) {
+            removerMensagemInvalida(id);
         }
     }
 
     async function apagarConversa(outroId: number) {
         const res = await fetch(`/api/mensagens/conversa/${outroId}`, { method: "DELETE" });
         if (res.ok) {
-            setConversas((atual) => atual.filter((c) => c.usuario_id !== outroId));
+            setConversas(atual => atual.filter(c => c.usuario_id !== outroId));
             if (chatAtivo === outroId) {
                 setChatAtivo(null);
                 setMensagens([]);
@@ -499,7 +722,7 @@ function MensagensConteudo() {
     }
 
     function handleEmojiClick(dados: EmojiClickData) {
-        setTexto((atual) => atual + dados.emoji);
+        setTexto(atual => atual + dados.emoji);
     }
 
     function selecionarUsuarioModal(usuario: PesquisaUsuario) {
@@ -526,7 +749,7 @@ function MensagensConteudo() {
                         <input
                             type="text"
                             value={termoBusca}
-                            onChange={(e) => setTermoBusca(e.target.value)}
+                            onChange={e => setTermoBusca(e.target.value)}
                             placeholder="Buscar conversas..."
                             className="mt-3 w-full rounded-full border border-cinza-300 bg-white px-3 py-2 font-gabarito-regular text-sm outline-none focus:border-azul-600"
                         />
@@ -539,9 +762,7 @@ function MensagensConteudo() {
                         ) : conversasFiltradas.length === 0 ? (
                             <div className="p-4">
                                 <p className="font-gabarito-regular text-sm text-cinza-700">
-                                    {termoBusca.trim()
-                                        ? "Nenhuma conversa encontrada."
-                                        : "Nenhuma conversa ainda."}
+                                    {termoBusca.trim() ? "Nenhuma conversa encontrada." : "Nenhuma conversa ainda."}
                                 </p>
                                 {termoBusca.trim() && (
                                     <button
@@ -554,7 +775,7 @@ function MensagensConteudo() {
                                 )}
                             </div>
                         ) : (
-                            conversasFiltradas.map((conversa) => (
+                            conversasFiltradas.map(conversa => (
                                 <div
                                     key={conversa.usuario_id}
                                     className={`flex items-center border-b border-cinza-100 ${
@@ -584,12 +805,23 @@ function MensagensConteudo() {
                                                 {conversa.fixada && <span aria-label="Fixada">📌</span>}
                                                 {conversa.nome}
                                             </p>
-                                            <p className="truncate font-gabarito-regular text-xs text-cinza-700">
+                                            <p
+                                                className={`truncate text-xs ${
+                                                    (conversa.nao_lidas ?? 0) > 0
+                                                        ? "font-gabarito-bold text-azul-900"
+                                                        : "font-gabarito-regular text-cinza-700"
+                                                }`}
+                                            >
                                                 {conversa.ultima_mensagem
                                                     ? `${conversa.enviada_por_mim ? "Você: " : ""}${conversa.ultima_mensagem}`
                                                     : "Nenhuma mensagem ainda"}
                                             </p>
                                         </div>
+                                        {(conversa.nao_lidas ?? 0) > 0 && (
+                                            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                                                {(conversa.nao_lidas ?? 0) > 99 ? "99+" : conversa.nao_lidas}
+                                            </span>
+                                        )}
                                     </button>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger
@@ -641,7 +873,9 @@ function MensagensConteudo() {
                                 )}
                                 <div>
                                     <p className="font-gabarito-bold text-base text-azul-900">{conversaAtiva.nome}</p>
-                                    <p className="font-gabarito-regular text-xs text-cinza-700">@{conversaAtiva.nick}</p>
+                                    <p className="font-gabarito-regular text-xs text-cinza-700">
+                                        @{conversaAtiva.nick}
+                                    </p>
                                 </div>
                             </header>
 
@@ -651,7 +885,7 @@ function MensagensConteudo() {
                                         <Loader2 className="h-6 w-6 animate-spin text-azul-600" />
                                     </div>
                                 ) : (
-                                    mensagens.map((msg) => {
+                                    mensagens.map(msg => {
                                         const minha = Number(msg.remetente_id) === meuID;
                                         const soImagem = !!msg.anexo_url && !msg.conteudo?.trim();
 
@@ -679,143 +913,147 @@ function MensagensConteudo() {
 
                                                     <div
                                                         className={`absolute z-10 flex gap-0.5 rounded-full border border-cinza-200 bg-white px-1 py-0.5 shadow-sm opacity-0 transition group-hover:opacity-100 ${
-                                                            minha ? "-left-2 top-1/2 -translate-x-full -translate-y-1/2" : "-right-2 top-1/2 translate-x-full -translate-y-1/2"
+                                                            minha
+                                                                ? "-left-2 top-1/2 -translate-x-full -translate-y-1/2"
+                                                                : "-right-2 top-1/2 translate-x-full -translate-y-1/2"
                                                         }`}
                                                     >
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setRespostaA(msg);
+                                                                setEditandoId(null);
+                                                            }}
+                                                            className="rounded-full p-1 text-cinza-600 hover:bg-cinza-100"
+                                                            aria-label="Responder"
+                                                        >
+                                                            <Reply className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setReacaoMsgId(reacaoMsgId === msg.id ? null : msg.id)
+                                                            }
+                                                            className="rounded-full p-1 text-cinza-600 hover:bg-cinza-100"
+                                                            aria-label="Reagir"
+                                                        >
+                                                            <Smile className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        {minha && msg.conteudo?.trim() && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    setRespostaA(msg);
-                                                                    setEditandoId(null);
+                                                                    setEditandoId(msg.id);
+                                                                    setEditandoTexto(msg.conteudo);
+                                                                    setRespostaA(null);
                                                                 }}
                                                                 className="rounded-full p-1 text-cinza-600 hover:bg-cinza-100"
-                                                                aria-label="Responder"
+                                                                aria-label="Editar"
                                                             >
-                                                                <Reply className="h-3.5 w-3.5" />
+                                                                <Pencil className="h-3.5 w-3.5" />
                                                             </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    setReacaoMsgId(reacaoMsgId === msg.id ? null : msg.id)
-                                                                }
-                                                                className="rounded-full p-1 text-cinza-600 hover:bg-cinza-100"
-                                                                aria-label="Reagir"
-                                                            >
-                                                                <Smile className="h-3.5 w-3.5" />
-                                                            </button>
-                                                            {minha && msg.conteudo?.trim() && (
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => apagarMensagem(msg.id)}
+                                                            className="rounded-full p-1 text-red-600 hover:bg-red-50"
+                                                            aria-label="Apagar"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
+
+                                                    {reacaoMsgId === msg.id && (
+                                                        <div
+                                                            className={`absolute z-20 flex gap-1 rounded-full border border-cinza-200 bg-white px-2 py-1 shadow-lg ${
+                                                                minha ? "right-0 -top-10" : "left-0 -top-10"
+                                                            }`}
+                                                        >
+                                                            {REACOES.map(emoji => (
                                                                 <button
+                                                                    key={emoji}
                                                                     type="button"
-                                                                    onClick={() => {
-                                                                        setEditandoId(msg.id);
-                                                                        setEditandoTexto(msg.conteudo);
-                                                                        setRespostaA(null);
-                                                                    }}
-                                                                    className="rounded-full p-1 text-cinza-600 hover:bg-cinza-100"
-                                                                    aria-label="Editar"
+                                                                    onClick={() => reagirMensagem(msg.id, emoji)}
+                                                                    className="text-lg transition hover:scale-125"
                                                                 >
-                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                    {emoji}
                                                                 </button>
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => apagarMensagem(msg.id)}
-                                                                className="rounded-full p-1 text-red-600 hover:bg-red-50"
-                                                                aria-label="Apagar"
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                            </button>
+                                                            ))}
                                                         </div>
+                                                    )}
 
-                                                        {reacaoMsgId === msg.id && (
-                                                            <div
-                                                                className={`absolute z-20 flex gap-1 rounded-full border border-cinza-200 bg-white px-2 py-1 shadow-lg ${
-                                                                    minha ? "right-0 -top-10" : "left-0 -top-10"
-                                                                }`}
-                                                            >
-                                                                {REACOES.map((emoji) => (
-                                                                    <button
-                                                                        key={emoji}
-                                                                        type="button"
-                                                                        onClick={() => reagirMensagem(msg.id, emoji)}
-                                                                        className="text-lg transition hover:scale-125"
-                                                                    >
-                                                                        {emoji}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        )}
-
-                                                        {soImagem ? (
-                                                            // eslint-disable-next-line @next/next/no-img-element
-                                                            <img
-                                                                src={msg.anexo_url}
-                                                                className="max-h-64 max-w-full rounded-xl object-cover shadow-sm"
-                                                                alt="Anexo"
-                                                                loading="eager"
-                                                            />
-                                                        ) : (
-                                                            <div
-                                                                className={`w-full min-w-0 overflow-hidden rounded-2xl px-4 py-2 font-gabarito-regular text-sm break-words ${
-                                                                    minha
-                                                                        ? "rounded-br-sm bg-azul-600 text-white"
-                                                                        : "rounded-bl-sm bg-white text-azul-900 shadow-sm"
-                                                                }`}
-                                                            >
-                                                                {msg.anexo_url && (
-                                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                                    <img
-                                                                        src={msg.anexo_url}
-                                                                        className="mb-1 mt-1 max-h-64 max-w-xs rounded-xl object-cover shadow-sm md:max-w-sm"
-                                                                        alt="Anexo"
-                                                                        loading="eager"
+                                                    {soImagem ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img
+                                                            src={msg.anexo_url}
+                                                            className="max-h-64 max-w-full rounded-xl object-cover shadow-sm"
+                                                            alt="Anexo"
+                                                            loading="eager"
+                                                        />
+                                                    ) : (
+                                                        <div
+                                                            className={`w-full min-w-0 overflow-hidden rounded-2xl px-4 py-2 font-gabarito-regular text-sm wrap-break-word ${
+                                                                minha
+                                                                    ? "rounded-br-sm bg-azul-600 text-white"
+                                                                    : "rounded-bl-sm bg-white text-azul-900 shadow-sm"
+                                                            }`}
+                                                        >
+                                                            {msg.anexo_url && (
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img
+                                                                    src={msg.anexo_url}
+                                                                    className="mb-1 mt-1 max-h-64 max-w-xs rounded-xl object-cover shadow-sm md:max-w-sm"
+                                                                    alt="Anexo"
+                                                                    loading="eager"
+                                                                />
+                                                            )}
+                                                            {editandoId === msg.id ? (
+                                                                <div className="space-y-2">
+                                                                    <input
+                                                                        value={editandoTexto}
+                                                                        onChange={e => setEditandoTexto(e.target.value)}
+                                                                        className="w-full rounded-lg border border-cinza-300 bg-white px-2 py-1 text-sm text-azul-900 outline-none"
+                                                                        autoFocus
                                                                     />
-                                                                )}
-                                                                {editandoId === msg.id ? (
-                                                                    <div className="space-y-2">
-                                                                        <input
-                                                                            value={editandoTexto}
-                                                                            onChange={(e) => setEditandoTexto(e.target.value)}
-                                                                            className="w-full rounded-lg border border-cinza-300 bg-white px-2 py-1 text-sm text-azul-900 outline-none"
-                                                                            autoFocus
-                                                                        />
-                                                                        <div className="flex gap-2">
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => salvarEdicao(msg.id)}
-                                                                                className="font-gabarito-bold text-xs text-white underline"
-                                                                            >
-                                                                                Salvar
-                                                                            </button>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    setEditandoId(null);
-                                                                                    setEditandoTexto("");
-                                                                                }}
-                                                                                className="font-gabarito-regular text-xs text-white/80 underline"
-                                                                            >
-                                                                                Cancelar
-                                                                            </button>
-                                                                        </div>
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => salvarEdicao(msg.id)}
+                                                                            className="font-gabarito-bold text-xs text-white underline"
+                                                                        >
+                                                                            Salvar
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setEditandoId(null);
+                                                                                setEditandoTexto("");
+                                                                            }}
+                                                                            className="font-gabarito-regular text-xs text-white/80 underline"
+                                                                        >
+                                                                            Cancelar
+                                                                        </button>
                                                                     </div>
-                                                                ) : (
-                                                                    <>
-                                                                        {msg.conteudo &&
-                                                                            renderConteudoMensagem(msg.conteudo, minha)}
-                                                                        {msg.editada && (
-                                                                            <span
-                                                                                className={`ml-1 text-xs italic ${
-                                                                                    minha ? "text-white/70" : "text-cinza-600"
-                                                                                }`}
-                                                                            >
-                                                                                (editado)
-                                                                            </span>
-                                                                        )}
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    {msg.conteudo &&
+                                                                        renderConteudoMensagem(msg.conteudo, minha)}
+                                                                    {msg.editada && (
+                                                                        <span
+                                                                            className={`ml-1 text-xs italic ${
+                                                                                minha
+                                                                                    ? "text-white/70"
+                                                                                    : "text-cinza-600"
+                                                                            }`}
+                                                                        >
+                                                                            (editado)
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
 
                                                     {msg.reacao && (
                                                         <span className="mt-2 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-sm shadow-sm">
@@ -869,7 +1107,10 @@ function MensagensConteudo() {
                                     </div>
                                 )}
 
-                                <div ref={inputRodapeRef} className="relative rounded-2xl border border-cinza-300 bg-white px-2 py-2">
+                                <div
+                                    ref={inputRodapeRef}
+                                    className="relative rounded-2xl border border-cinza-300 bg-white px-2 py-2"
+                                >
                                     {showEmojiPicker && (
                                         <div className="absolute bottom-14 left-0 z-50">
                                             <EmojiPicker onEmojiClick={handleEmojiClick} width={320} height={400} />
@@ -881,7 +1122,7 @@ function MensagensConteudo() {
                                             <input
                                                 type="text"
                                                 value={termoGifBusca}
-                                                onChange={(e) => setTermoGifBusca(e.target.value)}
+                                                onChange={e => setTermoGifBusca(e.target.value)}
                                                 placeholder="Buscar GIFs..."
                                                 className="mb-2 w-full rounded-full border border-cinza-300 px-3 py-2 font-gabarito-regular text-sm outline-none focus:border-azul-600"
                                                 autoFocus
@@ -898,7 +1139,7 @@ function MensagensConteudo() {
                                                             : "Nenhum GIF popular no momento."}
                                                     </p>
                                                 ) : (
-                                                    gifsGiphy.map((gif) => (
+                                                    gifsGiphy.map(gif => (
                                                         <button
                                                             key={gif.id}
                                                             type="button"
@@ -938,7 +1179,7 @@ function MensagensConteudo() {
                                             type="button"
                                             onClick={() => {
                                                 setShowEmojiPicker(false);
-                                                setShowGifPicker((v) => !v);
+                                                setShowGifPicker(v => !v);
                                             }}
                                             className="rounded border border-azul-600 px-1.5 py-0.5 font-gabarito-bold text-[10px] leading-none text-azul-600 transition hover:bg-azul-50"
                                         >
@@ -949,7 +1190,7 @@ function MensagensConteudo() {
                                             type="button"
                                             onClick={() => {
                                                 setShowGifPicker(false);
-                                                setShowEmojiPicker((v) => !v);
+                                                setShowEmojiPicker(v => !v);
                                             }}
                                             className="rounded-full p-2 text-azul-600 transition hover:bg-azul-50"
                                             aria-label="Emoji"
@@ -960,7 +1201,7 @@ function MensagensConteudo() {
                                         <input
                                             type="text"
                                             value={texto}
-                                            onChange={(e) => setTexto(e.target.value)}
+                                            onChange={e => setTexto(e.target.value)}
                                             onPaste={handleColarImagem}
                                             placeholder="Escreva uma mensagem..."
                                             className="min-w-0 flex-1 bg-transparent px-2 font-gabarito-regular text-sm outline-none"
@@ -996,7 +1237,7 @@ function MensagensConteudo() {
                         <input
                             type="text"
                             value={termoModal}
-                            onChange={(e) => setTermoModal(e.target.value)}
+                            onChange={e => setTermoModal(e.target.value)}
                             placeholder="Buscar usuários..."
                             className="w-full rounded-full border border-cinza-300 py-2 pl-9 pr-4 font-gabarito-regular text-sm outline-none focus:border-azul-600"
                             autoFocus
@@ -1012,7 +1253,7 @@ function MensagensConteudo() {
                                 Nenhum usuário encontrado.
                             </p>
                         ) : (
-                            usuariosModal.map((usuario) => (
+                            usuariosModal.map(usuario => (
                                 <button
                                     key={usuario.id}
                                     type="button"
@@ -1033,8 +1274,12 @@ function MensagensConteudo() {
                                         </div>
                                     )}
                                     <div className="min-w-0">
-                                        <p className="truncate font-gabarito-bold text-sm text-azul-900">{usuario.nome}</p>
-                                        <p className="truncate font-gabarito-regular text-xs text-cinza-700">@{usuario.nick}</p>
+                                        <p className="truncate font-gabarito-bold text-sm text-azul-900">
+                                            {usuario.nome}
+                                        </p>
+                                        <p className="truncate font-gabarito-regular text-xs text-cinza-700">
+                                            @{usuario.nick}
+                                        </p>
                                     </div>
                                 </button>
                             ))
