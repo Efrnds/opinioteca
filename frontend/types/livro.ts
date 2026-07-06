@@ -9,6 +9,8 @@ export type LivroBusca = {
     editora?: string;
     capa_url?: string;
     sinopse?: string;
+    categoria_id?: number;
+    categorias_ids?: number[];
 };
 
 export type LivroPublico = {
@@ -17,11 +19,13 @@ export type LivroPublico = {
     titulo: string;
     editora?: string;
     categoria_id?: number;
+    categorias_ids?: number[];
     paginas?: number;
     autor: string;
     sinopse?: string;
     capa_url?: string;
     data_publicacao?: string;
+    google_volume_id?: string;
     criado_em?: string;
 };
 
@@ -38,4 +42,6 @@ export type CriarLivroPayload = {
     paginas?: number;
     capa_url?: string;
     isbn?: string;
+    categoria_id?: number;
+    categorias_ids?: number[];
 };

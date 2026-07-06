@@ -22,6 +22,7 @@ const inputClassName =
     "w-full px-4 py-1 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
 export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMode }: AuthModalProps) {
+    const [nickLogin, setNickLogin] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [nome, setNome] = useState("");
@@ -82,7 +83,7 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
         setCarregando(true);
 
         const result = await signIn("credentials", {
-            email,
+            nick: nickLogin,
             password,
             redirect: false,
         });
@@ -90,7 +91,8 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
         setCarregando(false);
 
         if (result?.error) {
-            setErro("Email ou senha inválidos.");
+            setPassword("");
+            setErro("Nome de usuário ou senha inválidos.");
             return;
         }
 
@@ -129,7 +131,7 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
             }
 
             const result = await signIn("credentials", {
-                email,
+                nick,
                 password,
                 redirect: false,
             });
@@ -192,11 +194,12 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
                         {mode === "login" ? (
                             <form onSubmit={handleLogin} className="flex flex-col gap-4">
                                 <input
-                                    type="email"
-                                    placeholder="Email"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
+                                    type="text"
+                                    placeholder="Nome de usuário"
+                                    value={nickLogin}
+                                    onChange={e => setNickLogin(e.target.value)}
                                     required
+                                    autoComplete="username"
                                     className={inputClassName}
                                 />
                                 <input

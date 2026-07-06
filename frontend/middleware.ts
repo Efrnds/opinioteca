@@ -1,10 +1,15 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-const prefixosProtegidos = ["/home"];
+const prefixosProtegidos = ["/home", "/avaliacoes"];
+const prefixoAdmin = "/admin";
 
 function ehRotaProtegida(pathname: string) {
     return prefixosProtegidos.some((prefixo) => pathname === prefixo || pathname.startsWith(`${prefixo}/`));
+}
+
+function ehRotaAdmin(pathname: string) {
+    return pathname === prefixoAdmin || pathname.startsWith(`${prefixoAdmin}/`);
 }
 
 function ehRotaPublica(pathname: string) {
@@ -14,6 +19,20 @@ function ehRotaPublica(pathname: string) {
 export default auth((req) => {
     const { pathname } = req.nextUrl;
     const isLoggedIn = !!req.auth;
+    const isAdmin = !!req.auth?.isAdmin;
+
+    if (ehRotaAdmin(pathname)) {
+        if (!isLoggedIn) {
+            const url = new URL("/", req.url);
+            url.searchParams.set("auth", "login");
+            url.searchParams.set("callbackUrl", pathname);
+            return NextResponse.redirect(url);
+        }
+        if (!isAdmin) {
+            return NextResponse.redirect(new URL("/home", req.url));
+        }
+        return NextResponse.next();
+    }
 
     if (!isLoggedIn && ehRotaProtegida(pathname)) {
         const url = new URL("/", req.url);

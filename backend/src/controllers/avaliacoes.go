@@ -167,7 +167,7 @@ func BuscarAvaliacaoPorID(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repoAvaliacoes := repositorios.NovoRepositorioDeAvaliacoes(db)
-	avaliacao, erro := repoAvaliacoes.BuscarPorID(id)
+	feed, erro := repoAvaliacoes.BuscarFeedPorID(id)
 	if erro == sql.ErrNoRows {
 		respostas.Erro(w, http.StatusNotFound, errors.New("Avaliação não encontrada"))
 		return
@@ -178,12 +178,12 @@ func BuscarAvaliacaoPorID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	usuarioID := usuarioIDDoTokenOpcional(r)
-	resposta, erro := montarAvaliacaoComVotos(db, avaliacao, usuarioID)
+	resposta, erro := montarFeedComVotos(db, []modelos.AvaliacaoFeed{feed}, usuarioID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-	respostas.JSON(w, http.StatusOK, resposta)
+	respostas.JSON(w, http.StatusOK, resposta[0])
 }
 
 func BuscarAvaliacoesPorUsuario(w http.ResponseWriter, r *http.Request) {

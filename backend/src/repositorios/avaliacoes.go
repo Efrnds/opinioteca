@@ -116,6 +116,61 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 	return feed, nil
 }
 
+func (repositorio Avaliacoes) BuscarFeedPorID(id uint64) (modelos.AvaliacaoFeed, error) {
+	linha := repositorio.db.QueryRow(
+		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
+		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
+		        u.id, u.nome, u.nick, u.image_url,
+		        l.id, l.titulo, l.autor, l.capa_url
+		 FROM avaliacoes a
+		 INNER JOIN usuarios u ON u.id = a.usuario_id AND u.status = 'ativo'
+		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
+		 WHERE a.id = $1`,
+		id,
+	)
+
+	var item modelos.AvaliacaoFeed
+	var imageURL, capaURL, anexoURL sql.NullString
+
+	if erro := linha.Scan(
+		&item.ID,
+		&item.Nota,
+		&item.Texto,
+		&item.ContemSpoiler,
+		&anexoURL,
+		&item.CriadoEm,
+		&item.QtdComentarios,
+		&item.Usuario.ID,
+		&item.Usuario.Nome,
+		&item.Usuario.Nick,
+		&imageURL,
+		&item.Livro.ID,
+		&item.Livro.Titulo,
+		&item.Livro.Autor,
+		&capaURL,
+	); erro != nil {
+		return modelos.AvaliacaoFeed{}, erro
+	}
+
+	if imageURL.Valid {
+		item.Usuario.Image = imageURL.String
+	}
+	if capaURL.Valid {
+		item.Livro.CapaURL = capaURL.String
+	}
+	if anexoURL.Valid {
+		item.AnexoURL = &anexoURL.String
+	}
+
+	destaque, erro := NovoRepositorioDeComentarios(repositorio.db).BuscarComentarioDestaque(item.ID)
+	if erro != nil {
+		return modelos.AvaliacaoFeed{}, erro
+	}
+	item.ComentarioDestaque = destaque
+
+	return item, nil
+}
+
 func (repositorio Avaliacoes) BuscarPorUsuario(usuarioID uint64) ([]modelos.Avaliacao, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, usuario_id, livro_id, template_id, nota, texto, contem_spoiler, anexo_url, score_sentimento, criadoEm

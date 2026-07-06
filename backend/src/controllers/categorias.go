@@ -62,6 +62,9 @@ func BuscarCategorias(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
+	if categorias == nil {
+		categorias = []modelos.Categoria{}
+	}
 	respostas.JSON(w, http.StatusOK, categorias)
 }
 

@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -188,16 +189,59 @@ func aplicarComplementos(livro *modelos.Livro, req modelos.CriarLivroUsuarioRequ
 	if req.ISBN != "" {
 		livro.ISBN = req.ISBN
 	}
+	if categorias := req.CategoriasResolvidas(); len(categorias) > 0 {
+		livro.CategoriasIDs = categorias
+		livro.CategoriaID = categorias[0]
+	} else if req.CategoriaID > 0 {
+		livro.CategoriaID = req.CategoriaID
+		livro.CategoriasIDs = []uint64{req.CategoriaID}
+	}
+}
+
+func (s *Livros) categoriaOutrosID() (uint64, error) {
+	categoria, erro := s.repoCategorias.BuscarPorNome("Outros")
+	if erro != nil {
+		return 0, errors.New("Categoria 'Outros' não encontrada. Execute o seed do banco.")
+	}
+	return categoria.ID, nil
+}
+
+func (s *Livros) resolverCategorias(req modelos.CriarLivroUsuarioRequest, atual uint64) ([]uint64, uint64, error) {
+	if categorias := req.CategoriasResolvidas(); len(categorias) > 0 {
+		return categorias, categorias[0], nil
+	}
+	if atual > 0 {
+		return []uint64{atual}, atual, nil
+	}
+
+	outrosID, erro := s.categoriaOutrosID()
+	if erro != nil {
+		return nil, 0, errors.New("Selecione uma categoria para o livro.")
+	}
+	return []uint64{outrosID}, outrosID, nil
+}
+
+func (s *Livros) persistirCategorias(livroID uint64, categoriasIDs []uint64) error {
+	if livroID == 0 || len(categoriasIDs) == 0 {
+		return nil
+	}
+	return s.repoLivros.SubstituirCategorias(livroID, categoriasIDs)
+}
+
+func (s *Livros) finalizarLivro(livro *modelos.Livro, categoriasIDs []uint64) (modelos.Livro, error) {
+	if erro := s.persistirCategorias(livro.ID, categoriasIDs); erro != nil {
+		return modelos.Livro{}, erro
+	}
+	livro.CategoriasIDs = categoriasIDs
+	if len(categoriasIDs) > 0 {
+		livro.CategoriaID = categoriasIDs[0]
+	}
+	return *livro, nil
 }
 
 func (s *Livros) RegistrarLivroUsuario(req modelos.CriarLivroUsuarioRequest) (modelos.Livro, error) {
 	if erro := req.Preparar(); erro != nil {
 		return modelos.Livro{}, erro
-	}
-
-	categoriaOutros, erro := s.repoCategorias.BuscarPorNome("Outros")
-	if erro != nil {
-		return modelos.Livro{}, errors.New("Categoria 'Outros' não encontrada. Execute o seed do banco.")
 	}
 
 	if req.LivroID != nil && *req.LivroID > 0 {
@@ -209,26 +253,43 @@ func (s *Livros) RegistrarLivroUsuario(req modelos.CriarLivroUsuarioRequest) (mo
 			return modelos.Livro{}, erro
 		}
 		aplicarComplementos(&livro, req)
+		categoriasIDs, _, erro := s.resolverCategorias(req, livro.CategoriaID)
+		if erro != nil {
+			return modelos.Livro{}, erro
+		}
+		livro.CategoriasIDs = categoriasIDs
+		livro.CategoriaID = categoriasIDs[0]
 		if erro = livro.Preparar("usuario"); erro != nil {
 			return modelos.Livro{}, erro
 		}
 		if erro = s.repoLivros.Atualizar(livro.ID, livro); erro != nil {
 			return modelos.Livro{}, erro
 		}
-		return livro, nil
+		return s.finalizarLivro(&livro, categoriasIDs)
 	}
 
 	if req.GoogleVolumeID != "" {
 		if existente, erro := s.repoLivros.BuscarPorGoogleVolumeID(req.GoogleVolumeID); erro == nil {
 			aplicarComplementos(&existente, req)
+			categoriasIDs, _, erro := s.resolverCategorias(req, existente.CategoriaID)
+			if erro != nil {
+				return modelos.Livro{}, erro
+			}
+			existente.CategoriasIDs = categoriasIDs
+			existente.CategoriaID = categoriasIDs[0]
 			if erro = existente.Preparar("usuario"); erro != nil {
 				return modelos.Livro{}, erro
 			}
 			if erro = s.repoLivros.Atualizar(existente.ID, existente); erro != nil {
 				return modelos.Livro{}, erro
 			}
-			return existente, nil
+			return s.finalizarLivro(&existente, categoriasIDs)
 		} else if erro != sql.ErrNoRows {
+			return modelos.Livro{}, erro
+		}
+
+		categoriasIDs, categoriaPrincipal, erro := s.resolverCategorias(req, 0)
+		if erro != nil {
 			return modelos.Livro{}, erro
 		}
 
@@ -239,7 +300,8 @@ func (s *Livros) RegistrarLivroUsuario(req modelos.CriarLivroUsuarioRequest) (mo
 			Paginas:        req.Paginas,
 			CapaURL:        req.CapaURL,
 			ISBN:           req.ISBN,
-			CategoriaID:    categoriaOutros.ID,
+			CategoriaID:    categoriaPrincipal,
+			CategoriasIDs:  categoriasIDs,
 			Status:         "ativo",
 			Origem:         "manual",
 			Editora:        "Desconhecida",
@@ -248,13 +310,22 @@ func (s *Livros) RegistrarLivroUsuario(req modelos.CriarLivroUsuarioRequest) (mo
 		volume, erro := s.googleClient.BuscarPorVolumeID(req.GoogleVolumeID)
 		if erro == nil {
 			if volume, erro = s.googleClient.EnriquecerPaginas(volume); erro == nil {
-				if importado, erro := googlebooks.VolumeParaLivro(volume, categoriaOutros.ID); erro == nil {
+				if importado, erro := googlebooks.VolumeParaLivro(volume); erro == nil {
 					livro = importado
 				}
 			}
 		}
 
 		aplicarComplementos(&livro, req)
+		categoriasIDs = livro.CategoriasResolvidas()
+		if len(categoriasIDs) == 0 {
+			categoriasIDs, categoriaPrincipal, erro = s.resolverCategorias(req, 0)
+			if erro != nil {
+				return modelos.Livro{}, erro
+			}
+			livro.CategoriasIDs = categoriasIDs
+			livro.CategoriaID = categoriaPrincipal
+		}
 		if erro = livro.Preparar("usuario"); erro != nil {
 			return modelos.Livro{}, erro
 		}
@@ -264,21 +335,31 @@ func (s *Livros) RegistrarLivroUsuario(req modelos.CriarLivroUsuarioRequest) (mo
 			return modelos.Livro{}, erro
 		}
 		livro.ID = id
-		return livro, nil
+		return s.finalizarLivro(&livro, categoriasIDs)
+	}
+
+	categoriasIDs, categoriaPrincipal, erro := s.resolverCategorias(req, 0)
+	if erro != nil {
+		return modelos.Livro{}, erro
 	}
 
 	livro := modelos.Livro{
-		Titulo:      req.Titulo,
-		Autor:       req.Autor,
-		Paginas:     req.Paginas,
-		CapaURL:     req.CapaURL,
-		ISBN:        req.ISBN,
-		CategoriaID: categoriaOutros.ID,
-		Status:      "ativo",
-		Origem:      "manual",
-		Editora:     "Desconhecida",
+		Titulo:        req.Titulo,
+		Autor:         req.Autor,
+		Paginas:       req.Paginas,
+		CapaURL:       req.CapaURL,
+		ISBN:          req.ISBN,
+		CategoriaID:   categoriaPrincipal,
+		CategoriasIDs: categoriasIDs,
+		Status:        "ativo",
+		Origem:        "manual",
+		Editora:       "Desconhecida",
 	}
 	aplicarComplementos(&livro, req)
+	categoriasIDs = livro.CategoriasResolvidas()
+	if len(categoriasIDs) > 0 {
+		livro.CategoriaID = categoriasIDs[0]
+	}
 	if erro := livro.Preparar("usuario"); erro != nil {
 		return modelos.Livro{}, erro
 	}
@@ -288,7 +369,7 @@ func (s *Livros) RegistrarLivroUsuario(req modelos.CriarLivroUsuarioRequest) (mo
 		return modelos.Livro{}, erro
 	}
 	livro.ID = id
-	return livro, nil
+	return s.finalizarLivro(&livro, categoriasIDs)
 }
 
 func (s *Livros) ResolverLivro(livroID *uint64, googleVolumeID string) (uint64, error) {
@@ -326,15 +407,17 @@ func (s *Livros) ResolverLivro(livroID *uint64, googleVolumeID string) (uint64, 
 		return 0, erro
 	}
 
-	categoriaOutros, erro := s.repoCategorias.BuscarPorNome("Outros")
-	if erro != nil {
-		return 0, errors.New("Categoria 'Outros' não encontrada. Execute o seed do banco.")
-	}
-
-	livroImportado, erro := googlebooks.VolumeParaLivro(volume, categoriaOutros.ID)
+	categoriaOutros, erro := s.categoriaOutrosID()
 	if erro != nil {
 		return 0, erro
 	}
+
+	livroImportado, erro := googlebooks.VolumeParaLivro(volume)
+	if erro != nil {
+		return 0, erro
+	}
+	livroImportado.CategoriaID = categoriaOutros
+	livroImportado.CategoriasIDs = []uint64{categoriaOutros}
 
 	if livroImportado.ISBN != "" {
 		existente, erro := s.repoLivros.BuscarPorISBN(livroImportado.ISBN)
@@ -346,5 +429,66 @@ func (s *Livros) ResolverLivro(livroID *uint64, googleVolumeID string) (uint64, 
 		}
 	}
 
-	return s.repoLivros.UpsertGoogle(livroImportado)
+	id, erro := s.repoLivros.UpsertGoogle(livroImportado)
+	if erro != nil {
+		return 0, erro
+	}
+	if erro = s.persistirCategorias(id, []uint64{categoriaOutros}); erro != nil {
+		return 0, erro
+	}
+	return id, nil
+}
+
+func (s *Livros) ResolverLivroIDBanco(identificador string) (uint64, error) {
+	identificador = strings.TrimSpace(identificador)
+	if identificador == "" {
+		return 0, errors.New("Identificador inválido")
+	}
+
+	if idNumerico, erro := strconv.ParseUint(identificador, 10, 64); erro == nil {
+		livro, erro := s.repoLivros.BuscarPorID(idNumerico)
+		if erro != nil {
+			if erro == sql.ErrNoRows {
+				return 0, errors.New("Livro não encontrado")
+			}
+			return 0, erro
+		}
+		return livro.ID, nil
+	}
+
+	livro, erro := s.repoLivros.BuscarPorGoogleVolumeID(identificador)
+	if erro != nil {
+		return 0, erro
+	}
+	return livro.ID, nil
+}
+
+func (s *Livros) BuscarPorGoogleVolume(volumeID string) (modelos.LivroBusca, error) {
+	volumeID = strings.TrimSpace(volumeID)
+	if volumeID == "" {
+		return modelos.LivroBusca{}, errors.New("Volume inválido")
+	}
+
+	livro, erro := s.repoLivros.BuscarPorGoogleVolumeID(volumeID)
+	if erro == nil {
+		if erro = s.repoLivros.PreencherCategoriasLivro(&livro); erro != nil {
+			return modelos.LivroBusca{}, erro
+		}
+		return livro.ParaBusca(), nil
+	}
+	if erro != sql.ErrNoRows {
+		return modelos.LivroBusca{}, erro
+	}
+
+	volume, erro := s.googleClient.BuscarPorVolumeID(volumeID)
+	if erro != nil {
+		return modelos.LivroBusca{}, erroGoogleAmigavel(erro)
+	}
+
+	volume, erro = s.googleClient.EnriquecerPaginas(volume)
+	if erro != nil {
+		return modelos.LivroBusca{}, erro
+	}
+
+	return googlebooks.VolumeParaLivroBusca(volume)
 }

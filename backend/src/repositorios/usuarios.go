@@ -4,6 +4,8 @@ import (
 	"backend/src/modelos"
 	"database/sql"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 const colunasUsuario = `id, nome, nick, email, image_url, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm`
@@ -143,6 +145,32 @@ func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) 
 	var usuario modelos.Usuario
 	if linhas.Next() {
 		if erro = scanUsuario(linhas, &usuario); erro != nil {
+			return modelos.Usuario{}, erro
+		}
+	}
+
+	return usuario, nil
+}
+
+// BuscarPorNickParaLogin retorna credenciais do usuário pelo nick (case insensitive).
+func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario, error) {
+	linha, erro := repositorio.db.Query(
+		"SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(nick) = LOWER($1)",
+		nick,
+	)
+	if erro != nil {
+		return modelos.Usuario{}, erro
+	}
+	defer linha.Close()
+
+	var usuario modelos.Usuario
+	if linha.Next() {
+		if erro = linha.Scan(
+			&usuario.ID,
+			&usuario.Senha,
+			&usuario.Status,
+			&usuario.IsAdmin,
+		); erro != nil {
 			return modelos.Usuario{}, erro
 		}
 	}
@@ -495,4 +523,35 @@ func (repositorio Usuarios) PesquisarGlobal(termo string, limite int) ([]modelos
 		resultado = append(resultado, u)
 	}
 	return resultado, nil
+}
+
+// BuscarPorNickEmailOuID resolve um usuário por ID numérico, e-mail ou nick (admin).
+func (repositorio Usuarios) BuscarPorNickEmailOuID(consulta string) (modelos.Usuario, error) {
+	consulta = strings.TrimSpace(consulta)
+	if consulta == "" {
+		return modelos.Usuario{}, fmt.Errorf("consulta vazia")
+	}
+
+	if id, erro := strconv.ParseUint(consulta, 10, 64); erro == nil {
+		return repositorio.BuscarPorID(id)
+	}
+
+	linhas, erro := repositorio.db.Query(
+		fmt.Sprintf("SELECT %s FROM usuarios WHERE LOWER(email) = LOWER($1)", colunasUsuario),
+		consulta,
+	)
+	if erro != nil {
+		return modelos.Usuario{}, erro
+	}
+	defer linhas.Close()
+
+	var usuario modelos.Usuario
+	if linhas.Next() {
+		if erro = scanUsuario(linhas, &usuario); erro != nil {
+			return modelos.Usuario{}, erro
+		}
+		return usuario, nil
+	}
+
+	return repositorio.BuscarPorNick(consulta)
 }

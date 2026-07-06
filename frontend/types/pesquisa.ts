@@ -1,3 +1,5 @@
+import { hrefLivro } from "@/lib/livro-url";
+
 export type PesquisaUsuario = {
     id: number;
     nome: string;
@@ -20,9 +22,7 @@ export type PesquisaResultado = {
 };
 
 export function hrefLivroPesquisa(livro: PesquisaLivro): string {
-    if (livro.id) return `/livros/${livro.id}`;
-    if (livro.google_volume_id) return `/livros/pesquisa/${livro.google_volume_id}`;
-    return "#";
+    return hrefLivro({ id: livro.id, google_volume_id: livro.google_volume_id });
 }
 
 export function keyLivroPesquisa(livro: PesquisaLivro, index: number): string {

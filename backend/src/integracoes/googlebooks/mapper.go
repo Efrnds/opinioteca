@@ -10,11 +10,10 @@ import (
 
 var ErrDadosInsuficientes = errors.New("Google Books não retornou título e autor")
 
-func VolumeParaLivro(item VolumeItem, categoriaOutrosID uint64) (modelos.Livro, error) {
+func VolumeParaLivro(item VolumeItem) (modelos.Livro, error) {
 	livro := modelos.Livro{
 		GoogleVolumeID: item.ID,
 		Origem:         "google_books",
-		CategoriaID:    categoriaOutrosID,
 		Status:         "ativo",
 		Titulo:         strings.TrimSpace(item.VolumeInfo.Title),
 		Editora:        strings.TrimSpace(item.VolumeInfo.Publisher),

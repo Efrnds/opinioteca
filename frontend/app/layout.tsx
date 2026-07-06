@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import type { Metadata } from "next";
-import Header from "./components/Header";
-import Main from "./components/Main";
+import LayoutShell from "./components/LayoutShell";
 import Providers from "./providers";
 import "./globals.css";
 import { Figtree } from "next/font/google";
@@ -29,14 +28,7 @@ export default async function RootLayout({
         <html lang="pt-br" className={cn("font-sans", figtree.variable)}>
             <body className={`antialiased ${isLoggedIn ? "h-screen w-screen" : ""}`}>
                 <Providers>
-                    {isLoggedIn ? (
-                        <>
-                            <Header />
-                            <Main>{children}</Main>
-                        </>
-                    ) : (
-                        children
-                    )}
+                    {isLoggedIn ? <LayoutShell>{children}</LayoutShell> : children}
                 </Providers>
             </body>
         </html>

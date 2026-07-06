@@ -112,4 +112,32 @@ var rotasAdmin = []Rota{
 		RequerAutenticacao: true,
 		RequerAdmin:        true,
 	},
+	{
+		URI:                "/admin/relatorios/comentarios",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioComentarios,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/livros",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioLivros,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/seguidores-seguindo",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioSeguidoresSeguindo,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/historico-leitura",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioHistoricoLeitura,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
 }

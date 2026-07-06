@@ -5,6 +5,7 @@ import { textoContemLink } from "@/lib/texto";
 import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
 import { ImageIcon, Loader2, Send, X } from "lucide-react";
 import { ChangeEvent, ClipboardEvent, FormEvent, useId, useState } from "react";
+import LightboxImagem from "./LightboxImagem";
 
 type GiphyGif = {
     id: string;
@@ -250,30 +251,61 @@ export function ComentarioMidia({
     url,
     alt = "Anexo",
     expandido = false,
+    comLightbox = false,
 }: {
     url?: string | null;
     alt?: string;
     expandido?: boolean;
+    comLightbox?: boolean;
 }) {
+    const [lightboxAberta, setLightboxAberta] = useState(false);
+
     if (!url) return null;
     const src = mediaUrl(url) ?? url;
     const gif = ehGif(url);
 
-    return (
+    const classeImagem = `mt-2 max-w-full rounded-xl ${
+        expandido
+            ? gif
+                ? "max-h-80 object-contain"
+                : "max-h-72 object-cover"
+            : gif
+              ? "max-h-56 object-contain"
+              : "max-h-48 object-cover"
+    }`;
+
+    const imagem = (
         // eslint-disable-next-line @next/next/no-img-element
         <img
             src={src}
             alt={alt}
-            className={`mt-2 max-w-full rounded-xl ${
-                expandido
-                    ? gif
-                        ? "max-h-80 object-contain"
-                        : "max-h-72 object-cover"
-                    : gif
-                      ? "max-h-56 object-contain"
-                      : "max-h-48 object-cover"
-            }`}
+            className={`${classeImagem}${comLightbox ? " cursor-zoom-in transition hover:opacity-90" : ""}`}
             loading="lazy"
+            onClick={
+                comLightbox
+                    ? (evento) => {
+                          evento.preventDefault();
+                          evento.stopPropagation();
+                          setLightboxAberta(true);
+                      }
+                    : undefined
+            }
         />
+    );
+
+    if (!comLightbox) {
+        return imagem;
+    }
+
+    return (
+        <>
+            {imagem}
+            <LightboxImagem
+                open={lightboxAberta}
+                onClose={() => setLightboxAberta(false)}
+                src={src}
+                alt={alt}
+            />
+        </>
     );
 }

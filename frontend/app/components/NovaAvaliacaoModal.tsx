@@ -3,7 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { BuscaLivrosResposta, CriarLivroPayload, LivroBusca } from "@/types/livro";
+import type { BuscaLivrosResposta, LivroBusca } from "@/types/livro";
+import FormularioLivroCampos from "@/app/components/FormularioLivroCampos";
+import { useCategoriasLivro } from "@/lib/hooks/useCategorias";
+import {
+    dadosDeLivroBusca,
+    dadosLivroVazios,
+    type DadosLivroForm,
+    livroPrecisaCadastro,
+    registrarLivroUsuario,
+} from "@/lib/livro-cadastro";
 import { textoContemLink } from "@/lib/texto";
 import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
 import { AnimatePresence, motion } from "framer-motion";
@@ -14,15 +23,7 @@ import { ChangeEvent, ClipboardEvent, FormEvent, useEffect, useId, useRef, useSt
 type NovaAvaliacaoModalProps = {
     open: boolean;
     onClose: () => void;
-};
-
-type DadosLivro = {
-    livro_id?: number;
-    google_volume_id?: string;
-    titulo: string;
-    autor: string;
-    paginas: string;
-    capa_url: string;
+    livroInicial?: DadosLivroForm | null;
 };
 
 const DEBOUNCE_MS = 500;
@@ -46,27 +47,7 @@ function chaveLivro(livro: LivroBusca) {
     return `${livro.origem}-${livro.id ?? livro.google_volume_id}`;
 }
 
-function dadosDeLivroBusca(livro: LivroBusca): DadosLivro {
-    return {
-        livro_id: livro.id,
-        google_volume_id: livro.google_volume_id,
-        titulo: livro.titulo ?? "",
-        autor: livro.autor ?? "",
-        paginas: livro.paginas ? String(livro.paginas) : "",
-        capa_url: livro.capa_url ?? "",
-    };
-}
-
-function dadosVazios(tituloSugerido = ""): DadosLivro {
-    return {
-        titulo: tituloSugerido,
-        autor: "",
-        paginas: "",
-        capa_url: "",
-    };
-}
-
-function livroPrecisaCompletar(dados: DadosLivro) {
+function livroPrecisaCompletar(dados: DadosLivroForm) {
     return !dados.autor.trim() || !dados.capa_url.trim() || !dados.paginas.trim();
 }
 
@@ -84,12 +65,13 @@ function parseBuscaResposta(data: unknown): BuscaLivrosResposta {
     return { resultados: [] };
 }
 
-export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModalProps) {
+export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null }: NovaAvaliacaoModalProps) {
     const [busca, setBusca] = useState("");
     const [resultados, setResultados] = useState<LivroBusca[]>([]);
     const [buscando, setBuscando] = useState(false);
     const [modoManual, setModoManual] = useState(false);
-    const [dadosLivro, setDadosLivro] = useState<DadosLivro | null>(null);
+    const [dadosLivro, setDadosLivro] = useState<DadosLivroForm | null>(null);
+    const { categorias, carregando: carregandoCategorias } = useCategoriasLivro(open);
     const [avisoBusca, setAvisoBusca] = useState("");
     const [nota, setNota] = useState(0);
     const [notaHover, setNotaHover] = useState(0);
@@ -124,6 +106,17 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
             setErro("");
         }
     }, [open]);
+
+    useEffect(() => {
+        if (open && livroInicial) {
+            setDadosLivro(livroInicial);
+            setModoManual(false);
+            setBusca("");
+            setResultados([]);
+            setAvisoBusca("");
+            setErro("");
+        }
+    }, [open, livroInicial]);
 
     function limparAnexo() {
         if (previewImagem) URL.revokeObjectURL(previewImagem);
@@ -254,7 +247,7 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
 
     function iniciarCadastroManual() {
         setModoManual(true);
-        setDadosLivro(dadosVazios(busca.trim()));
+        setDadosLivro(dadosLivroVazios(busca.trim()));
         setResultados([]);
         setErro("");
     }
@@ -264,42 +257,26 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
         setModoManual(false);
     }
 
-    function atualizarDado(campo: keyof DadosLivro, valor: string) {
+    function atualizarDado(campo: keyof DadosLivroForm, valor: string | number[]) {
         setDadosLivro((atual) => (atual ? { ...atual, [campo]: valor } : atual));
     }
 
-    async function registrarLivro(dados: DadosLivro): Promise<number> {
-        const payload: CriarLivroPayload = {
-            titulo: dados.titulo.trim(),
-            autor: dados.autor.trim(),
-        };
-
-        if (dados.livro_id) payload.livro_id = dados.livro_id;
-        if (dados.google_volume_id) payload.google_volume_id = dados.google_volume_id;
-        if (dados.capa_url.trim()) payload.capa_url = dados.capa_url.trim();
-        if (dados.paginas.trim()) {
-            const paginas = Number(dados.paginas);
-            if (!Number.isNaN(paginas) && paginas > 0) {
-                payload.paginas = paginas;
-            }
+    function validarDadosLivro(dados: DadosLivroForm) {
+        if (!dados.titulo.trim() || !dados.autor.trim()) {
+            return "Título e autor são obrigatórios.";
         }
-
-        const res = await fetch("/api/livros", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-            throw new Error(data.erro || "Não foi possível salvar o livro.");
+        if (livroPrecisaCadastro(dados) && dados.categorias_ids.length === 0) {
+            return "Selecione ao menos uma categoria para o livro.";
         }
+        return "";
+    }
 
-        if (!data.id) {
-            throw new Error("Resposta inválida ao salvar o livro.");
+    async function registrarLivro(dados: DadosLivroForm): Promise<number> {
+        const validacao = validarDadosLivro(dados);
+        if (validacao) {
+            throw new Error(validacao);
         }
-
-        return data.id as number;
+        return registrarLivroUsuario(dados);
     }
 
     async function handleSubmit(e: FormEvent) {
@@ -360,6 +337,7 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
             }
 
             window.dispatchEvent(new Event("feed:refresh"));
+            window.dispatchEvent(new CustomEvent("livro:registrado", { detail: { livroId } }));
             onClose();
         } catch (err) {
             setErro(err instanceof Error ? err.message : "Não foi possível publicar a resenha.");
@@ -487,58 +465,13 @@ export default function NovaAvaliacaoModal({ open, onClose }: NovaAvaliacaoModal
                                     </p>
                                 )}
 
-                                <div className="flex gap-3">
-                                    {dadosLivro.capa_url ? (
-                                        <Image
-                                            src={dadosLivro.capa_url}
-                                            alt={dadosLivro.titulo || "Capa"}
-                                            width={56}
-                                            height={84}
-                                            className="h-[84px] w-14 shrink-0 rounded-lg object-cover"
-                                            unoptimized
-                                        />
-                                    ) : (
-                                        <div className="flex h-[84px] w-14 shrink-0 items-center justify-center rounded-lg bg-azul-200 text-xl">
-                                            📖
-                                        </div>
-                                    )}
-                                    <div className="flex min-w-0 flex-1 flex-col gap-2">
-                                        <input
-                                            type="text"
-                                            value={dadosLivro.titulo}
-                                            onChange={(e) => atualizarDado("titulo", e.target.value)}
-                                            placeholder="Título *"
-                                            className={inputRetangularClassName}
-                                            required
-                                        />
-                                        <input
-                                            type="text"
-                                            value={dadosLivro.autor}
-                                            onChange={(e) => atualizarDado("autor", e.target.value)}
-                                            placeholder="Autor *"
-                                            className={inputRetangularClassName}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        value={dadosLivro.paginas}
-                                        onChange={(e) => atualizarDado("paginas", e.target.value)}
-                                        placeholder="Páginas"
-                                        className={inputRetangularClassName}
-                                    />
-                                    <input
-                                        type="url"
-                                        value={dadosLivro.capa_url}
-                                        onChange={(e) => atualizarDado("capa_url", e.target.value)}
-                                        placeholder="URL da capa"
-                                        className={inputRetangularClassName}
-                                    />
-                                </div>
+                                <FormularioLivroCampos
+                                    dados={dadosLivro}
+                                    modoManual={modoManual}
+                                    categorias={categorias}
+                                    carregandoCategorias={carregandoCategorias}
+                                    onChange={atualizarDado}
+                                />
                             </div>
                         )}
 

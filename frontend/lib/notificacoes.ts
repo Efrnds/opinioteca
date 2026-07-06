@@ -1,4 +1,5 @@
 import type { Notificacao } from "@/types/notificacao";
+import { urlAvaliacao } from "@/lib/avaliacao";
 import { notificacaoEhMensagem } from "@/lib/ws/types";
 
 /** Normaliza `lida` vindo da API (bool, string, número). */
@@ -31,7 +32,7 @@ export async function resolverDestinoNotificacao(notif: Notificacao): Promise<st
         case "comentario":
         case "voto_avaliacao":
         case "avaliacao":
-            return "/home";
+            return urlAvaliacao(ref);
         default:
             return "/home";
     }

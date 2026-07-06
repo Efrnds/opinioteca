@@ -1,7 +1,7 @@
 "use client";
 
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
-import { avaliacaoTemSpoiler } from "@/lib/avaliacao";
+import { avaliacaoTemSpoiler, urlAvaliacao } from "@/lib/avaliacao";
 import { mediaUrl } from "@/lib/media";
 import { ArrowBigDown, ArrowBigUp, Loader2, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -31,6 +31,9 @@ type PostCardProps = {
     podeApagar?: boolean;
     aoApagar?: (avaliacaoId: number) => Promise<void> | void;
     onRemovido?: (avaliacaoId: number) => void;
+    ocultarLinkPost?: boolean;
+    comentariosIniciaisAbertos?: boolean;
+    midiaComLightbox?: boolean;
 };
 
 type VotoResposta = {
@@ -95,7 +98,15 @@ function adicionarComentarioUnico(lista: ComentarioAvaliacao[], comentario: Come
     return [...lista, comentario];
 }
 
-export default function PostCard({ post, podeApagar = false, aoApagar, onRemovido }: PostCardProps) {
+export default function PostCard({
+    post,
+    podeApagar = false,
+    aoApagar,
+    onRemovido,
+    ocultarLinkPost = false,
+    comentariosIniciaisAbertos = false,
+    midiaComLightbox = false,
+}: PostCardProps) {
     const { data: session } = useSession();
     const { subscribe } = useWebSocket();
     const usuario = post?.usuario ?? { id: 0, nome: "Usuário", nick: "desconhecido", image: undefined };
@@ -110,7 +121,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
     const [erroVoto, setErroVoto] = useState("");
     const [menuAberto, setMenuAberto] = useState(false);
     const [apagando, setApagando] = useState(false);
-    const [comentariosAbertos, setComentariosAbertos] = useState(false);
+    const [comentariosAbertos, setComentariosAbertos] = useState(comentariosIniciaisAbertos);
     const [comentariosCarregados, setComentariosCarregados] = useState(false);
     const [comentarios, setComentarios] = useState<ComentarioAvaliacao[]>([]);
     const [carregandoComentarios, setCarregandoComentarios] = useState(false);
@@ -256,6 +267,12 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
         }
     }
 
+    useEffect(() => {
+        if (comentariosIniciaisAbertos && !comentariosCarregados) {
+            void carregarComentarios();
+        }
+    }, [comentariosIniciaisAbertos, comentariosCarregados]);
+
     async function postarComentario(
         payload: { texto: string; anexoUrl?: string },
         paiId?: number,
@@ -397,7 +414,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
                                     {no.texto}
                                 </p>
                             )}
-                            <ComentarioMidia url={no.anexo_url} expandido />
+                            <ComentarioMidia url={no.anexo_url} expandido comLightbox={midiaComLightbox} />
                         </div>
                         <div className="mt-1.5 flex items-center gap-2 px-1">
                             <button
@@ -551,14 +568,28 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
                         : "Esta avaliação contém spoiler"
                 }
             >
-                <div className="flex flex-col gap-3">
-                    {textoPost && (
-                        <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
-                            {textoPost}
-                        </p>
-                    )}
-                    <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" expandido />
-                </div>
+                {ocultarLinkPost ? (
+                    <div className="flex flex-col gap-3">
+                        {textoPost && (
+                            <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
+                                {textoPost}
+                            </p>
+                        )}
+                        <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" expandido comLightbox={midiaComLightbox} />
+                    </div>
+                ) : (
+                    <Link
+                        href={urlAvaliacao(post.id)}
+                        className="flex flex-col gap-3 rounded-2xl transition hover:bg-background/60"
+                    >
+                        {textoPost && (
+                            <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
+                                {textoPost}
+                            </p>
+                        )}
+                        <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" expandido comLightbox={midiaComLightbox} />
+                    </Link>
+                )}
             </SpoilerGuard>
 
             {erroApagar && <p className="font-gabarito-regular text-xs text-red-600">{erroApagar}</p>}

@@ -21,9 +21,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var usuario modelos.Usuario
-	if erro = json.Unmarshal(corpoRequisicao, &usuario); erro != nil {
+	var credenciais struct {
+		Nick  string `json:"nick"`
+		Senha string `json:"senha"`
+	}
+	if erro = json.Unmarshal(corpoRequisicao, &credenciais); erro != nil {
 		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	if credenciais.Nick == "" || credenciais.Senha == "" {
+		respostas.Erro(w, http.StatusBadRequest, errors.New("Nick e senha são obrigatórios"))
 		return
 	}
 
@@ -35,13 +43,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	usuarioSalvoNoBanco, erro := repositorio.BuscarPorEmail(usuario.Email)
+	usuarioSalvoNoBanco, erro := repositorio.BuscarPorNickParaLogin(credenciais.Nick)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	if erro = security.VerificarSenha(usuarioSalvoNoBanco.Senha, usuario.Senha); erro != nil {
+	if usuarioSalvoNoBanco.ID == 0 {
+		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
+		return
+	}
+
+	if erro = security.VerificarSenha(usuarioSalvoNoBanco.Senha, credenciais.Senha); erro != nil {
 		respostas.Erro(w, http.StatusUnauthorized, erro)
 		return
 	}

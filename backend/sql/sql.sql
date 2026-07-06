@@ -77,6 +77,16 @@
         criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    DROP TABLE IF EXISTS livro_categorias CASCADE;
+
+    CREATE TABLE livro_categorias (
+        livro_id INTEGER NOT NULL REFERENCES livros(id) ON DELETE CASCADE,
+        categoria_id INTEGER NOT NULL REFERENCES categorias(id) ON DELETE CASCADE,
+        PRIMARY KEY (livro_id, categoria_id)
+    );
+
+    CREATE INDEX idx_livro_categorias_categoria_id ON livro_categorias(categoria_id);
+
     DROP TABLE IF EXISTS avaliacoes CASCADE;
 
     CREATE TABLE avaliacoes (

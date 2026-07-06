@@ -7,7 +7,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         CredentialsProvider({
             name: "Credentials",
             credentials: {
-                email: { label: "Email", type: "email" },
+                nick: { label: "Nome de usuário", type: "text" },
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
@@ -15,7 +15,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        email: credentials?.email,
+                        nick: credentials?.nick,
                         senha: credentials?.password,
                     }),
                 });

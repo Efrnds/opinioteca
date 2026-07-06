@@ -13,6 +13,7 @@ type Livro struct {
 	Titulo         string     `json:"titulo"`
 	Editora        string     `json:"editora,omitempty"`
 	CategoriaID    uint64     `json:"categoria_id"`
+	CategoriasIDs  []uint64   `json:"categorias_ids,omitempty"`
 	Status         string     `json:"status"`
 	Paginas        int        `json:"paginas"`
 	Autor          string     `json:"autor"`
@@ -36,6 +37,7 @@ type LivroPublico struct {
 	Sinopse        string     `json:"sinopse,omitempty"`
 	CapaURL        string     `json:"capa_url,omitempty"`
 	DataPublicacao *time.Time `json:"data_publicacao,omitempty"`
+	GoogleVolumeID string     `json:"google_volume_id,omitempty"`
 	CriadoEm       time.Time  `json:"criado_em"`
 }
 
@@ -51,6 +53,8 @@ type LivroBusca struct {
 	Editora        string  `json:"editora,omitempty"`
 	CapaURL        string  `json:"capa_url,omitempty"`
 	Sinopse        string  `json:"sinopse,omitempty"`
+	CategoriaID    uint64   `json:"categoria_id,omitempty"`
+	CategoriasIDs  []uint64 `json:"categorias_ids,omitempty"`
 }
 
 type ResultadoBuscaLivros struct {
@@ -66,6 +70,44 @@ type CriarLivroUsuarioRequest struct {
 	Paginas        int     `json:"paginas"`
 	CapaURL        string  `json:"capa_url"`
 	ISBN           string  `json:"isbn"`
+	CategoriaID    uint64   `json:"categoria_id"`
+	CategoriasIDs  []uint64 `json:"categorias_ids"`
+}
+
+func (req *CriarLivroUsuarioRequest) CategoriasResolvidas() []uint64 {
+	if len(req.CategoriasIDs) > 0 {
+		return deduplicarIDs(req.CategoriasIDs)
+	}
+	if req.CategoriaID > 0 {
+		return []uint64{req.CategoriaID}
+	}
+	return nil
+}
+
+func (livro *Livro) CategoriasResolvidas() []uint64 {
+	if len(livro.CategoriasIDs) > 0 {
+		return deduplicarIDs(livro.CategoriasIDs)
+	}
+	if livro.CategoriaID > 0 {
+		return []uint64{livro.CategoriaID}
+	}
+	return nil
+}
+
+func deduplicarIDs(ids []uint64) []uint64 {
+	vistos := make(map[uint64]struct{}, len(ids))
+	resultado := make([]uint64, 0, len(ids))
+	for _, id := range ids {
+		if id == 0 {
+			continue
+		}
+		if _, ok := vistos[id]; ok {
+			continue
+		}
+		vistos[id] = struct{}{}
+		resultado = append(resultado, id)
+	}
+	return resultado
 }
 
 func (req *CriarLivroUsuarioRequest) Preparar() error {
@@ -96,12 +138,17 @@ func (l Livro) ParaPublico() LivroPublico {
 		Sinopse:        l.Sinopse,
 		CapaURL:        l.CapaURL,
 		DataPublicacao: l.DataPublicacao,
+		GoogleVolumeID: l.GoogleVolumeID,
 		CriadoEm:       l.CriadoEm,
 	}
 }
 
 func (l Livro) ParaBusca() LivroBusca {
 	id := l.ID
+	categoriasIDs := l.CategoriasIDs
+	if len(categoriasIDs) == 0 && l.CategoriaID > 0 {
+		categoriasIDs = []uint64{l.CategoriaID}
+	}
 	return LivroBusca{
 		Origem:         "local",
 		ID:             &id,
@@ -113,6 +160,8 @@ func (l Livro) ParaBusca() LivroBusca {
 		Editora:        l.Editora,
 		CapaURL:        l.CapaURL,
 		Sinopse:        l.Sinopse,
+		CategoriaID:    l.CategoriaID,
+		CategoriasIDs:  categoriasIDs,
 	}
 }
 
@@ -142,7 +191,7 @@ func (livro *Livro) validar(etapa string) error {
 		if livro.Editora == "" {
 			return errors.New("A editora é obrigatória e não pode estar em branco!")
 		}
-		if livro.CategoriaID == 0 {
+		if len(livro.CategoriasResolvidas()) == 0 {
 			return errors.New("A categoria é obrigatória e não pode estar em branco!")
 		}
 		if livro.Sinopse == "" {
@@ -176,6 +225,10 @@ func (livro *Livro) formatar() error {
 	}
 	if livro.Status == "" {
 		livro.Status = "ativo"
+	}
+	if categorias := livro.CategoriasResolvidas(); len(categorias) > 0 {
+		livro.CategoriasIDs = categorias
+		livro.CategoriaID = categorias[0]
 	}
 	return nil
 }

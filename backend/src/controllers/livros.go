@@ -6,11 +6,13 @@ import (
 	"backend/src/repositorios"
 	"backend/src/respostas"
 	"backend/src/servicos"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -50,6 +52,10 @@ func CriarLivro(w http.ResponseWriter, r *http.Request) {
 			respostas.Erro(w, http.StatusConflict, erro)
 			return
 		}
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if erro = repositorio.SubstituirCategorias(livro.ID, livro.CategoriasResolvidas()); erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
@@ -129,14 +135,18 @@ func AdminListarLivros(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
+	if erro = repositorio.PreencherCategorias(livros); erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
 	respostas.JSON(w, http.StatusOK, livros)
 }
 
-func BuscarLivroPorID(w http.ResponseWriter, r *http.Request) {
+func BuscarLivroPorGoogleVolume(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
-	ID, erro := strconv.ParseUint(parametros["id"], 10, 64)
-	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
+	volumeID := strings.TrimSpace(parametros["volumeId"])
+	if volumeID == "" {
+		respostas.Erro(w, http.StatusBadRequest, errors.New("Volume inválido"))
 		return
 	}
 
@@ -147,13 +157,56 @@ func BuscarLivroPorID(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	repositorio := repositorios.NovoRepositorioDeLivros(db)
-	livro, erro := repositorio.BuscarPorID(ID)
+	servico := servicos.NovoServicoLivros(db)
+	livro, erro := servico.BuscarPorGoogleVolume(volumeID)
 	if erro != nil {
-		respostas.Erro(w, http.StatusNotFound, errors.New("Livro não encontrado"))
+		status := http.StatusInternalServerError
+		if strings.Contains(strings.ToLower(erro.Error()), "não encontrado") {
+			status = http.StatusNotFound
+		}
+		respostas.Erro(w, status, erro)
 		return
 	}
-	respostas.JSON(w, http.StatusOK, livro.ParaPublico())
+	respostas.JSON(w, http.StatusOK, livro)
+}
+
+func BuscarLivroPorID(w http.ResponseWriter, r *http.Request) {
+	parametros := mux.Vars(r)
+	identificador := strings.TrimSpace(parametros["id"])
+	if identificador == "" {
+		respostas.Erro(w, http.StatusBadRequest, errors.New("Identificador inválido"))
+		return
+	}
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	if idNumerico, erro := strconv.ParseUint(identificador, 10, 64); erro == nil {
+		repositorio := repositorios.NovoRepositorioDeLivros(db)
+		livro, erro := repositorio.BuscarPorID(idNumerico)
+		if erro != nil {
+			respostas.Erro(w, http.StatusNotFound, errors.New("Livro não encontrado"))
+			return
+		}
+		respostas.JSON(w, http.StatusOK, livro.ParaPublico())
+		return
+	}
+
+	servico := servicos.NovoServicoLivros(db)
+	livro, erro := servico.BuscarPorGoogleVolume(identificador)
+	if erro != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(strings.ToLower(erro.Error()), "não encontrado") {
+			status = http.StatusNotFound
+		}
+		respostas.Erro(w, status, erro)
+		return
+	}
+	respostas.JSON(w, http.StatusOK, livro)
 }
 
 func AtualizarLivro(w http.ResponseWriter, r *http.Request) {
@@ -193,6 +246,10 @@ func AtualizarLivro(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
+	if erro = repositorio.SubstituirCategorias(ID, livro.CategoriasResolvidas()); erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
 	respostas.NoContent(w)
 }
 
@@ -221,9 +278,9 @@ func InativarLivro(w http.ResponseWriter, r *http.Request) {
 
 func BuscarAvaliacoesPorLivro(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
-	livroID, erro := strconv.ParseUint(parametros["livroId"], 10, 64)
-	if erro != nil {
-		respostas.Erro(w, http.StatusBadRequest, erro)
+	identificador := strings.TrimSpace(parametros["livroId"])
+	if identificador == "" {
+		respostas.Erro(w, http.StatusBadRequest, errors.New("Identificador inválido"))
 		return
 	}
 
@@ -234,9 +291,18 @@ func BuscarAvaliacoesPorLivro(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	repoLivros := repositorios.NovoRepositorioDeLivros(db)
-	if _, erro = repoLivros.BuscarPorID(livroID); erro != nil {
-		respostas.Erro(w, http.StatusNotFound, errors.New("Livro não encontrado"))
+	servicoLivros := servicos.NovoServicoLivros(db)
+	livroID, erro := servicoLivros.ResolverLivroIDBanco(identificador)
+	if erro != nil {
+		if erro == sql.ErrNoRows {
+			respostas.JSON(w, http.StatusOK, []any{})
+			return
+		}
+		if strings.Contains(strings.ToLower(erro.Error()), "não encontrado") {
+			respostas.Erro(w, http.StatusNotFound, errors.New("Livro não encontrado"))
+			return
+		}
+		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 

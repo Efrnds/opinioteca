@@ -2,7 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { BuscaLivrosResposta, CriarLivroPayload, LivroBusca } from "@/types/livro";
+import type { BuscaLivrosResposta, LivroBusca } from "@/types/livro";
+import FormularioLivroCampos from "@/app/components/FormularioLivroCampos";
+import { useCategoriasLivro } from "@/lib/hooks/useCategorias";
+import {
+    dadosDeLivroBusca,
+    dadosLivroVazios,
+    type DadosLivroForm,
+    livroPrecisaCadastro,
+    registrarLivroUsuario,
+} from "@/lib/livro-cadastro";
 import { BookPlus, Loader2, Search, X } from "lucide-react";
 import Image from "next/image";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -10,15 +19,6 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 type RegistrarLeituraModalProps = {
     open: boolean;
     onClose: () => void;
-};
-
-type DadosLivro = {
-    livro_id?: number;
-    google_volume_id?: string;
-    titulo: string;
-    autor: string;
-    paginas: string;
-    capa_url: string;
 };
 
 const DEBOUNCE_MS = 500;
@@ -32,26 +32,6 @@ const inputRetangularClassName =
 
 function chaveLivro(livro: LivroBusca) {
     return `${livro.origem}-${livro.id ?? livro.google_volume_id}`;
-}
-
-function dadosDeLivroBusca(livro: LivroBusca): DadosLivro {
-    return {
-        livro_id: livro.id,
-        google_volume_id: livro.google_volume_id,
-        titulo: livro.titulo ?? "",
-        autor: livro.autor ?? "",
-        paginas: livro.paginas ? String(livro.paginas) : "",
-        capa_url: livro.capa_url ?? "",
-    };
-}
-
-function dadosVazios(tituloSugerido = ""): DadosLivro {
-    return {
-        titulo: tituloSugerido,
-        autor: "",
-        paginas: "",
-        capa_url: "",
-    };
 }
 
 function parseBuscaResposta(data: unknown): BuscaLivrosResposta {
@@ -73,7 +53,8 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const [resultados, setResultados] = useState<LivroBusca[]>([]);
     const [buscando, setBuscando] = useState(false);
     const [modoManual, setModoManual] = useState(false);
-    const [dadosLivro, setDadosLivro] = useState<DadosLivro | null>(null);
+    const [dadosLivro, setDadosLivro] = useState<DadosLivroForm | null>(null);
+    const { categorias, carregando: carregandoCategorias } = useCategoriasLivro(open);
     const [avisoBusca, setAvisoBusca] = useState("");
     const [paginasLidas, setPaginasLidas] = useState("");
     const [porcentagem, setPorcentagem] = useState("");
@@ -176,7 +157,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
 
     function iniciarCadastroManual() {
         setModoManual(true);
-        setDadosLivro(dadosVazios(busca.trim()));
+        setDadosLivro(dadosLivroVazios(busca.trim()));
         setResultados([]);
         setErro("");
     }
@@ -189,40 +170,26 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         setErro("");
     }
 
-    async function registrarLivro(dados: DadosLivro): Promise<number> {
-        if (dados.livro_id) {
-            return dados.livro_id;
+    function atualizarDado(campo: keyof DadosLivroForm, valor: string | number[]) {
+        setDadosLivro((atual) => (atual ? { ...atual, [campo]: valor } : atual));
+    }
+
+    function validarDadosLivro(dados: DadosLivroForm) {
+        if (!dados.titulo.trim() || !dados.autor.trim()) {
+            return "Título e autor são obrigatórios.";
         }
-
-        const payload: CriarLivroPayload = {
-            titulo: dados.titulo.trim(),
-            autor: dados.autor.trim(),
-        };
-
-        if (dados.google_volume_id) payload.google_volume_id = dados.google_volume_id;
-        if (dados.capa_url.trim()) payload.capa_url = dados.capa_url.trim();
-        if (dados.paginas.trim()) {
-            const paginas = Number(dados.paginas);
-            if (!Number.isNaN(paginas) && paginas > 0) {
-                payload.paginas = paginas;
-            }
+        if (livroPrecisaCadastro(dados) && dados.categorias_ids.length === 0) {
+            return "Selecione ao menos uma categoria para o livro.";
         }
+        return "";
+    }
 
-        const res = await fetch("/api/livros", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-            throw new Error(data.erro || "Não foi possível salvar o livro.");
+    async function registrarLivro(dados: DadosLivroForm): Promise<number> {
+        const validacao = validarDadosLivro(dados);
+        if (validacao) {
+            throw new Error(validacao);
         }
-        if (!data.id) {
-            throw new Error("Resposta inválida ao salvar o livro.");
-        }
-
-        return data.id as number;
+        return registrarLivroUsuario(dados);
     }
 
     async function handleSubmit(e: FormEvent) {
@@ -380,28 +347,14 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                     </button>
                                 </div>
 
-                                {modoManual && (
-                                    <>
-                                        <input
-                                            type="text"
-                                            value={dadosLivro.titulo}
-                                            onChange={(e) => setDadosLivro({ ...dadosLivro, titulo: e.target.value })}
-                                            placeholder="Título"
-                                            className={inputRetangularClassName}
-                                        />
-                                        <input
-                                            type="text"
-                                            value={dadosLivro.autor}
-                                            onChange={(e) => setDadosLivro({ ...dadosLivro, autor: e.target.value })}
-                                            placeholder="Autor"
-                                            className={inputRetangularClassName}
-                                        />
-                                    </>
-                                )}
-
-                                {!modoManual && (
-                                    <p className="font-gabarito-regular text-sm text-cinza-700">{dadosLivro.autor}</p>
-                                )}
+                                <FormularioLivroCampos
+                                    dados={dadosLivro}
+                                    modoManual={modoManual}
+                                    categorias={categorias}
+                                    carregandoCategorias={carregandoCategorias}
+                                    onChange={atualizarDado}
+                                    exibirCamposCompletos={modoManual}
+                                />
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="flex flex-col gap-1">

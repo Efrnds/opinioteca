@@ -12,3 +12,7 @@ export function normalizarPostFeed(post: AvaliacaoFeed): AvaliacaoFeed {
         contem_spoiler: avaliacaoTemSpoiler(post.contem_spoiler),
     };
 }
+
+export function urlAvaliacao(id: number): string {
+    return `/avaliacoes/${id}`;
+}
