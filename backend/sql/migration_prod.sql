@@ -129,6 +129,19 @@ ALTER TABLE avaliacoes ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512);
 ALTER TABLE avaliacoes ADD COLUMN IF NOT EXISTS contem_spoiler BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- -----------------------------------------------------------------------------
+-- 9) CASCADE ao apagar avaliação (votos e comentários)
+-- -----------------------------------------------------------------------------
+ALTER TABLE voto_avaliacoes DROP CONSTRAINT IF EXISTS voto_avaliacoes_avaliacao_id_fkey;
+ALTER TABLE voto_avaliacoes
+    ADD CONSTRAINT voto_avaliacoes_avaliacao_id_fkey
+    FOREIGN KEY (avaliacao_id) REFERENCES avaliacoes(id) ON DELETE CASCADE;
+
+ALTER TABLE comentarios DROP CONSTRAINT IF EXISTS comentarios_avaliacao_id_fkey;
+ALTER TABLE comentarios
+    ADD CONSTRAINT comentarios_avaliacao_id_fkey
+    FOREIGN KEY (avaliacao_id) REFERENCES avaliacoes(id) ON DELETE CASCADE;
+
+-- -----------------------------------------------------------------------------
 -- Fim da migração
 -- =============================================================================
 

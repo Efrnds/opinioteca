@@ -98,7 +98,7 @@
     CREATE TABLE voto_avaliacoes (
         id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
-        avaliacao_id INTEGER NOT NULL REFERENCES avaliacoes(id),
+        avaliacao_id INTEGER NOT NULL REFERENCES avaliacoes(id) ON DELETE CASCADE,
         tipo_voto VARCHAR(255) NOT NULL CHECK (tipo_voto IN ('upvote', 'downvote')),
         criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (usuario_id, avaliacao_id)
@@ -109,7 +109,7 @@
     CREATE TABLE comentarios (
         id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
-        avaliacao_id INTEGER NOT NULL REFERENCES avaliacoes(id),
+        avaliacao_id INTEGER NOT NULL REFERENCES avaliacoes(id) ON DELETE CASCADE,
         pai_id INTEGER REFERENCES comentarios(id) ON DELETE CASCADE,
         texto TEXT NOT NULL,
         anexo_url VARCHAR(512),

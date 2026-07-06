@@ -8,11 +8,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { mediaUrl } from "@/lib/media";
+import { cn } from "@/lib/utils";
 import { parseNovaMensagem, type WsConversaLidaPayload, type WsMensagemApagadaPayload, type WsMensagemAtualizadaPayload } from "@/lib/ws/types";
 import type { ConversaResumo, Mensagem, MensagemResumo } from "@/types/mensagem";
 import type { PesquisaResultado, PesquisaUsuario } from "@/types/pesquisa";
 import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+    ArrowLeft,
     ImageIcon,
     Loader2,
     MoreHorizontal,
@@ -733,7 +736,12 @@ function MensagensConteudo() {
     return (
         <>
             <Box className="flex h-full min-h-0 overflow-hidden p-0">
-                <aside className="flex w-80 shrink-0 flex-col border-r border-cinza-200">
+                <aside
+                    className={cn(
+                        "w-full shrink-0 flex-col lg:flex lg:w-80 lg:border-r lg:border-cinza-200",
+                        chatAtivo ? "hidden lg:flex" : "flex",
+                    )}
+                >
                     <div className="border-b border-cinza-200 px-4 py-4">
                         <div className="flex items-center justify-between gap-2">
                             <h1 className="font-gabarito-bold text-xl text-azul-900">Mensagens</h1>
@@ -848,7 +856,12 @@ function MensagensConteudo() {
                     </div>
                 </aside>
 
-                <section className="flex min-w-0 flex-1 flex-col">
+                <section
+                    className={cn(
+                        "min-w-0 flex-1 flex-col lg:flex",
+                        chatAtivo ? "flex" : "hidden lg:flex",
+                    )}
+                >
                     {!chatAtivo || !conversaAtiva ? (
                         <div className="flex flex-1 items-center justify-center p-8">
                             <p className="font-gabarito-regular text-cinza-700">
@@ -858,6 +871,14 @@ function MensagensConteudo() {
                     ) : (
                         <>
                             <header className="flex items-center gap-3 border-b border-cinza-200 px-4 py-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setChatAtivo(null)}
+                                    className="-ml-1 flex shrink-0 rounded-full p-1.5 text-azul-900 transition hover:bg-background lg:hidden"
+                                    aria-label="Voltar para as conversas"
+                                >
+                                    <ArrowLeft className="h-5 w-5" />
+                                </button>
                                 {conversaAtiva.image ? (
                                     <Image
                                         src={mediaUrl(conversaAtiva.image)!}
@@ -963,24 +984,31 @@ function MensagensConteudo() {
                                                         </button>
                                                     </div>
 
-                                                    {reacaoMsgId === msg.id && (
-                                                        <div
-                                                            className={`absolute z-20 flex gap-1 rounded-full border border-cinza-200 bg-white px-2 py-1 shadow-lg ${
-                                                                minha ? "right-0 -top-10" : "left-0 -top-10"
-                                                            }`}
-                                                        >
-                                                            {REACOES.map(emoji => (
-                                                                <button
-                                                                    key={emoji}
-                                                                    type="button"
-                                                                    onClick={() => reagirMensagem(msg.id, emoji)}
-                                                                    className="text-lg transition hover:scale-125"
-                                                                >
-                                                                    {emoji}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                                    <AnimatePresence>
+                                                        {reacaoMsgId === msg.id && (
+                                                            <motion.div
+                                                                key="reacao-picker"
+                                                                initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                exit={{ opacity: 0, y: 6, scale: 0.9 }}
+                                                                transition={{ duration: 0.12, ease: "easeOut" }}
+                                                                className={`absolute z-20 flex origin-bottom gap-1 rounded-full border border-cinza-200 bg-white px-2 py-1 shadow-lg ${
+                                                                    minha ? "right-0 -top-10" : "left-0 -top-10"
+                                                                }`}
+                                                            >
+                                                                {REACOES.map(emoji => (
+                                                                    <button
+                                                                        key={emoji}
+                                                                        type="button"
+                                                                        onClick={() => reagirMensagem(msg.id, emoji)}
+                                                                        className="text-lg transition hover:scale-125"
+                                                                    >
+                                                                        {emoji}
+                                                                    </button>
+                                                                ))}
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
 
                                                     {soImagem ? (
                                                         // eslint-disable-next-line @next/next/no-img-element
@@ -1111,53 +1139,77 @@ function MensagensConteudo() {
                                     ref={inputRodapeRef}
                                     className="relative rounded-2xl border border-cinza-300 bg-white px-2 py-2"
                                 >
-                                    {showEmojiPicker && (
-                                        <div className="absolute bottom-14 left-0 z-50">
-                                            <EmojiPicker onEmojiClick={handleEmojiClick} width={320} height={400} />
-                                        </div>
-                                    )}
+                                    <AnimatePresence>
+                                        {showEmojiPicker && (
+                                            <motion.div
+                                                key="emoji-picker"
+                                                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                transition={{ duration: 0.15, ease: "easeOut" }}
+                                                className="absolute bottom-14 left-0 z-50 origin-bottom-left"
+                                            >
+                                                <EmojiPicker
+                                                    onEmojiClick={handleEmojiClick}
+                                                    width={320}
+                                                    height={400}
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
-                                    {showGifPicker && (
-                                        <div className="absolute bottom-14 left-10 z-50 w-80 rounded-2xl border border-cinza-200 bg-white p-3 shadow-lg">
-                                            <input
-                                                type="text"
-                                                value={termoGifBusca}
-                                                onChange={e => setTermoGifBusca(e.target.value)}
-                                                placeholder="Buscar GIFs..."
-                                                className="mb-2 w-full rounded-full border border-cinza-300 px-3 py-2 font-gabarito-regular text-sm outline-none focus:border-azul-600"
-                                                autoFocus
-                                            />
-                                            <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">
-                                                {buscandoGifs ? (
-                                                    <div className="col-span-3 flex justify-center py-6">
-                                                        <Loader2 className="h-5 w-5 animate-spin text-azul-600" />
-                                                    </div>
-                                                ) : gifsGiphy.length === 0 ? (
-                                                    <p className="col-span-3 py-4 text-center font-gabarito-regular text-xs text-cinza-700">
-                                                        {termoGifBusca.trim()
-                                                            ? "Nenhum GIF encontrado."
-                                                            : "Nenhum GIF popular no momento."}
-                                                    </p>
-                                                ) : (
-                                                    gifsGiphy.map(gif => (
-                                                        <button
-                                                            key={gif.id}
-                                                            type="button"
-                                                            onClick={() => selecionarGifGiphy(gif.images.original.url)}
-                                                            className="overflow-hidden rounded-lg transition hover:opacity-80"
-                                                        >
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img
-                                                                src={gif.images.fixed_height.url}
-                                                                alt="GIF"
-                                                                className="h-24 w-full object-cover"
-                                                            />
-                                                        </button>
-                                                    ))
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                                    <AnimatePresence>
+                                        {showGifPicker && (
+                                            <motion.div
+                                                key="gif-picker-mensagens"
+                                                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                transition={{ duration: 0.15, ease: "easeOut" }}
+                                                className="absolute bottom-14 left-10 z-50 w-80 origin-bottom-left rounded-2xl border border-cinza-200 bg-white p-3 shadow-lg"
+                                            >
+                                                <input
+                                                    type="text"
+                                                    value={termoGifBusca}
+                                                    onChange={e => setTermoGifBusca(e.target.value)}
+                                                    placeholder="Buscar GIFs..."
+                                                    className="mb-2 w-full rounded-full border border-cinza-300 px-3 py-2 font-gabarito-regular text-sm outline-none focus:border-azul-600"
+                                                    autoFocus
+                                                />
+                                                <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">
+                                                    {buscandoGifs ? (
+                                                        <div className="col-span-3 flex justify-center py-6">
+                                                            <Loader2 className="h-5 w-5 animate-spin text-azul-600" />
+                                                        </div>
+                                                    ) : gifsGiphy.length === 0 ? (
+                                                        <p className="col-span-3 py-4 text-center font-gabarito-regular text-xs text-cinza-700">
+                                                            {termoGifBusca.trim()
+                                                                ? "Nenhum GIF encontrado."
+                                                                : "Nenhum GIF popular no momento."}
+                                                        </p>
+                                                    ) : (
+                                                        gifsGiphy.map(gif => (
+                                                            <button
+                                                                key={gif.id}
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    selecionarGifGiphy(gif.images.original.url)
+                                                                }
+                                                                className="overflow-hidden rounded-lg transition hover:opacity-80"
+                                                            >
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img
+                                                                    src={gif.images.fixed_height.url}
+                                                                    alt="GIF"
+                                                                    className="h-24 w-full object-cover"
+                                                                />
+                                                            </button>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
                                     <div className="flex items-center gap-1">
                                         <input

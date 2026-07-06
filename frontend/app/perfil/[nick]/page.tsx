@@ -5,7 +5,7 @@ import { avaliacaoTemSpoiler } from "@/lib/avaliacao";
 import { mediaUrl } from "@/lib/media";
 import type { DiarioHistoricoResposta, DiarioResposta } from "@/types/diario";
 import type { LivroPublico } from "@/types/livro";
-import { Book, ChevronLeft, Loader2, Mail, MoreVertical } from "lucide-react";
+import { Book, ChevronLeft, Loader2, Mail, MoreVertical, UserCheck, UserPlus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,8 +14,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AlterarNickModal from "../../components/AlterarNickModal";
 import AvatarPerfilEditavel from "../../components/AvatarPerfilEditavel";
 import Box from "../../components/Box";
+import ListaUsuariosModal from "../../components/ListaUsuariosModal";
 import PerfilLivroModal, { type LivroPerfilItem } from "../../components/PerfilLivroModal";
 import PostCard from "../../components/PostCard";
+import SeletorPilula from "../../components/SeletorPilula";
 
 type UsuarioPublico = {
     id: number;
@@ -26,6 +28,7 @@ type UsuarioPublico = {
 };
 
 type AbaPerfil = "avaliacoes" | "diario" | "livros";
+type ListaPerfil = "seguidores" | "seguindo" | null;
 
 type PerfilCache = {
     perfil: UsuarioPublico;
@@ -131,6 +134,7 @@ export default function PerfilNickPage() {
     const [atualizandoStatusLivro, setAtualizandoStatusLivro] = useState(false);
     const [menuOpcoesAberto, setMenuOpcoesAberto] = useState(false);
     const [alterarNickAberto, setAlterarNickAberto] = useState(false);
+    const [listaAberta, setListaAberta] = useState<ListaPerfil>(null);
     const menuOpcoesRef = useRef<HTMLDivElement | null>(null);
 
     const meuNick = session?.user?.nick?.toLowerCase();
@@ -436,10 +440,10 @@ export default function PerfilNickPage() {
             status === "lido"
                 ? 100
                 : status === "lendo"
-                  ? livroSelecionado.porcentagem > 0 && livroSelecionado.porcentagem < 100
-                      ? livroSelecionado.porcentagem
-                      : 50
-                  : 0;
+                    ? livroSelecionado.porcentagem > 0 && livroSelecionado.porcentagem < 100
+                        ? livroSelecionado.porcentagem
+                        : 50
+                    : 0;
 
         try {
             const res = await fetch("/api/diario", {
@@ -495,151 +499,177 @@ export default function PerfilNickPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-                <button
-                    type="button"
-                    onClick={() => router.back()}
-                    className="rounded-full p-1 text-azul-900 transition hover:bg-background"
-                    aria-label="Voltar"
-                >
-                    <ChevronLeft className="h-7 w-7" />
-                </button>
-                <h1 className="font-gabarito-bold text-2xl text-azul-900">@{perfil.nick}</h1>
-            </div>
-
             <Box className="overflow-hidden p-0">
-                <div className="h-32 w-full rounded-t-xl bg-gray-700" />
+                <div className="flex items-center justify-between gap-2 py-2">
+                    <div className="flex min-w-0 items-center">
+                        <button
+                            type="button"
+                            onClick={() => router.back()}
+                            className="shrink-0 rounded-full p-1 text-azul-900 transition hover:bg-background"
+                            aria-label="Voltar"
+                        >
+                            <ChevronLeft className="h-7 w-7" />
+                        </button>
+                        <h1 className="truncate font-gabarito-bold text-xl text-azul-900 sm:text-2xl">
+                            {perfil.nick.charAt(0).toUpperCase() + perfil.nick.slice(1)}
+                        </h1>
+                    </div>
+
+                    {ehMeuPerfil && (
+                        <div ref={menuOpcoesRef} className="relative shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setMenuOpcoesAberto((estado) => !estado)}
+                                className="rounded-full p-2 text-azul-900 transition hover:bg-background"
+                                aria-label="Opções do perfil"
+                                aria-expanded={menuOpcoesAberto}
+                            >
+                                <MoreVertical className="h-5 w-5" />
+                            </button>
+                            {menuOpcoesAberto && (
+                                <div className="absolute right-0 top-full z-10 mt-1 min-w-40 rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setMenuOpcoesAberto(false);
+                                            setAlterarNickAberto(true);
+                                        }}
+                                        className="w-full rounded-lg px-3 py-2 text-left font-gabarito-regular text-sm text-azul-900 transition hover:bg-azul-50"
+                                    >
+                                        Alterar nick
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="h-32 w-full bg-gray-700" />
 
                 <div className="px-4 pb-4">
                     <div className="-mt-12 flex items-end justify-between gap-3">
-                        {ehMeuPerfil ? (
-                            <AvatarPerfilEditavel
-                                nome={perfil.nome}
-                                nick={perfil.nick}
-                                email={perfil.email ?? session?.user?.email ?? ""}
-                                image={perfil.image}
-                                onAtualizado={(novaImage) => {
-                                    setPerfil((atual) => (atual ? { ...atual, image: novaImage } : atual));
-                                    cachePerfilPorNick.delete(nick);
-                                }}
-                            />
-                        ) : perfil.image ? (
-                            <Image
-                                src={mediaUrl(perfil.image)!}
-                                alt={perfil.nome}
-                                width={96}
-                                height={96}
-                                className="h-24 w-24 rounded-full border-4 border-white object-cover"
-                            />
-                        ) : (
-                            <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
-                                {inicial}
+                        <div className="flex gap-2">
+                            {ehMeuPerfil ? (
+                                <AvatarPerfilEditavel
+                                    nome={perfil.nome}
+                                    nick={perfil.nick}
+                                    email={perfil.email ?? session?.user?.email ?? ""}
+                                    image={perfil.image}
+                                    onAtualizado={(novaImage) => {
+                                        setPerfil((atual) => (atual ? { ...atual, image: novaImage } : atual));
+                                        cachePerfilPorNick.delete(nick);
+                                    }}
+                                />
+                            ) : perfil.image ? (
+                                <Image
+                                    src={mediaUrl(perfil.image)!}
+                                    alt={perfil.nome}
+                                    width={96}
+                                    height={96}
+                                    className="h-24 w-24 rounded-full border-4 border-white object-cover"
+                                />
+                            ) : (
+                                <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
+                                    {inicial}
+                                </div>
+                            )}
+                            <div className="mt-auto">
+                                <p className="font-gabarito-bold text-xl text-azul-900">{perfil.nick}</p>
                             </div>
-                        )}
-
-                        {!ehMeuPerfil ? (
-                            <div className="flex items-center gap-2">
+                        </div>
+                        {!ehMeuPerfil && (
+                            <div className="flex shrink-0 items-center gap-2">
                                 <Link
                                     href={`/mensagens?novoChat=${perfil.id}`}
-                                    className="flex items-center gap-1.5 rounded-full border border-azul-600 px-4 py-2 font-gabarito-bold text-sm text-azul-600 transition hover:bg-azul-50"
+                                    aria-label="Mensagem"
+                                    className="flex items-center justify-center gap-1.5 rounded-full border border-azul-600 p-2 font-gabarito-bold text-sm text-azul-600 transition hover:bg-azul-50 sm:px-4 sm:py-2"
                                 >
-                                    <Mail className="h-4 w-4" />
-                                    Mensagem
+                                    <Mail className="h-4 w-4 shrink-0" />
+                                    <span className="hidden sm:inline">Mensagem</span>
                                 </Link>
                                 <button
                                     type="button"
                                     onClick={alternarFollow}
                                     disabled={alternandoFollow}
-                                    className={`rounded-full px-5 py-2 font-gabarito-bold text-sm transition ${
+                                    aria-label={
+                                        alternandoFollow
+                                            ? "Atualizando"
+                                            : sigoPerfil
+                                              ? "Deixar de seguir"
+                                              : "Seguir"
+                                    }
+                                    className={`flex items-center justify-center gap-1.5 rounded-full p-2 font-gabarito-bold text-sm transition sm:px-5 sm:py-2 ${
                                         sigoPerfil
                                             ? "border border-gray-400 bg-white text-cinza-700 hover:bg-gray-50"
                                             : "bg-azul-600 text-white hover:bg-azul-700"
                                     }`}
                                 >
-                                    {alternandoFollow ? "Atualizando..." : sigoPerfil ? "Seguindo" : "Seguir"}
+                                    {alternandoFollow ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                                            <span className="hidden sm:inline">Atualizando...</span>
+                                        </>
+                                    ) : sigoPerfil ? (
+                                        <>
+                                            <UserCheck className="h-4 w-4 shrink-0" />
+                                            <span className="hidden sm:inline">Seguindo</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <UserPlus className="h-4 w-4 shrink-0" />
+                                            <span className="hidden sm:inline">Seguir</span>
+                                        </>
+                                    )}
                                 </button>
-                            </div>
-                        ) : (
-                            <div ref={menuOpcoesRef} className="relative">
-                                <button
-                                    type="button"
-                                    onClick={() => setMenuOpcoesAberto((estado) => !estado)}
-                                    className="rounded-full p-2 text-azul-900 transition hover:bg-white/80"
-                                    aria-label="Opções do perfil"
-                                >
-                                    <MoreVertical className="h-5 w-5" />
-                                </button>
-                                {menuOpcoesAberto && (
-                                    <div className="absolute right-0 top-10 z-10 min-w-40 rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setMenuOpcoesAberto(false);
-                                                setAlterarNickAberto(true);
-                                            }}
-                                            className="w-full rounded-lg px-3 py-2 text-left font-gabarito-regular text-sm text-azul-900 transition hover:bg-azul-50"
-                                        >
-                                            Alterar nick
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
 
-                    <div className="mt-3">
-                        <p className="font-gabarito-bold text-xl text-azul-900">{perfil.nome}</p>
-                        <p className="font-gabarito-regular text-sm text-cinza-700">@{perfil.nick}</p>
-                    </div>
+
 
                     <div className="mt-4 grid grid-cols-3 rounded-xl border border-gray-200 bg-white">
                         <div className="py-3 text-center">
                             <p className="font-gabarito-bold text-2xl text-azul-600">{avaliacoes.length}</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">Resenhas</p>
                         </div>
-                        <div className="border-x border-gray-200 py-3 text-center">
+                        <button
+                            type="button"
+                            onClick={() => setListaAberta("seguidores")}
+                            className="cursor-pointer border-x border-gray-200 py-3 text-center transition hover:bg-background active:bg-background"
+                        >
                             <p className="font-gabarito-bold text-2xl text-azul-600">{seguidores.length}</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">Seguidores</p>
-                        </div>
-                        <div className="py-3 text-center">
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setListaAberta("seguindo")}
+                            className="cursor-pointer py-3 text-center transition hover:bg-background active:bg-background"
+                        >
                             <p className="font-gabarito-bold text-2xl text-azul-600">{seguindo.length}</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">Seguindo</p>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </Box>
 
-            <Box className="flex gap-2 p-2">
-                <button
-                    type="button"
-                    onClick={() => setAbaAtiva("avaliacoes")}
-                    className={`rounded-full px-4 py-2 font-gabarito-bold text-sm transition ${
-                        abaAtiva === "avaliacoes"
-                            ? "bg-azul-600 text-white"
-                            : "bg-background text-cinza-700 hover:bg-gray-200"
-                    }`}
-                >
-                    Avaliações
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setAbaAtiva("diario")}
-                    className={`rounded-full px-4 py-2 font-gabarito-bold text-sm transition ${
-                        abaAtiva === "diario" ? "bg-azul-600 text-white" : "bg-background text-cinza-700 hover:bg-gray-200"
-                    }`}
-                >
-                    Registro de Leitura
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setAbaAtiva("livros")}
-                    className={`rounded-full px-4 py-2 font-gabarito-bold text-sm transition ${
-                        abaAtiva === "livros" ? "bg-azul-600 text-white" : "bg-background text-cinza-700 hover:bg-gray-200"
-                    }`}
-                >
-                    Livros
-                </button>
-            </Box>
+            <SeletorPilula
+                className="mb-1"
+                valor={abaAtiva}
+                onChange={setAbaAtiva}
+                opcoes={[
+                    { valor: "avaliacoes", rotulo: "Avaliações" },
+                    {
+                        valor: "diario",
+                        rotulo: (
+                            <>
+                                Registro
+                                <span className="hidden sm:inline"> de Leitura</span>
+                            </>
+                        ),
+                    },
+                    { valor: "livros", rotulo: "Livros" },
+                ]}
+            />
 
             {abaAtiva === "avaliacoes" && (
                 <>
@@ -651,7 +681,7 @@ export default function PerfilNickPage() {
                             </p>
                         </Box>
                     ) : (
-                avaliacoes.map((avaliacao) => (
+                        avaliacoes.map((avaliacao) => (
                             <PostCard
                                 key={avaliacao.id}
                                 post={avaliacao}
@@ -677,9 +707,8 @@ export default function PerfilNickPage() {
                         {semanaExpandida.map((dia, index) => (
                             <div key={`${dia.dia}-${index}`} className="flex flex-col items-center gap-2">
                                 <div
-                                    className={`flex h-12 w-12 items-center justify-center rounded-full ${
-                                        dia.leu ? "bg-azul-800" : "bg-azul-200"
-                                    }`}
+                                    className={`flex h-12 w-12 items-center justify-center rounded-full ${dia.leu ? "bg-azul-800" : "bg-azul-200"
+                                        }`}
                                 >
                                     <Book className={`h-5 w-5 ${dia.leu ? "text-azul-200" : "text-azul-400"}`} />
                                 </div>
@@ -762,13 +791,12 @@ export default function PerfilNickPage() {
                                     )}
                                     <p className="line-clamp-2 font-gabarito-bold text-xs text-azul-900">{livro.titulo}</p>
                                     <p
-                                        className={`rounded-full px-2 py-1 text-center font-gabarito-bold text-[10px] ${
-                                            livro.status === "lido"
+                                        className={`rounded-full px-2 py-1 text-center font-gabarito-bold text-[10px] ${livro.status === "lido"
                                                 ? "bg-green-100 text-green-700"
                                                 : livro.status === "lendo"
-                                                  ? "bg-amber-100 text-amber-700"
-                                                  : "bg-gray-200 text-cinza-700"
-                                        }`}
+                                                    ? "bg-amber-100 text-amber-700"
+                                                    : "bg-gray-200 text-cinza-700"
+                                            }`}
                                     >
                                         {livro.status === "lido" ? "Lido" : livro.status === "lendo" ? "Lendo" : "Na lista"}
                                     </p>
@@ -809,6 +837,22 @@ export default function PerfilNickPage() {
                         setPerfil((atual) => (atual ? { ...atual, nick: novoNick } : atual));
                     }
                 }}
+            />
+
+            <ListaUsuariosModal
+                open={listaAberta === "seguidores"}
+                onClose={() => setListaAberta(null)}
+                titulo="Seguidores"
+                usuarios={seguidores}
+                vazio="Ainda não há seguidores por aqui."
+            />
+
+            <ListaUsuariosModal
+                open={listaAberta === "seguindo"}
+                onClose={() => setListaAberta(null)}
+                titulo="Seguindo"
+                usuarios={seguindo}
+                vazio="Ainda não segue ninguém."
             />
         </div>
     );

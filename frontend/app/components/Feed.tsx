@@ -5,6 +5,7 @@ import { normalizarPostFeed } from "@/lib/avaliacao";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "./WebSocketProvider";
 import PostCard from "./PostCard";
+import SeletorPilula from "./SeletorPilula";
 
 const LIMITE = 10;
 
@@ -179,30 +180,15 @@ export default function Feed() {
     }, [posts.length, temMais, carregando, carregandoMais, carregarFeed]);
 
     const abas = (
-        <div className="mb-1 flex rounded-2xl bg-white p-1 shadow-sm ring-1 ring-black/5">
-            <button
-                type="button"
-                onClick={() => trocarAba("forYou")}
-                className={`flex-1 rounded-xl px-4 py-2.5 font-gabarito-bold text-sm transition ${
-                    aba === "forYou"
-                        ? "bg-azul-600 text-white shadow-sm"
-                        : "text-cinza-700 hover:bg-background hover:text-azul-900"
-                }`}
-            >
-                For You
-            </button>
-            <button
-                type="button"
-                onClick={() => trocarAba("seguindo")}
-                className={`flex-1 rounded-xl px-4 py-2.5 font-gabarito-bold text-sm transition ${
-                    aba === "seguindo"
-                        ? "bg-azul-600 text-white shadow-sm"
-                        : "text-cinza-700 hover:bg-background hover:text-azul-900"
-                }`}
-            >
-                Seguindo
-            </button>
-        </div>
+        <SeletorPilula
+            className="mb-1"
+            valor={aba}
+            onChange={trocarAba}
+            opcoes={[
+                { valor: "forYou", rotulo: "For You" },
+                { valor: "seguindo", rotulo: "Seguindo" },
+            ]}
+        />
     );
 
     if (carregando) {

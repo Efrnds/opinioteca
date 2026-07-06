@@ -291,11 +291,38 @@ func (repositorio Avaliacoes) Atualizar(id, usuarioID uint64, nota int, texto st
 }
 
 func (repositorio Avaliacoes) Deletar(id, usuarioID uint64) error {
-	resultado, erro := repositorio.db.Exec(
+	tx, erro := repositorio.db.Begin()
+	if erro != nil {
+		return erro
+	}
+	defer tx.Rollback()
+
+	if _, erro = tx.Exec(
+		`DELETE FROM voto_comentarios
+		 WHERE comentario_id IN (SELECT id FROM comentarios WHERE avaliacao_id = $1)`,
+		id,
+	); erro != nil {
+		return erro
+	}
+
+	if _, erro = tx.Exec(`DELETE FROM comentario_destaque_cache WHERE avaliacao_id = $1`, id); erro != nil {
+		return erro
+	}
+
+	if _, erro = tx.Exec(`DELETE FROM comentarios WHERE avaliacao_id = $1`, id); erro != nil {
+		return erro
+	}
+
+	if _, erro = tx.Exec(`DELETE FROM voto_avaliacoes WHERE avaliacao_id = $1`, id); erro != nil {
+		return erro
+	}
+
+	resultado, erro := tx.Exec(
 		"DELETE FROM avaliacoes WHERE id = $1 AND usuario_id = $2", id, usuarioID)
 	if erro != nil {
 		return erro
 	}
+
 	linhas, erro := resultado.RowsAffected()
 	if erro != nil {
 		return erro
@@ -303,7 +330,8 @@ func (repositorio Avaliacoes) Deletar(id, usuarioID uint64) error {
 	if linhas == 0 {
 		return sql.ErrNoRows
 	}
-	return nil
+
+	return tx.Commit()
 }
 
 func scanAvaliacao(linha *sql.Row) (modelos.Avaliacao, error) {
