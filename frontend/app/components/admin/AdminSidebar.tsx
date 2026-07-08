@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ChevronDown, Tags, Users } from "lucide-react";
-import { useState } from "react";
+import { BookOpen, ChevronDown, Flag, Tags, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAdminReport } from "./AdminShell";
 import { RELATORIOS, type RelatorioSlug } from "@/lib/admin/relatorios";
 
@@ -45,6 +45,18 @@ function ReportButton({ slug, label }: { slug: RelatorioSlug; label: string }) {
 export default function AdminSidebar() {
     const pathname = usePathname();
     const [relatoriosAberto, setRelatoriosAberto] = useState(true);
+    const [pendentesDenuncias, setPendentesDenuncias] = useState(0);
+
+    useEffect(() => {
+        fetch("/api/admin/denuncias?status=pendente")
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (data && typeof data.pendentes === "number") {
+                    setPendentesDenuncias(data.pendentes);
+                }
+            })
+            .catch(() => {});
+    }, [pathname]);
 
     return (
         <aside className="flex w-72 shrink-0 flex-col bg-azul-900 px-4 py-6 text-white">
@@ -85,6 +97,25 @@ export default function AdminSidebar() {
                 >
                     <Tags className="h-4 w-4 shrink-0" />
                     Categorias
+                </Link>
+
+                <Link
+                    href="/admin/denuncias"
+                    className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
+                        pathname.startsWith("/admin/denuncias")
+                            ? "bg-azul-600 text-white"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                    }`}
+                >
+                    <span className="flex items-center gap-3">
+                        <Flag className="h-4 w-4 shrink-0" />
+                        Denúncias
+                    </span>
+                    {pendentesDenuncias > 0 && (
+                        <span className="rounded-full bg-amber-500 px-2 py-0.5 font-gabarito-bold text-xs text-white">
+                            {pendentesDenuncias}
+                        </span>
+                    )}
                 </Link>
 
                 <div className="mt-2">

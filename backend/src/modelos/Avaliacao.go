@@ -40,10 +40,11 @@ type CriarAvaliacaoResposta struct {
 }
 
 type UsuarioFeed struct {
-	ID    uint64 `json:"id"`
-	Nome  string `json:"nome"`
-	Nick  string `json:"nick"`
-	Image string `json:"image,omitempty"`
+	ID           uint64 `json:"id"`
+	Nome         string `json:"nome"`
+	Nick         string `json:"nick"`
+	Image        string `json:"image,omitempty"`
+	ContaApagada bool   `json:"contaApagada,omitempty"`
 }
 
 type LivroFeed struct {

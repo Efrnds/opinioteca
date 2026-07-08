@@ -3,9 +3,11 @@
 import {
     nomeDoTituloNotificacao,
     notificacaoEstaLida,
+    notificacaoEhSistema,
     referenciaEhUsuario,
     resolverDestinoNotificacao,
     textoAcaoNotificacao,
+    tituloExibicaoNotificacao,
 } from "@/lib/notificacoes";
 import { notificacaoEhMensagem } from "@/lib/ws/types";
 import { mediaUrl } from "@/lib/media";
@@ -97,8 +99,8 @@ export default function NotificacoesLista() {
     return (
         <ul className="flex flex-col gap-3">
             {notificacoesVisiveis.map((notif) => {
-                const nick = nomeExibicao(notif);
-                const avatar = avatarExibicao(notif);
+                const nick = tituloExibicaoNotificacao(notif);
+                const avatar = notificacaoEhSistema(notif.tipo_notificacao) ? undefined : avatarExibicao(notif);
                 const acao = textoAcaoNotificacao(notif.tipo_notificacao);
 
                 return (

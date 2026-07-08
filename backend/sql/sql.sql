@@ -55,7 +55,33 @@
         modo_zen BOOLEAN NOT NULL DEFAULT FALSE,
         status VARCHAR(255) NOT NULL CHECK (status IN ('ativo', 'inativo')),
         image_url VARCHAR(512),
+        inativado_em TIMESTAMP NULL,
         criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    DROP TABLE IF EXISTS usuario_configuracoes CASCADE;
+
+    CREATE TABLE usuario_configuracoes (
+        usuario_id INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+
+        ocultar_spoilers_padrao BOOLEAN NOT NULL DEFAULT TRUE,
+        mostrar_streak BOOLEAN NOT NULL DEFAULT TRUE,
+
+        notif_seguidor BOOLEAN NOT NULL DEFAULT TRUE,
+        notif_comentario BOOLEAN NOT NULL DEFAULT TRUE,
+        notif_votos BOOLEAN NOT NULL DEFAULT TRUE,
+        notif_mensagens BOOLEAN NOT NULL DEFAULT TRUE,
+
+        mensagem_de VARCHAR(20) NOT NULL DEFAULT 'todos'
+            CHECK (mensagem_de IN ('todos', 'seguidores', 'ninguem')),
+        streak_visivel_para VARCHAR(20) NOT NULL DEFAULT 'todos'
+            CHECK (streak_visivel_para IN ('todos', 'seguidores', 'ninguem')),
+        historico_visivel_para VARCHAR(20) NOT NULL DEFAULT 'todos'
+            CHECK (historico_visivel_para IN ('todos', 'seguidores', 'ninguem')),
+        visibilidade_perfil VARCHAR(20) NOT NULL DEFAULT 'publico'
+            CHECK (visibilidade_perfil IN ('publico', 'privado')),
+
+        atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     DROP TABLE IF EXISTS livros CASCADE;
@@ -186,7 +212,7 @@
     CREATE TABLE notificacoes (
         id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
-        tipo_notificacao VARCHAR(255) NOT NULL CHECK (tipo_notificacao IN ('avaliacao', 'comentario', 'seguidor', 'mensagem', 'voto_avaliacao')),
+        tipo_notificacao VARCHAR(255) NOT NULL CHECK (tipo_notificacao IN ('avaliacao', 'comentario', 'seguidor', 'mensagem', 'voto_avaliacao', 'denuncia_resolvida', 'advertencia', 'conta_inativada')),
         titulo VARCHAR(255) NOT NULL,
         conteudo TEXT NOT NULL,
         referencia_id INTEGER DEFAULT NULL,

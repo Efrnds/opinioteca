@@ -3,13 +3,16 @@
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
 import { avaliacaoTemSpoiler, urlAvaliacao } from "@/lib/avaliacao";
 import { mediaUrl } from "@/lib/media";
-import { ArrowBigDown, ArrowBigUp, Loader2, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react";
+import { ArrowBigDown, ArrowBigUp, Flag, Loader2, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Box from "./Box";
+import { useAuthGate } from "./AuthGateProvider";
 import ComentarioComposer, { ComentarioMidia } from "./ComentarioComposer";
+import { useConfiguracoes } from "./ConfiguracoesProvider";
+import DenunciarModal from "./DenunciarModal";
 import SpoilerGuard from "./SpoilerGuard";
 import { useWebSocket } from "./WebSocketProvider";
 
@@ -107,7 +110,9 @@ export default function PostCard({
     comentariosIniciaisAbertos = false,
     midiaComLightbox = false,
 }: PostCardProps) {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const { exigirAuth } = useAuthGate();
+    const { config } = useConfiguracoes();
     const { subscribe } = useWebSocket();
     const usuario = post?.usuario ?? { id: 0, nome: "Usuário", nick: "desconhecido", image: undefined };
     const livro = post?.livro ?? { id: 0, titulo: "Livro não informado", autor: "Autor não informado", capa_url: undefined };
@@ -130,12 +135,17 @@ export default function PostCard({
     const [enviandoResposta, setEnviandoResposta] = useState(false);
     const [erroComentario, setErroComentario] = useState("");
     const [erroApagar, setErroApagar] = useState("");
+    const [denunciarAberto, setDenunciarAberto] = useState(false);
+    const [denunciarComentarioId, setDenunciarComentarioId] = useState<number | null>(null);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
     const ehProprioPost = session?.user?.id === String(usuario.id);
     const podeExcluir = ehProprioPost || (podeApagar && !!aoApagar);
+    const podeDenunciar = !!session?.user?.id && !ehProprioPost;
+    const mostrarMenu = podeExcluir || podeDenunciar;
     const temSpoiler = avaliacaoTemSpoiler(post.contem_spoiler);
-    const ocultarSpoiler = temSpoiler;
+    const ocultarSpoiler = temSpoiler && (status !== "authenticated" || config.ocultarSpoilersPadrao);
+    const contaApagada = !!(usuario as { contaApagada?: boolean }).contaApagada;
     const meuID = session?.user?.id ?? "";
     const comentariosArvore = useMemo(() => montarArvoreComentarios(comentarios), [comentarios]);
 
@@ -178,6 +188,7 @@ export default function PostCard({
 
     async function handleVoto(tipo: "upvote" | "downvote") {
         if (votando || ehProprioPost) return;
+        if (!exigirAuth()) return;
 
         setVotando(true);
         setErroVoto("");
@@ -277,6 +288,8 @@ export default function PostCard({
         payload: { texto: string; anexoUrl?: string },
         paiId?: number,
     ) {
+        if (!exigirAuth()) return;
+
         if (paiId) {
             setEnviandoResposta(true);
         } else {
@@ -328,6 +341,7 @@ export default function PostCard({
     }
 
     async function handleVotoComentario(comentario: ComentarioAvaliacao, tipo: "upvote" | "downvote") {
+        if (!exigirAuth()) return;
         try {
             const meuVotoAtual = comentario.voto_usuario || "";
             const remover = meuVotoAtual === tipo;
@@ -373,6 +387,8 @@ export default function PostCard({
     function renderComentario(no: ComentarioNo, nivel = 0) {
         const meuVotoComentario = no.voto_usuario || "";
         const respostaAtiva = comentarioPaiAtivo === no.id;
+        const ehProprioComentario = meuID === String(no.usuario.id);
+        const podeDenunciarComentario = !!meuID && !ehProprioComentario;
         const margem = nivel === 0 ? "ml-0" : nivel === 1 ? "ml-4" : nivel === 2 ? "ml-8" : "ml-12";
         const inicialComentario =
             no.usuario.nome?.charAt(0).toUpperCase() || no.usuario.nick?.charAt(0).toUpperCase() || "?";
@@ -445,6 +461,15 @@ export default function PostCard({
                             >
                                 Responder
                             </button>
+                            {podeDenunciarComentario && (
+                                <button
+                                    type="button"
+                                    onClick={() => setDenunciarComentarioId(no.id)}
+                                    className="rounded-full px-2 py-0.5 text-xs text-cinza-600 transition hover:bg-white/60"
+                                >
+                                    Denunciar
+                                </button>
+                            )}
                             <span className="font-gabarito-regular text-[10px] text-cinza-500">
                                 {tempoRelativo(no.criado_em)}
                             </span>
@@ -469,10 +494,17 @@ export default function PostCard({
     }
 
     return (
+        <>
         <Box className="flex flex-col gap-4">
             <div className="flex items-start justify-between gap-3">
-                <Link href={`/perfil/${usuario.nick}`} className="flex min-w-0 items-center gap-3 transition hover:opacity-80">
-                    {usuario.image ? (
+                <Link
+                    href={contaApagada ? "#" : `/perfil/${usuario.nick}`}
+                    onClick={(e) => {
+                        if (contaApagada) e.preventDefault();
+                    }}
+                    className={`flex min-w-0 items-center gap-3 transition ${contaApagada ? "cursor-default" : "hover:opacity-80"}`}
+                >
+                    {usuario.image && !contaApagada ? (
                         <Image
                             src={mediaUrl(usuario.image)!}
                             alt={usuario.nome}
@@ -482,24 +514,28 @@ export default function PostCard({
                         />
                     ) : (
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-200 font-gabarito-bold text-lg text-azul-900">
-                            {inicial}
+                            {contaApagada ? "?" : inicial}
                         </div>
                     )}
                     <div className="min-w-0">
-                        <p className="truncate font-gabarito-bold text-lg text-azul-900 hover:underline">{usuario.nome}</p>
-                        <p className="truncate font-gabarito-regular text-sm text-cinza-700 hover:underline">
-                            @{usuario.nick}
-                            {temSpoiler && (
-                                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 font-gabarito-bold text-[10px] uppercase text-amber-800">
-                                    Spoiler
-                                </span>
-                            )}
+                        <p className={`truncate font-gabarito-bold text-lg text-azul-900 ${contaApagada ? "" : "hover:underline"}`}>
+                            {contaApagada ? "Conta apagada" : usuario.nome}
                         </p>
+                        {!contaApagada && (
+                            <p className="truncate font-gabarito-regular text-sm text-cinza-700 hover:underline">
+                                @{usuario.nick}
+                                {temSpoiler && (
+                                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 font-gabarito-bold text-[10px] uppercase text-amber-800">
+                                        Spoiler
+                                    </span>
+                                )}
+                            </p>
+                        )}
                     </div>
                 </Link>
                 <div ref={menuRef} className="relative flex shrink-0 items-center gap-1">
                     <span className="font-gabarito-regular text-sm text-cinza-700">{tempoRelativo(post.criado_em)}</span>
-                    {podeExcluir && (
+                    {mostrarMenu && (
                         <>
                             <button
                                 type="button"
@@ -511,19 +547,34 @@ export default function PostCard({
                             </button>
                             {menuAberto && (
                                 <div className="absolute right-0 top-7 z-10 min-w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
-                                    <button
-                                        type="button"
-                                        disabled={apagando}
-                                        onClick={handleApagar}
-                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-60"
-                                    >
-                                        {apagando ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Trash2 className="h-4 w-4" />
-                                        )}
-                                        Apagar avaliação
-                                    </button>
+                                    {podeDenunciar && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuAberto(false);
+                                                setDenunciarAberto(true);
+                                            }}
+                                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-azul-900 transition hover:bg-azul-50"
+                                        >
+                                            <Flag className="h-4 w-4" />
+                                            Denunciar
+                                        </button>
+                                    )}
+                                    {podeExcluir && (
+                                        <button
+                                            type="button"
+                                            disabled={apagando}
+                                            onClick={handleApagar}
+                                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                                        >
+                                            {apagando ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="h-4 w-4" />
+                                            )}
+                                            Apagar avaliação
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </>
@@ -670,5 +721,21 @@ export default function PostCard({
                 </div>
             )}
         </Box>
+
+        <DenunciarModal
+            open={denunciarAberto}
+            onClose={() => setDenunciarAberto(false)}
+            tipoEntidade="avaliacao"
+            referenciaId={post.id}
+            titulo="Denunciar avaliação"
+        />
+        <DenunciarModal
+            open={denunciarComentarioId !== null}
+            onClose={() => setDenunciarComentarioId(null)}
+            tipoEntidade="comentario"
+            referenciaId={denunciarComentarioId ?? 0}
+            titulo="Denunciar comentário"
+        />
+        </>
     );
 }

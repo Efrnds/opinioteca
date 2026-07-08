@@ -14,6 +14,12 @@ var rotasUsuarios = []Rota{
 		RequerAutenticacao: false,
 	},
 	{
+		URI:                "/usuarios/reativar",
+		Metodo:             http.MethodPost,
+		Funcao:             controllers.ReativarUsuario,
+		RequerAutenticacao: false,
+	},
+	{
 		URI:                "/usuarios",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarUsuarios,
@@ -26,10 +32,22 @@ var rotasUsuarios = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
+		URI:                "/usuarios/{nick}/configuracoes",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarConfiguracoes,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/usuarios/{nick}/configuracoes",
+		Metodo:             http.MethodPut,
+		Funcao:             controllers.AtualizarConfiguracoes,
+		RequerAutenticacao: true,
+	},
+	{
 		URI:                "/usuarios/{nick}",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarUsuario,
-		RequerAutenticacao: true,
+		RequerAutenticacao: false,
 	},
 	{
 		URI:                "/usuarios/{nick}",
@@ -71,7 +89,7 @@ var rotasUsuarios = []Rota{
 		URI:                "/usuarios/{nick}/avaliacoes",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarAvaliacoesPorUsuario,
-		RequerAutenticacao: true,
+		RequerAutenticacao: false,
 	},
 	{
 		URI:                "/usuarios/{nick}/atualizar-senha",

@@ -2,6 +2,14 @@ package modelos
 
 import "time"
 
+const (
+	TipoNotificacaoDenunciaResolvida = "denuncia_resolvida"
+	TipoNotificacaoAdvertencia       = "advertencia"
+	TipoNotificacaoContaInativada    = "conta_inativada"
+)
+
+const LimiteDenunciasProcedentesAutoBan = 3
+
 type Notificacao struct {
 	ID              uint64    `json:"id"`
 	UsuarioID       uint64    `json:"usuario_id"`

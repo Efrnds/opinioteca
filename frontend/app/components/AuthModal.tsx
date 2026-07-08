@@ -7,21 +7,25 @@ import { Pencil } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import { ChangeEvent, FormEvent, useId, useState } from "react";
+import { useAuthTransition } from "./AuthTransitionProvider";
 
 type AuthMode = "login" | "cadastro";
 
 type AuthModalProps = {
     open: boolean;
     mode: AuthMode;
-    callbackUrl: string;
     onClose: () => void;
     onSwitchMode: (mode: AuthMode) => void;
+    /** Após login em páginas convidado, mantém o usuário na URL atual. */
+    callbackUrl?: string;
 };
 
 const inputClassName =
     "w-full px-4 py-1 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
-export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMode }: AuthModalProps) {
+export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackUrl }: AuthModalProps) {
+    void callbackUrl;
+    const { startAuthTransition, endAuthTransition } = useAuthTransition();
     const [nickLogin, setNickLogin] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -31,6 +35,7 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
     const [imagem, setImagem] = useState<File | null>(null);
     const [previewImagem, setPreviewImagem] = useState<string | null>(null);
     const [erro, setErro] = useState("");
+    const [podeReativar, setPodeReativar] = useState(false);
     const [carregando, setCarregando] = useState(false);
     const inputImagemId = useId();
 
@@ -80,23 +85,75 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
     async function handleLogin(e: FormEvent) {
         e.preventDefault();
         setErro("");
+        setPodeReativar(false);
         setCarregando(true);
+        startAuthTransition();
+
+        const senhaDigitada = password;
 
         const result = await signIn("credentials", {
             nick: nickLogin,
-            password,
+            password: senhaDigitada,
             redirect: false,
         });
 
-        setCarregando(false);
-
         if (result?.error) {
+            setCarregando(false);
+            endAuthTransition();
+            try {
+                const loginRes = await fetch("/api/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nick: nickLogin, senha: senhaDigitada }),
+                });
+                const data = await loginRes.json().catch(() => null);
+                if (data?.podeReativar) {
+                    setPodeReativar(true);
+                    setPassword(senhaDigitada);
+                    setErro(data.erro || "Conta desativada. Você pode reativá-la.");
+                    return;
+                }
+            } catch {
+                /* ignore */
+            }
             setPassword("");
             setErro("Nome de usuário ou senha inválidos.");
             return;
         }
+    }
 
-        window.location.href = callbackUrl;
+    async function handleReativar() {
+        setErro("");
+        setCarregando(true);
+        startAuthTransition();
+        try {
+            const res = await fetch("/api/usuarios/reativar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nick: nickLogin, senha: password }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                setCarregando(false);
+                endAuthTransition();
+                setErro(data?.erro || "Não foi possível reativar a conta.");
+                return;
+            }
+            const result = await signIn("credentials", {
+                nick: nickLogin,
+                password,
+                redirect: false,
+            });
+            if (result?.error) {
+                setCarregando(false);
+                endAuthTransition();
+                setErro("Conta reativada, mas o login falhou. Tente entrar de novo.");
+            }
+        } catch {
+            setCarregando(false);
+            endAuthTransition();
+            setErro("Não foi possível reativar a conta.");
+        }
     }
 
     async function handleCadastro(e: FormEvent) {
@@ -109,6 +166,7 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
         }
 
         setCarregando(true);
+        startAuthTransition();
 
         try {
             const imageUrl = await enviarImagem();
@@ -126,6 +184,8 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
             });
 
             if (!res.ok) {
+                setCarregando(false);
+                endAuthTransition();
                 setErro("Não foi possível criar a conta. Verifique os dados.");
                 return;
             }
@@ -137,16 +197,16 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
             });
 
             if (result?.error) {
+                setCarregando(false);
+                endAuthTransition();
                 setErro("Conta criada, mas o login falhou. Tente entrar manualmente.");
                 onSwitchMode("login");
                 return;
             }
-
-            window.location.href = callbackUrl;
         } catch (uploadErro) {
-            setErro(uploadErro instanceof Error ? uploadErro.message : "Erro ao enviar imagem.");
-        } finally {
             setCarregando(false);
+            endAuthTransition();
+            setErro(uploadErro instanceof Error ? uploadErro.message : "Erro ao enviar imagem.");
         }
     }
 
@@ -211,6 +271,16 @@ export default function AuthModal({ open, mode, callbackUrl, onClose, onSwitchMo
                                     className={inputClassName}
                                 />
                                 {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
+                                {podeReativar && (
+                                    <Button
+                                        type="button"
+                                        disabled={carregando}
+                                        onClick={() => void handleReativar()}
+                                        className="cursor-pointer h-auto rounded-full px-6 py-3 font-gabarito-bold text-xl bg-amber-500 hover:bg-amber-500/90 border-4 border-amber-500"
+                                    >
+                                        {carregando ? "Reativando..." : "Reativar conta"}
+                                    </Button>
+                                )}
                                 <Button
                                     type="submit"
                                     disabled={carregando}

@@ -7,7 +7,6 @@ import (
 	"backend/src/modelos"
 
 	"database/sql"
-	"errors"
 
 )
 
@@ -483,26 +482,6 @@ func (repositorio Mensagens) ApagarMensagem(meuID, mensagemID uint64) (modelos.M
 		&m.ApagadoPorDestinatario,
 		&m.CriadoEm,
 	)
-	if erro == nil {
-		return m, nil
-	}
-	if !errors.Is(erro, sql.ErrNoRows) {
-		return modelos.Mensagem{}, erro
-	}
-
-	erro = repositorio.db.QueryRow(
-		`UPDATE mensagens SET apagado_por_destinatario = TRUE
-		 WHERE id = $1 AND destinatario_id = $2
-		 RETURNING id, remetente_id, destinatario_id, apagado_por_remetente, apagado_por_destinatario, criadoEm`,
-		mensagemID, meuID,
-	).Scan(
-		&m.ID,
-		&m.RemetenteID,
-		&m.DestinatarioID,
-		&m.ApagadoPorRemetente,
-		&m.ApagadoPorDestinatario,
-		&m.CriadoEm,
-	)
 	if erro != nil {
 		return modelos.Mensagem{}, erro
 	}
@@ -756,5 +735,38 @@ func (repositorio Mensagens) ContarNaoLidasComUsuario(meuID, outroID uint64) (in
 		meuID, outroID,
 	).Scan(&total)
 	return total, erro
+}
+
+func (repositorio Mensagens) BuscarMensagemAdminPorID(mensagemID uint64) (modelos.Mensagem, error) {
+	var m modelos.Mensagem
+	erro := repositorio.db.QueryRow(
+		`SELECT id, remetente_id, destinatario_id, conteudo, criadoEm
+		 FROM mensagens WHERE id = $1`,
+		mensagemID,
+	).Scan(&m.ID, &m.RemetenteID, &m.DestinatarioID, &m.Conteudo, &m.CriadoEm)
+	if erro != nil {
+		return modelos.Mensagem{}, erro
+	}
+	return m, nil
+}
+
+func (repositorio Mensagens) ApagarPorAdmin(mensagemID uint64) error {
+	resultado, erro := repositorio.db.Exec(
+		`UPDATE mensagens
+		 SET apagado_por_remetente = TRUE, apagado_por_destinatario = TRUE
+		 WHERE id = $1`,
+		mensagemID,
+	)
+	if erro != nil {
+		return erro
+	}
+	linhas, erro := resultado.RowsAffected()
+	if erro != nil {
+		return erro
+	}
+	if linhas == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 

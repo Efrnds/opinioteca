@@ -140,4 +140,25 @@ var rotasAdmin = []Rota{
 		RequerAutenticacao: true,
 		RequerAdmin:        true,
 	},
+	{
+		URI:                "/admin/denuncias",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminListarDenuncias,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/denuncias/{id}",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminBuscarDenunciaPorID,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/denuncias/{id}",
+		Metodo:             http.MethodPatch,
+		Funcao:             controllers.AdminResolverDenuncia,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
 }

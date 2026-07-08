@@ -28,7 +28,7 @@ var rotasAvaliacoes = []Rota{
 		URI:                "/avaliacoes/{id}/comentarios",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarComentariosAvaliacao,
-		RequerAutenticacao: true,
+		RequerAutenticacao: false,
 	},
 	{
 		URI:                "/avaliacoes/{id}/comentarios",
@@ -58,7 +58,7 @@ var rotasAvaliacoes = []Rota{
 		URI:                "/avaliacoes/{id}",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarAvaliacaoPorID,
-		RequerAutenticacao: true,
+		RequerAutenticacao: false,
 	},
 	{
 		URI:                "/avaliacoes/{id}",

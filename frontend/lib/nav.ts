@@ -1,4 +1,4 @@
-import { Bell, Home, Mail, Settings, User, type LucideIcon } from "lucide-react";
+import { Bell, Compass, Home, Mail, Settings, User, type LucideIcon } from "lucide-react";
 
 export type ItemMenu = {
     href: string;
@@ -8,6 +8,7 @@ export type ItemMenu = {
 
 export const itensMenu: ItemMenu[] = [
     { href: "/home", rotulo: "Home", icone: Home },
+    { href: "/explorar", rotulo: "Explorar", icone: Compass },
     { href: "/mensagens", rotulo: "Mensagens", icone: Mail },
     { href: "/notificacoes", rotulo: "Notificações", icone: Bell },
     { href: "/perfil", rotulo: "Perfil", icone: User },

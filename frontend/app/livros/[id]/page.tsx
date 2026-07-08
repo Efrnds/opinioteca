@@ -13,6 +13,7 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Box from "../../components/Box";
+import { useAuthGate } from "../../components/AuthGateProvider";
 import PostCard from "../../components/PostCard";
 
 type LivroDetalhe = LivroPublico | LivroBusca;
@@ -29,6 +30,7 @@ function extrairGoogleVolumeId(livro: LivroDetalhe, identificador: string): stri
 }
 
 export default function LivroPage() {
+    const { exigirAuth } = useAuthGate();
     const params = useParams<{ id: string }>();
     const router = useRouter();
     const identificador = params?.id ?? "";
@@ -220,7 +222,10 @@ export default function LivroPage() {
                     <div className="flex items-center justify-center">
                         <button
                             type="button"
-                            onClick={() => setModalAberto(true)}
+                            onClick={() => {
+                                if (!exigirAuth()) return;
+                                setModalAberto(true);
+                            }}
                             className="rounded-full bg-azul-600 px-4 py-2 font-gabarito-bold text-sm text-white transition hover:bg-azul-700"
                         >
                             Escrever Avaliação

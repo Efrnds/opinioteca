@@ -8,6 +8,27 @@ const nextConfig: NextConfig = {
                 protocol: "https",
                 hostname: "**",
             },
+            // Google Books costuma devolver capas em http://books.google.com/...
+            {
+                protocol: "http",
+                hostname: "books.google.com",
+                pathname: "/**",
+            },
+            {
+                protocol: "http",
+                hostname: "books.googleusercontent.com",
+                pathname: "/**",
+            },
+            {
+                protocol: "https",
+                hostname: "books.google.com",
+                pathname: "/**",
+            },
+            {
+                protocol: "https",
+                hostname: "books.googleusercontent.com",
+                pathname: "/**",
+            },
             {
                 protocol: "http",
                 hostname: "localhost",

@@ -12,6 +12,10 @@ export function contarNotificacoesNaoLidas(notificacoes: Notificacao[]): number 
 }
 
 export async function resolverDestinoNotificacao(notif: Notificacao): Promise<string> {
+    if (notificacaoEhSistema(notif.tipo_notificacao)) {
+        return "/notificacoes";
+    }
+
     const ref = notif.referencia_id;
     if (!ref) return "/home";
 
@@ -50,9 +54,26 @@ export function textoAcaoNotificacao(tipo: Notificacao["tipo_notificacao"]): str
             return "Reagiu à avaliação";
         case "avaliacao":
             return "Nova avaliação";
+        case "denuncia_resolvida":
+            return "Denúncia resolvida";
+        case "advertencia":
+            return "Advertência";
+        case "conta_inativada":
+            return "Conta inativada";
         default:
             return "Notificação";
     }
+}
+
+export function notificacaoEhSistema(tipo: Notificacao["tipo_notificacao"]): boolean {
+    return tipo === "denuncia_resolvida" || tipo === "advertencia" || tipo === "conta_inativada";
+}
+
+export function tituloExibicaoNotificacao(notif: Notificacao): string {
+    if (notificacaoEhSistema(notif.tipo_notificacao)) {
+        return notif.titulo;
+    }
+    return nomeDoTituloNotificacao(notif.titulo);
 }
 
 export function nomeDoTituloNotificacao(titulo: string): string {
@@ -76,6 +97,12 @@ export function rotuloTipoNotificacao(tipo: Notificacao["tipo_notificacao"]): st
             return "Voto";
         case "avaliacao":
             return "Avaliação";
+        case "denuncia_resolvida":
+            return "Moderação";
+        case "advertencia":
+            return "Advertência";
+        case "conta_inativada":
+            return "Conta";
         default:
             return "Notificação";
     }

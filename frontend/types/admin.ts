@@ -96,3 +96,84 @@ export type AtualizarUsuarioAdminPayload = {
     status?: string;
     isAdmin?: boolean;
 };
+
+export type DenunciaAdminListItem = {
+    id: number;
+    tipo_entidade: string;
+    referencia_id: number;
+    motivo: string;
+    status: string;
+    criado_em: string;
+    denunciante_nick: string;
+    denunciante_nome: string;
+    denuncias_contra_usuario: number;
+    denuncias_procedentes: number;
+};
+
+export type DenunciaAdminListagem = {
+    itens: DenunciaAdminListItem[];
+    pendentes: number;
+};
+
+export type DenunciaContextoAvaliacao = {
+    id: number;
+    texto: string;
+    nota: number;
+    autor_id: number;
+    autor_nick: string;
+    autor_nome: string;
+};
+
+export type DenunciaContextoComentario = {
+    id: number;
+    texto: string;
+    avaliacao_id: number;
+    autor_id: number;
+    autor_nick: string;
+    autor_nome: string;
+};
+
+export type DenunciaContextoUsuario = {
+    id: number;
+    nick: string;
+    email: string;
+    nome: string;
+};
+
+export type DenunciaContextoMensagem = {
+    id: number;
+    texto: string;
+    remetente_id: number;
+    remetente_nick: string;
+    remetente_nome: string;
+    criado_em: string;
+};
+
+export type DenunciaAdminDetalhe = {
+    id: number;
+    denunciante_id: number;
+    tipo_entidade: string;
+    referencia_id: number;
+    motivo: string;
+    descricao?: string;
+    status: string;
+    admin_id?: number;
+    resolucao?: string;
+    criado_em: string;
+    resolvida_em?: string;
+    denunciante_nick: string;
+    denunciante_nome: string;
+    denuncias_contra_usuario: number;
+    denuncias_procedentes: number;
+    contexto:
+        | DenunciaContextoAvaliacao
+        | DenunciaContextoComentario
+        | DenunciaContextoUsuario
+        | DenunciaContextoMensagem;
+};
+
+export type AcaoResolucaoDenuncia =
+    | "rejeitar"
+    | "remover_conteudo"
+    | "advertir"
+    | "inativar_usuario";

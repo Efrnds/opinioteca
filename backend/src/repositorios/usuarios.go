@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
-const colunasUsuario = `id, nome, nick, email, image_url, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm`
+const colunasUsuario = `id, nome, nick, email, image_url, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm, inativado_em`
 
 func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario) error {
 	var image sql.NullString
+	var inativadoEm sql.NullTime
 	if erro := linhas.Scan(
 		&usuario.ID,
 		&usuario.Nome,
@@ -26,11 +28,16 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario) error {
 		&usuario.ModoZen,
 		&usuario.Status,
 		&usuario.CriadoEm,
+		&inativadoEm,
 	); erro != nil {
 		return erro
 	}
 	if image.Valid {
 		usuario.Image = image.String
+	}
+	if inativadoEm.Valid {
+		t := inativadoEm.Time
+		usuario.InativadoEm = &t
 	}
 	return nil
 }
@@ -60,6 +67,8 @@ func (repositorio Usuarios) Criar(usuario modelos.Usuario) (uint64, error) {
 	if erro != nil {
 		return 0, erro
 	}
+
+	_ = NovoRepositorioDeConfiguracoes(repositorio.db).CriarPadrao(id)
 
 	return uint64(id), nil
 }
@@ -155,7 +164,7 @@ func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) 
 // BuscarPorNickParaLogin retorna credenciais do usuário pelo nick (case insensitive).
 func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario, error) {
 	linha, erro := repositorio.db.Query(
-		"SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(nick) = LOWER($1)",
+		"SELECT id, senha, status, is_admin, inativado_em FROM usuarios WHERE LOWER(nick) = LOWER($1)",
 		nick,
 	)
 	if erro != nil {
@@ -164,14 +173,20 @@ func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario
 	defer linha.Close()
 
 	var usuario modelos.Usuario
+	var inativadoEm sql.NullTime
 	if linha.Next() {
 		if erro = linha.Scan(
 			&usuario.ID,
 			&usuario.Senha,
 			&usuario.Status,
 			&usuario.IsAdmin,
+			&inativadoEm,
 		); erro != nil {
 			return modelos.Usuario{}, erro
+		}
+		if inativadoEm.Valid {
+			t := inativadoEm.Time
+			usuario.InativadoEm = &t
 		}
 	}
 
@@ -244,24 +259,66 @@ func (repositorio Usuarios) CriarAdmin(usuario modelos.Usuario, isAdmin bool) (u
 		return 0, erro
 	}
 
+	_ = NovoRepositorioDeConfiguracoes(repositorio.db).CriarPadrao(id)
+
 	return id, nil
 }
 
-// Deletar é a função responsável por deletar um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
+// Inativar soft-delete: status inativo + timestamp para janela de reativação.
 func (repositorio Usuarios) Inativar(usuarioID uint64) error {
-	statement, erro := repositorio.db.Prepare(
-		"UPDATE usuarios SET status = 'inativo' WHERE id = $1",
+	_, erro := repositorio.db.Exec(
+		"UPDATE usuarios SET status = 'inativo', inativado_em = NOW() WHERE id = $1",
+		usuarioID,
+	)
+	return erro
+}
+
+// Reativar restaura conta se ainda dentro da janela de 30 dias.
+func (repositorio Usuarios) Reativar(usuarioID uint64) error {
+	resultado, erro := repositorio.db.Exec(
+		`UPDATE usuarios
+		 SET status = 'ativo', inativado_em = NULL
+		 WHERE id = $1
+		   AND status = 'inativo'
+		   AND inativado_em IS NOT NULL
+		   AND inativado_em + INTERVAL '30 days' >= NOW()`,
+		usuarioID,
 	)
 	if erro != nil {
 		return erro
 	}
-	defer statement.Close()
-
-	if _, erro = statement.Exec(usuarioID); erro != nil {
+	afetadas, erro := resultado.RowsAffected()
+	if erro != nil {
 		return erro
 	}
-
+	if afetadas == 0 {
+		return fmt.Errorf("fora do prazo de reativação ou conta já ativa")
+	}
 	return nil
+}
+
+// PodeReativar indica se a conta inativa ainda está na janela de 30 dias.
+func (repositorio Usuarios) PodeReativar(usuario modelos.Usuario) bool {
+	if usuario.Status != "inativo" || usuario.InativadoEm == nil {
+		return false
+	}
+	limite := usuario.InativadoEm.AddDate(0, 0, modelos.DiasReativacaoConta)
+	return !time.Now().After(limite)
+}
+
+// Segue verifica se seguidorID segue seguidoID.
+func (repositorio Usuarios) Segue(seguidorID, seguidoID uint64) (bool, error) {
+	if seguidorID == 0 || seguidoID == 0 || seguidorID == seguidoID {
+		return false, nil
+	}
+	var existe bool
+	erro := repositorio.db.QueryRow(
+		`SELECT EXISTS(
+			SELECT 1 FROM seguidores WHERE id_seguidor = $1 AND id_seguido = $2
+		)`,
+		seguidorID, seguidoID,
+	).Scan(&existe)
+	return existe, erro
 }
 
 // BuscarPorEmail é a função responsável por buscar um usuário específico do banco de dados, com base no email fornecido, retornando o usuário e um erro, se houver.

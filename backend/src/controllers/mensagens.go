@@ -323,9 +323,25 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
 
-	if _, erro = repoUsuarios.BuscarPorID(destinatarioID); erro != nil {
+	destinatario, erro := repoUsuarios.BuscarPorID(destinatarioID)
 
-		respostas.Erro(w, http.StatusNotFound, erro)
+	if erro != nil || destinatario.ID == 0 || destinatario.Status != "ativo" {
+
+		respostas.Erro(w, http.StatusNotFound, errors.New("destinatário não encontrado"))
+
+		return
+
+	}
+
+
+
+	config, _ := repositorios.NovoRepositorioDeConfiguracoes(db).BuscarOuCriar(destinatarioID)
+
+	segue, _ := repoUsuarios.Segue(meuID, destinatarioID)
+
+	if !modelos.PermiteAcesso(config.MensagemDe, false, segue) {
+
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este usuário não aceita mensagens suas"))
 
 		return
 
@@ -459,7 +475,7 @@ func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 
 		if errors.Is(erro, sql.ErrNoRows) {
 
-			respostas.Erro(w, http.StatusNotFound, errors.New("mensagem não encontrada"))
+			respostas.Erro(w, http.StatusForbidden, errors.New("apenas o remetente pode apagar esta mensagem"))
 
 			return
 

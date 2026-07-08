@@ -16,6 +16,7 @@ import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     ArrowLeft,
+    Flag,
     ImageIcon,
     Loader2,
     MoreHorizontal,
@@ -45,6 +46,7 @@ import {
     useState,
 } from "react";
 import Box from "../components/Box";
+import DenunciarModal from "../components/DenunciarModal";
 import { useWebSocket } from "../components/WebSocketProvider";
 
 type UsuarioMinimo = {
@@ -63,6 +65,29 @@ type GiphyGif = {
 };
 
 const REACOES = ["👍", "❤️", "😂", "😮", "😢", "🔥"] as const;
+
+function formatarDataMensagem(iso: string) {
+    const data = new Date(iso);
+    const agora = new Date();
+    const hora = data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+    if (data.toDateString() === agora.toDateString()) {
+        return hora;
+    }
+
+    const ontem = new Date(agora);
+    ontem.setDate(ontem.getDate() - 1);
+    if (data.toDateString() === ontem.toDateString()) {
+        return `Ontem ${hora}`;
+    }
+
+    return data.toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
 
 function textoResumo(msg: MensagemResumo) {
     if (msg.conteudo?.trim()) return msg.conteudo;
@@ -137,6 +162,21 @@ function mesmoInstante(a?: string, b?: string) {
     return new Date(a).getTime() === new Date(b).getTime();
 }
 
+function mesmoRemetente(a: Mensagem, b: Mensagem) {
+    return a.remetente_id === b.remetente_id;
+}
+
+function agrupamentoMensagem(mensagens: Mensagem[], index: number) {
+    const msg = mensagens[index];
+    const anterior = index > 0 ? mensagens[index - 1] : null;
+    const proxima = index < mensagens.length - 1 ? mensagens[index + 1] : null;
+
+    const inicioGrupo = !anterior || !mesmoRemetente(anterior, msg);
+    const fimGrupo = !proxima || !mesmoRemetente(msg, proxima);
+
+    return { inicioGrupo, fimGrupo };
+}
+
 function previewAPartirDoHistorico(mensagens: Mensagem[], meuID: number) {
     const visiveis = mensagens.filter(m => mensagemVisivelParaUsuario(m, meuID));
     const ultima = visiveis[visiveis.length - 1];
@@ -179,6 +219,7 @@ function MensagensConteudo() {
     const [editandoId, setEditandoId] = useState<number | null>(null);
     const [editandoTexto, setEditandoTexto] = useState("");
     const [reacaoMsgId, setReacaoMsgId] = useState<number | null>(null);
+    const [denunciarMensagemId, setDenunciarMensagemId] = useState<number | null>(null);
     const fimRef = useRef<HTMLDivElement>(null);
     const inputRodapeRef = useRef<HTMLDivElement>(null);
     const chatAtivoRef = useRef<number | null>(null);
@@ -646,12 +687,24 @@ function MensagensConteudo() {
     async function apagarMensagem(id: number) {
         const res = await fetch(`/api/mensagens/msg/${id}`, { method: "DELETE" });
         if (res.ok) {
-            setMensagens(atual => atual.filter(m => m.id !== id));
+            setMensagens(atual => {
+                const comFlags = atual.map(m =>
+                    m.id === id ? { ...m, apagado_por_remetente: true } : m,
+                );
+                const visiveis = comFlags.filter(m => mensagemVisivelParaUsuario(m, meuID));
+                const preview = previewAPartirDoHistorico(visiveis, meuID);
+                if (chatAtivo) {
+                    setConversas(conv =>
+                        conv.map(c => (c.usuario_id === chatAtivo ? { ...c, ...preview } : c)),
+                    );
+                }
+                return visiveis;
+            });
             limparInteracoesMensagem(id);
             carregarInbox();
             return;
         }
-        if (res.status === 404) {
+        if (res.status === 404 || res.status === 403) {
             removerMensagemInvalida(id);
         }
     }
@@ -900,20 +953,25 @@ function MensagensConteudo() {
                                 </div>
                             </header>
 
-                            <div className="flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-4 py-4">
+                            <div className="flex-1 overflow-x-hidden overflow-y-auto px-4 py-4">
                                 {carregandoChat ? (
                                     <div className="flex justify-center py-8">
                                         <Loader2 className="h-6 w-6 animate-spin text-azul-600" />
                                     </div>
                                 ) : (
-                                    mensagens.map(msg => {
+                                    mensagens.map((msg, index) => {
                                         const minha = Number(msg.remetente_id) === meuID;
                                         const soImagem = !!msg.anexo_url && !msg.conteudo?.trim();
+                                        const { inicioGrupo, fimGrupo } = agrupamentoMensagem(mensagens, index);
 
                                         return (
                                             <div
                                                 key={msg.id}
-                                                className={`flex w-full min-w-0 ${minha ? "justify-end" : "justify-start"}`}
+                                                className={cn(
+                                                    "flex w-full min-w-0",
+                                                    minha ? "justify-end" : "justify-start",
+                                                    index === 0 ? "" : inicioGrupo ? "mt-3" : "mt-1",
+                                                )}
                                             >
                                                 <div
                                                     className={`group relative flex w-fit max-w-[75%] min-w-0 flex-col ${
@@ -960,6 +1018,16 @@ function MensagensConteudo() {
                                                         >
                                                             <Smile className="h-3.5 w-3.5" />
                                                         </button>
+                                                        {!minha && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDenunciarMensagemId(msg.id)}
+                                                                className="rounded-full p-1 text-cinza-600 hover:bg-cinza-100"
+                                                                aria-label="Denunciar"
+                                                            >
+                                                                <Flag className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
                                                         {minha && msg.conteudo?.trim() && (
                                                             <button
                                                                 type="button"
@@ -974,14 +1042,16 @@ function MensagensConteudo() {
                                                                 <Pencil className="h-3.5 w-3.5" />
                                                             </button>
                                                         )}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => apagarMensagem(msg.id)}
-                                                            className="rounded-full p-1 text-red-600 hover:bg-red-50"
-                                                            aria-label="Apagar"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </button>
+                                                        {minha && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => apagarMensagem(msg.id)}
+                                                                className="rounded-full p-1 text-red-600 hover:bg-red-50"
+                                                                aria-label="Apagar"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
                                                     </div>
 
                                                     <AnimatePresence>
@@ -1014,17 +1084,23 @@ function MensagensConteudo() {
                                                         // eslint-disable-next-line @next/next/no-img-element
                                                         <img
                                                             src={msg.anexo_url}
-                                                            className="max-h-64 max-w-full rounded-xl object-cover shadow-sm"
+                                                            className={cn(
+                                                                "max-h-64 max-w-full object-cover shadow-sm",
+                                                                fimGrupo ? "rounded-xl" : "rounded-2xl",
+                                                            )}
                                                             alt="Anexo"
                                                             loading="eager"
                                                         />
                                                     ) : (
                                                         <div
-                                                            className={`w-full min-w-0 overflow-hidden rounded-2xl px-4 py-2 font-gabarito-regular text-sm wrap-break-word ${
+                                                            className={cn(
+                                                                "w-full min-w-0 overflow-hidden rounded-2xl px-4 py-2 font-gabarito-regular text-sm wrap-break-word",
                                                                 minha
-                                                                    ? "rounded-br-sm bg-azul-600 text-white"
-                                                                    : "rounded-bl-sm bg-white text-azul-900 shadow-sm"
-                                                            }`}
+                                                                    ? "bg-azul-600 text-white"
+                                                                    : "bg-white text-azul-900 shadow-sm",
+                                                                minha && fimGrupo && "rounded-br-sm",
+                                                                !minha && fimGrupo && "rounded-bl-sm",
+                                                            )}
                                                         >
                                                             {msg.anexo_url && (
                                                                 // eslint-disable-next-line @next/next/no-img-element
@@ -1084,8 +1160,19 @@ function MensagensConteudo() {
                                                     )}
 
                                                     {msg.reacao && (
-                                                        <span className="mt-2 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-sm shadow-sm">
+                                                        <span className="mt-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-sm shadow-sm">
                                                             {msg.reacao}
+                                                        </span>
+                                                    )}
+
+                                                    {fimGrupo && (
+                                                        <span
+                                                            className={cn(
+                                                                "mt-1 font-gabarito-regular text-[10px]",
+                                                                minha ? "text-azul-600" : "text-azul-900",
+                                                            )}
+                                                        >
+                                                            {formatarDataMensagem(msg.criado_em)}
                                                         </span>
                                                     )}
                                                 </div>
@@ -1339,6 +1426,14 @@ function MensagensConteudo() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <DenunciarModal
+                open={denunciarMensagemId !== null}
+                onClose={() => setDenunciarMensagemId(null)}
+                tipoEntidade="mensagem"
+                referenciaId={denunciarMensagemId ?? 0}
+                titulo="Denunciar mensagem"
+            />
         </>
     );
 }

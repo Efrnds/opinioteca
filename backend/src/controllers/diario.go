@@ -227,7 +227,8 @@ func BuscarDiario(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	usuario, erro := repositorios.NovoRepositorioDeUsuarios(db).BuscarPorNick(nick)
+	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
+	usuario, erro := repoUsuarios.BuscarPorNick(nick)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
@@ -237,10 +238,28 @@ func BuscarDiario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	ehDono := viewerID != 0 && viewerID == usuario.ID
+	config, _ := repositorios.NovoRepositorioDeConfiguracoes(db).BuscarOuCriar(usuario.ID)
+	segue, _ := repoUsuarios.Segue(viewerID, usuario.ID)
+
+	if config.VisibilidadePerfil == modelos.VisibilidadePrivado && !ehDono && !segue {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este perfil é privado"))
+		return
+	}
+	if !modelos.PermiteAcesso(config.HistoricoVisivelPara, ehDono, segue) {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Histórico de leitura privado"))
+		return
+	}
+
 	resposta, erro := buscarDiarioUsuario(db, usuario.ID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
+	}
+
+	if !modelos.PermiteAcesso(config.StreakVisivelPara, ehDono, segue) || (!ehDono && !config.MostrarStreak) {
+		resposta.SequenciaAtual = 0
 	}
 
 	respostas.JSON(w, http.StatusOK, resposta)
@@ -266,6 +285,20 @@ func BuscarHistoricoDiario(w http.ResponseWriter, r *http.Request) {
 	}
 	if usuario.ID == 0 {
 		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	ehDono := viewerID != 0 && viewerID == usuario.ID
+	config, _ := repositorios.NovoRepositorioDeConfiguracoes(db).BuscarOuCriar(usuario.ID)
+	segue, _ := repoUsuarios.Segue(viewerID, usuario.ID)
+
+	if config.VisibilidadePerfil == modelos.VisibilidadePrivado && !ehDono && !segue {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este perfil é privado"))
+		return
+	}
+	if !modelos.PermiteAcesso(config.HistoricoVisivelPara, ehDono, segue) {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Histórico de leitura privado"))
 		return
 	}
 

@@ -198,8 +198,23 @@ func BuscarAvaliacoesPorUsuario(w http.ResponseWriter, r *http.Request) {
 
 	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
 	usuario, erro := repoUsuarios.BuscarPorNick(nick)
-	if erro != nil {
+	if erro != nil || usuario.ID == 0 {
 		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	ehDono := viewerID != 0 && viewerID == usuario.ID
+
+	if usuario.Status != "ativo" && !ehDono {
+		respostas.JSON(w, http.StatusOK, []any{})
+		return
+	}
+
+	config, _ := repositorios.NovoRepositorioDeConfiguracoes(db).BuscarOuCriar(usuario.ID)
+	segue, _ := repoUsuarios.Segue(viewerID, usuario.ID)
+	if config.VisibilidadePerfil == modelos.VisibilidadePrivado && !ehDono && !segue {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este perfil é privado"))
 		return
 	}
 

@@ -119,7 +119,6 @@ export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingP
             <AuthModal
                 open={modalAberto}
                 mode={modo}
-                callbackUrl={callbackUrl}
                 onClose={fecharModal}
                 onSwitchMode={trocarModo}
             />

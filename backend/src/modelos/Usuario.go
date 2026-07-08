@@ -11,20 +11,23 @@ import (
 
 // Usuario representa a estrutura de um usuário da aplicação
 type Usuario struct {
-	ID                 uint64    `json:"id,omitempty"`
-	Nome               string    `json:"nome,omitempty"`
-	Nick               string    `json:"nick,omitempty"`
-	Email              string    `json:"email,omitempty"`
-	Senha              string    `json:"senha,omitempty"`
-	CriadoEm           time.Time `json:"criadoEm,omitempty"`
-	RankConfiabilidade int       `json:"rankConfiabilidade"`
-	AssinaturaID       uint64    `json:"assinaturaId"`
-	SequenciaAtual     int       `json:"sequenciaAtual"`
-	MaiorSequencia     int       `json:"maiorSequencia"`
-	ModoZen            bool      `json:"modoZen"`
-	Status             string    `json:"status"`
-	Image              string    `json:"image,omitempty"`
-	IsAdmin            bool      `json:"-"`
+	ID                 uint64     `json:"id,omitempty"`
+	Nome               string     `json:"nome,omitempty"`
+	Nick               string     `json:"nick,omitempty"`
+	Email              string     `json:"email,omitempty"`
+	Senha              string     `json:"senha,omitempty"`
+	CriadoEm           time.Time  `json:"criadoEm,omitempty"`
+	RankConfiabilidade int        `json:"rankConfiabilidade"`
+	AssinaturaID       uint64     `json:"assinaturaId"`
+	SequenciaAtual     int        `json:"sequenciaAtual"`
+	MaiorSequencia     int        `json:"maiorSequencia"`
+	ModoZen            bool       `json:"modoZen"`
+	Status             string     `json:"status"`
+	Image              string     `json:"image,omitempty"`
+	InativadoEm        *time.Time `json:"inativadoEm,omitempty"`
+	IsAdmin            bool       `json:"-"`
+	ContaApagada       bool       `json:"contaApagada,omitempty"`
+	PerfilPrivado      bool       `json:"perfilPrivado,omitempty"`
 }
 
 // Preparar é responsável por validar e formatar os dados do usuário antes de serem persistidos no banco de dados.
@@ -98,6 +101,14 @@ func (usuario *Usuario) OcultarSenha() Usuario {
 }
 
 func (usuario *Usuario) ListarPublico() Usuario {
+	if usuario.Status == "inativo" || usuario.ContaApagada {
+		return Usuario{
+			ID:           usuario.ID,
+			Nick:         "conta_apagada",
+			Nome:         "Conta apagada",
+			ContaApagada: true,
+		}
+	}
 	return Usuario{
 		ID:                 usuario.ID,
 		Nome:               usuario.Nome,
@@ -105,6 +116,17 @@ func (usuario *Usuario) ListarPublico() Usuario {
 		Image:              usuario.Image,
 		RankConfiabilidade: usuario.RankConfiabilidade,
 		SequenciaAtual:     usuario.SequenciaAtual,
+		PerfilPrivado:      usuario.PerfilPrivado,
+	}
+}
+
+// ListarPerfilPrivadoReduzido retorna só nick/foto para visitantes de perfil privado.
+func (usuario *Usuario) ListarPerfilPrivadoReduzido() Usuario {
+	return Usuario{
+		ID:            usuario.ID,
+		Nick:          usuario.Nick,
+		Image:         usuario.Image,
+		PerfilPrivado: true,
 	}
 }
 

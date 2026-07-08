@@ -9,6 +9,16 @@ export function mediaUrl(url?: string | null): string | undefined {
         if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
             return `${parsed.pathname}${parsed.search}`;
         }
+        // Capas do Google Books frequentemente vêm em http; normaliza para https.
+        if (
+            parsed.protocol === "http:" &&
+            (parsed.hostname === "books.google.com" ||
+                parsed.hostname === "books.googleusercontent.com" ||
+                parsed.hostname.endsWith(".googleusercontent.com"))
+        ) {
+            parsed.protocol = "https:";
+            return parsed.toString();
+        }
     } catch {
         return url;
     }

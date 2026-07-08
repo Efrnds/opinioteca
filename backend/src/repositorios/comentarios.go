@@ -151,6 +151,42 @@ func (repositorio Comentarios) VotarComentario(usuarioID, comentarioID uint64, t
 	return erro
 }
 
+func (repositorio Comentarios) DeletarPorAdmin(comentarioID uint64) error {
+	comentario, erro := repositorio.BuscarPorID(comentarioID)
+	if erro != nil {
+		return erro
+	}
+
+	tx, erro := repositorio.db.Begin()
+	if erro != nil {
+		return erro
+	}
+	defer tx.Rollback()
+
+	if _, erro = tx.Exec(`DELETE FROM voto_comentarios WHERE comentario_id = $1`, comentarioID); erro != nil {
+		return erro
+	}
+
+	resultado, erro := tx.Exec(`DELETE FROM comentarios WHERE id = $1`, comentarioID)
+	if erro != nil {
+		return erro
+	}
+
+	linhas, erro := resultado.RowsAffected()
+	if erro != nil {
+		return erro
+	}
+	if linhas == 0 {
+		return sql.ErrNoRows
+	}
+
+	if erro = tx.Commit(); erro != nil {
+		return erro
+	}
+
+	return repositorio.AtualizarComentarioDestaqueCache(comentario.AvaliacaoID)
+}
+
 func (repositorio Comentarios) RemoverVotoComentario(usuarioID, comentarioID uint64) error {
 	resultado, erro := repositorio.db.Exec(
 		"DELETE FROM voto_comentarios WHERE usuario_id = $1 AND comentario_id = $2",

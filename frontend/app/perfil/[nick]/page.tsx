@@ -5,15 +5,17 @@ import { avaliacaoTemSpoiler } from "@/lib/avaliacao";
 import { mediaUrl } from "@/lib/media";
 import type { DiarioHistoricoResposta, DiarioResposta } from "@/types/diario";
 import type { LivroPublico } from "@/types/livro";
-import { Book, ChevronLeft, Loader2, Mail, MoreVertical, UserCheck, UserPlus } from "lucide-react";
+import { Book, ChevronLeft, Flag, Loader2, Mail, MoreVertical, UserCheck, UserPlus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AlterarNickModal from "../../components/AlterarNickModal";
+import { useAuthGate } from "../../components/AuthGateProvider";
 import AvatarPerfilEditavel from "../../components/AvatarPerfilEditavel";
 import Box from "../../components/Box";
+import DenunciarModal from "../../components/DenunciarModal";
 import ListaUsuariosModal from "../../components/ListaUsuariosModal";
 import PerfilLivroModal, { type LivroPerfilItem } from "../../components/PerfilLivroModal";
 import PostCard from "../../components/PostCard";
@@ -25,6 +27,9 @@ type UsuarioPublico = {
     nick: string;
     image?: string;
     email?: string;
+    perfilPrivado?: boolean;
+    contaApagada?: boolean;
+    podeMensagem?: boolean;
 };
 
 type AbaPerfil = "avaliacoes" | "diario" | "livros";
@@ -113,6 +118,7 @@ export default function PerfilNickPage() {
     const router = useRouter();
     const params = useParams<{ nick: string }>();
     const { data: session } = useSession();
+    const { exigirAuth } = useAuthGate();
 
     const nick = useMemo(() => {
         const valor = params?.nick;
@@ -135,6 +141,7 @@ export default function PerfilNickPage() {
     const [menuOpcoesAberto, setMenuOpcoesAberto] = useState(false);
     const [alterarNickAberto, setAlterarNickAberto] = useState(false);
     const [listaAberta, setListaAberta] = useState<ListaPerfil>(null);
+    const [denunciarPerfilAberto, setDenunciarPerfilAberto] = useState(false);
     const menuOpcoesRef = useRef<HTMLDivElement | null>(null);
 
     const meuNick = session?.user?.nick?.toLowerCase();
@@ -267,22 +274,33 @@ export default function PerfilNickPage() {
                 return;
             }
 
-            if (!resAvaliacoes.ok) {
+            const perfilData = dataPerfil as UsuarioPublico;
+
+            if (perfilData.contaApagada || perfilData.perfilPrivado) {
+                setPerfil(perfilData);
+                setAvaliacoes([]);
+                setSeguidores([]);
+                setSeguindo([]);
+                setDiario(null);
+                setHistorico(historicoVazio);
+                return;
+            }
+
+            if (!resAvaliacoes.ok && resAvaliacoes.status !== 403) {
                 setErro(dataAvaliacoes.erro || "Não foi possível carregar as resenhas.");
                 return;
             }
 
-            if (!resSeguidores.ok) {
+            if (!resSeguidores.ok && resSeguidores.status !== 401) {
                 setErro(dataSeguidores.erro || "Não foi possível carregar os seguidores.");
                 return;
             }
 
-            if (!resSeguindo.ok) {
+            if (!resSeguindo.ok && resSeguindo.status !== 401) {
                 setErro(dataSeguindo.erro || "Não foi possível carregar a lista de seguindo.");
                 return;
             }
 
-            const perfilData = dataPerfil as UsuarioPublico;
             const avaliacoesRaw = Array.isArray(dataAvaliacoes) ? dataAvaliacoes : [];
             const livroIDs = Array.from(
                 new Set(
@@ -374,6 +392,9 @@ export default function PerfilNickPage() {
 
     async function alternarFollow() {
         if (!nick || alternandoFollow || ehMeuPerfil) {
+            return;
+        }
+        if (!exigirAuth()) {
             return;
         }
 
@@ -495,6 +516,74 @@ export default function PerfilNickPage() {
         );
     }
 
+    if (perfil.contaApagada) {
+        return (
+            <Box className="flex flex-col items-center gap-3 py-10 text-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-cinza-200 font-gabarito-bold text-2xl text-cinza-600">
+                    ?
+                </div>
+                <h1 className="font-gabarito-bold text-2xl text-azul-900">Conta apagada</h1>
+                <p className="font-gabarito-regular text-cinza-700">
+                    Este usuário desativou a conta.
+                </p>
+            </Box>
+        );
+    }
+
+    if (perfil.perfilPrivado && !ehMeuPerfil) {
+        const avatar = mediaUrl(perfil.image);
+        return (
+            <Box className="flex flex-col items-center gap-4 py-10 text-center">
+                {avatar ? (
+                    <Image
+                        src={avatar}
+                        alt={perfil.nick}
+                        width={96}
+                        height={96}
+                        className="h-24 w-24 rounded-full object-cover"
+                    />
+                ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-azul-200 font-gabarito-bold text-3xl text-azul-800">
+                        {perfil.nick.charAt(0).toUpperCase()}
+                    </div>
+                )}
+                <h1 className="font-gabarito-bold text-2xl text-azul-900">@{perfil.nick}</h1>
+                <p className="font-gabarito-regular text-cinza-700">Este perfil é privado.</p>
+                <p className="max-w-sm font-gabarito-regular text-sm text-cinza-600">
+                    Siga esta conta para ver avaliações e histórico de leitura.
+                </p>
+                <button
+                    type="button"
+                    disabled={alternandoFollow || sigoPerfil}
+                    onClick={() => {
+                        if (!exigirAuth()) return;
+                        void (async () => {
+                            setAlternandoFollow(true);
+                            try {
+                                const res = await fetch(
+                                    `/api/usuarios/${encodeURIComponent(nick)}/${sigoPerfil ? "deixar-de-seguir" : "seguir"}`,
+                                    { method: "POST" },
+                                );
+                                if (!res.ok && res.status !== 204) {
+                                    setErro("Não foi possível seguir.");
+                                    return;
+                                }
+                                cachePerfilPorNick.delete(nick);
+                                await carregarDados();
+                            } finally {
+                                setAlternandoFollow(false);
+                            }
+                        })();
+                    }}
+                    className="flex items-center gap-2 rounded-full bg-azul-600 px-5 py-2 font-gabarito-bold text-sm text-white hover:bg-azul-700 disabled:opacity-60"
+                >
+                    {sigoPerfil ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                    {sigoPerfil ? "Seguindo" : "Seguir"}
+                </button>
+            </Box>
+        );
+    }
+
     const inicial = perfil.nome?.charAt(0).toUpperCase() || perfil.nick.charAt(0).toUpperCase();
 
     return (
@@ -579,14 +668,30 @@ export default function PerfilNickPage() {
                         </div>
                         {!ehMeuPerfil && (
                             <div className="flex shrink-0 items-center gap-2">
-                                <Link
-                                    href={`/mensagens?novoChat=${perfil.id}`}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!exigirAuth()) return;
+                                        setDenunciarPerfilAberto(true);
+                                    }}
+                                    aria-label="Denunciar perfil"
+                                    className="flex items-center justify-center rounded-full border border-gray-300 p-2 font-gabarito-bold text-sm text-cinza-700 transition hover:bg-gray-50 sm:px-3 sm:py-2"
+                                >
+                                    <Flag className="h-4 w-4 shrink-0" />
+                                    <span className="ml-1.5 hidden sm:inline">Denunciar</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!exigirAuth()) return;
+                                        router.push(`/mensagens?novoChat=${perfil.id}`);
+                                    }}
                                     aria-label="Mensagem"
                                     className="flex items-center justify-center gap-1.5 rounded-full border border-azul-600 p-2 font-gabarito-bold text-sm text-azul-600 transition hover:bg-azul-50 sm:px-4 sm:py-2"
                                 >
                                     <Mail className="h-4 w-4 shrink-0" />
                                     <span className="hidden sm:inline">Mensagem</span>
-                                </Link>
+                                </button>
                                 <button
                                     type="button"
                                     onClick={alternarFollow}
@@ -854,6 +959,16 @@ export default function PerfilNickPage() {
                 usuarios={seguindo}
                 vazio="Ainda não segue ninguém."
             />
+
+            {perfil && (
+                <DenunciarModal
+                    open={denunciarPerfilAberto}
+                    onClose={() => setDenunciarPerfilAberto(false)}
+                    tipoEntidade="usuario"
+                    referenciaId={perfil.id}
+                    titulo="Denunciar perfil"
+                />
+            )}
         </div>
     );
 }

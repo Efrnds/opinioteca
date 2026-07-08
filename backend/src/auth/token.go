@@ -39,6 +39,15 @@ func ValidarToken(r *http.Request) error {
 	return errors.New("Token inválido!")
 }
 
+// ExtrairUsuarioIDOpcional retorna o ID se o Bearer for válido; 0 e nil se ausente/inválido.
+func ExtrairUsuarioIDOpcional(r *http.Request) uint64 {
+	id, erro := ExtrairUsuarioID(r)
+	if erro != nil {
+		return 0
+	}
+	return id
+}
+
 // ExtrairUsuarioID é a função responsável por extrair o ID do usuário presente no token JWT da requisição, retornando o ID como uint64 e um erro caso o token seja inválido ou não contenha o ID do usuário.
 func ExtrairUsuarioID(r *http.Request) (uint64, error) {
 	tokenString := extrairToken(r)

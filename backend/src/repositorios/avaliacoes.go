@@ -55,10 +55,10 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 	linhas, erro := repositorio.db.Query(
 		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
-		        u.id, u.nome, u.nick, u.image_url,
+		        u.id, u.nome, u.nick, u.image_url, u.status,
 		        l.id, l.titulo, l.autor, l.capa_url
 		 FROM avaliacoes a
-		 INNER JOIN usuarios u ON u.id = a.usuario_id AND u.status = 'ativo'
+		 INNER JOIN usuarios u ON u.id = a.usuario_id
 		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
 		 WHERE a.livro_id = $1
 		 ORDER BY a.criadoEm DESC`,
@@ -74,6 +74,7 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 	for linhas.Next() {
 		var item modelos.AvaliacaoFeed
 		var imageURL, capaURL, anexoURL sql.NullString
+		var statusUsuario string
 
 		if erro := linhas.Scan(
 			&item.ID,
@@ -87,6 +88,7 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 			&item.Usuario.Nome,
 			&item.Usuario.Nick,
 			&imageURL,
+			&statusUsuario,
 			&item.Livro.ID,
 			&item.Livro.Titulo,
 			&item.Livro.Autor,
@@ -95,9 +97,7 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 			return nil, erro
 		}
 
-		if imageURL.Valid {
-			item.Usuario.Image = imageURL.String
-		}
+		aplicarUsuarioFeed(&item, statusUsuario, imageURL)
 		if capaURL.Valid {
 			item.Livro.CapaURL = capaURL.String
 		}
@@ -120,10 +120,10 @@ func (repositorio Avaliacoes) BuscarFeedPorID(id uint64) (modelos.AvaliacaoFeed,
 	linha := repositorio.db.QueryRow(
 		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
-		        u.id, u.nome, u.nick, u.image_url,
+		        u.id, u.nome, u.nick, u.image_url, u.status,
 		        l.id, l.titulo, l.autor, l.capa_url
 		 FROM avaliacoes a
-		 INNER JOIN usuarios u ON u.id = a.usuario_id AND u.status = 'ativo'
+		 INNER JOIN usuarios u ON u.id = a.usuario_id
 		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
 		 WHERE a.id = $1`,
 		id,
@@ -131,6 +131,7 @@ func (repositorio Avaliacoes) BuscarFeedPorID(id uint64) (modelos.AvaliacaoFeed,
 
 	var item modelos.AvaliacaoFeed
 	var imageURL, capaURL, anexoURL sql.NullString
+	var statusUsuario string
 
 	if erro := linha.Scan(
 		&item.ID,
@@ -144,6 +145,7 @@ func (repositorio Avaliacoes) BuscarFeedPorID(id uint64) (modelos.AvaliacaoFeed,
 		&item.Usuario.Nome,
 		&item.Usuario.Nick,
 		&imageURL,
+		&statusUsuario,
 		&item.Livro.ID,
 		&item.Livro.Titulo,
 		&item.Livro.Autor,
@@ -152,9 +154,7 @@ func (repositorio Avaliacoes) BuscarFeedPorID(id uint64) (modelos.AvaliacaoFeed,
 		return modelos.AvaliacaoFeed{}, erro
 	}
 
-	if imageURL.Valid {
-		item.Usuario.Image = imageURL.String
-	}
+	aplicarUsuarioFeed(&item, statusUsuario, imageURL)
 	if capaURL.Valid {
 		item.Livro.CapaURL = capaURL.String
 	}
@@ -186,10 +186,10 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 	linhas, erro := repositorio.db.Query(
 		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
-		        u.id, u.nome, u.nick, u.image_url,
+		        u.id, u.nome, u.nick, u.image_url, u.status,
 		        l.id, l.titulo, l.autor, l.capa_url
 		 FROM avaliacoes a
-		 INNER JOIN usuarios u ON u.id = a.usuario_id AND u.status = 'ativo'
+		 INNER JOIN usuarios u ON u.id = a.usuario_id
 		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
 		 ORDER BY a.criadoEm DESC
 		 LIMIT $1 OFFSET $2`,
@@ -205,6 +205,7 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 	for linhas.Next() {
 		var item modelos.AvaliacaoFeed
 		var imageURL, capaURL, anexoURL sql.NullString
+		var statusUsuario string
 
 		if erro := linhas.Scan(
 			&item.ID,
@@ -218,6 +219,7 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 			&item.Usuario.Nome,
 			&item.Usuario.Nick,
 			&imageURL,
+			&statusUsuario,
 			&item.Livro.ID,
 			&item.Livro.Titulo,
 			&item.Livro.Autor,
@@ -226,9 +228,7 @@ func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.Avaliaca
 			return nil, erro
 		}
 
-		if imageURL.Valid {
-			item.Usuario.Image = imageURL.String
-		}
+		aplicarUsuarioFeed(&item, statusUsuario, imageURL)
 		if capaURL.Valid {
 			item.Livro.CapaURL = capaURL.String
 		}
@@ -257,10 +257,10 @@ func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offse
 	linhas, erro := repositorio.db.Query(
 		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
-		        u.id, u.nome, u.nick, u.image_url,
+		        u.id, u.nome, u.nick, u.image_url, u.status,
 		        l.id, l.titulo, l.autor, l.capa_url
 		 FROM avaliacoes a
-		 INNER JOIN usuarios u ON u.id = a.usuario_id AND u.status = 'ativo'
+		 INNER JOIN usuarios u ON u.id = a.usuario_id
 		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
 		 WHERE (a.usuario_id IN (
 		     SELECT id_seguido FROM seguidores WHERE id_seguidor = $1
@@ -279,6 +279,7 @@ func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offse
 	for linhas.Next() {
 		var item modelos.AvaliacaoFeed
 		var imageURL, capaURL, anexoURL sql.NullString
+		var statusUsuario string
 
 		if erro := linhas.Scan(
 			&item.ID,
@@ -292,6 +293,7 @@ func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offse
 			&item.Usuario.Nome,
 			&item.Usuario.Nick,
 			&imageURL,
+			&statusUsuario,
 			&item.Livro.ID,
 			&item.Livro.Titulo,
 			&item.Livro.Autor,
@@ -300,9 +302,7 @@ func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offse
 			return nil, erro
 		}
 
-		if imageURL.Valid {
-			item.Usuario.Image = imageURL.String
-		}
+		aplicarUsuarioFeed(&item, statusUsuario, imageURL)
 		if capaURL.Valid {
 			item.Livro.CapaURL = capaURL.String
 		}
@@ -343,6 +343,49 @@ func (repositorio Avaliacoes) Atualizar(id, usuarioID uint64, nota int, texto st
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (repositorio Avaliacoes) DeletarPorAdmin(id uint64) error {
+	tx, erro := repositorio.db.Begin()
+	if erro != nil {
+		return erro
+	}
+	defer tx.Rollback()
+
+	if _, erro = tx.Exec(
+		`DELETE FROM voto_comentarios
+		 WHERE comentario_id IN (SELECT id FROM comentarios WHERE avaliacao_id = $1)`,
+		id,
+	); erro != nil {
+		return erro
+	}
+
+	if _, erro = tx.Exec(`DELETE FROM comentario_destaque_cache WHERE avaliacao_id = $1`, id); erro != nil {
+		return erro
+	}
+
+	if _, erro = tx.Exec(`DELETE FROM comentarios WHERE avaliacao_id = $1`, id); erro != nil {
+		return erro
+	}
+
+	if _, erro = tx.Exec(`DELETE FROM voto_avaliacoes WHERE avaliacao_id = $1`, id); erro != nil {
+		return erro
+	}
+
+	resultado, erro := tx.Exec("DELETE FROM avaliacoes WHERE id = $1", id)
+	if erro != nil {
+		return erro
+	}
+
+	linhas, erro := resultado.RowsAffected()
+	if erro != nil {
+		return erro
+	}
+	if linhas == 0 {
+		return sql.ErrNoRows
+	}
+
+	return tx.Commit()
 }
 
 func (repositorio Avaliacoes) Deletar(id, usuarioID uint64) error {
@@ -460,4 +503,16 @@ func scanAvaliacoes(linhas *sql.Rows) ([]modelos.Avaliacao, error) {
 		avaliacoes = append(avaliacoes, avaliacao)
 	}
 	return avaliacoes, nil
+}
+
+func aplicarUsuarioFeed(item *modelos.AvaliacaoFeed, status string, imageURL sql.NullString) {
+	if imageURL.Valid {
+		item.Usuario.Image = imageURL.String
+	}
+	if status == "inativo" {
+		item.Usuario.Nome = "Conta apagada"
+		item.Usuario.Nick = "conta_apagada"
+		item.Usuario.Image = ""
+		item.Usuario.ContaApagada = true
+	}
 }

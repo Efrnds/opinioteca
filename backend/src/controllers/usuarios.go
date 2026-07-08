@@ -104,7 +104,7 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuariosFiltrados)
 }
 
-// BuscarUsuario retorna o perfil pelo nick — público para outros, privado para o dono.
+// BuscarUsuario retorna o perfil pelo nick — público (auth opcional), privado gated, dono vê privado.
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -126,23 +126,52 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usuarioToken, erro := usuarioDoToken(r, repositorio)
-	if erro != nil {
-		respostas.Erro(w, http.StatusUnauthorized, erro)
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	ehDono := viewerID != 0 && viewerID == usuario.ID
+
+	if usuario.Status != "ativo" {
+		if ehDono {
+			respostas.JSON(w, http.StatusOK, usuario.ListarPrivado())
+			return
+		}
+		respostas.JSON(w, http.StatusOK, modelos.Usuario{
+			ID:           usuario.ID,
+			Nick:         "conta_apagada",
+			Nome:         "Conta apagada",
+			ContaApagada: true,
+		})
 		return
 	}
 
-	if usuario.Status != "ativo" && !ehProprioPerfil(usuarioToken, nick) {
-		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
-		return
-	}
-
-	if ehProprioPerfil(usuarioToken, nick) {
+	if ehDono {
 		respostas.JSON(w, http.StatusOK, usuario.ListarPrivado())
 		return
 	}
 
-	respostas.JSON(w, http.StatusOK, usuario.ListarPublico())
+	config, _ := repositorios.NovoRepositorioDeConfiguracoes(db).BuscarOuCriar(usuario.ID)
+	segue, _ := repositorio.Segue(viewerID, usuario.ID)
+
+	if config.VisibilidadePerfil == modelos.VisibilidadePrivado && !segue {
+		respostas.JSON(w, http.StatusOK, usuario.ListarPerfilPrivadoReduzido())
+		return
+	}
+
+	publico := usuario.ListarPublico()
+	if !modelos.PermiteAcesso(config.StreakVisivelPara, false, segue) || !config.MostrarStreak {
+		publico.SequenciaAtual = 0
+	}
+
+	podeMsg := modelos.PermiteAcesso(config.MensagemDe, false, segue)
+	respostas.JSON(w, http.StatusOK, map[string]any{
+		"id":                 publico.ID,
+		"nome":               publico.Nome,
+		"nick":               publico.Nick,
+		"image":              publico.Image,
+		"rankConfiabilidade": publico.RankConfiabilidade,
+		"sequenciaAtual":     publico.SequenciaAtual,
+		"perfilPrivado":      false,
+		"podeMensagem":       podeMsg,
+	})
 }
 
 func BuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {

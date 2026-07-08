@@ -60,7 +60,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if usuarioSalvoNoBanco.Status == "inativo" {
-		respostas.Erro(w, http.StatusUnauthorized, errors.New("Usuário inativo ou não encontrado"))
+		podeReativar := repositorio.PodeReativar(usuarioSalvoNoBanco)
+		mensagem := "Usuário inativo ou não encontrado"
+		if podeReativar {
+			mensagem = "Conta desativada. Você pode reativá-la em até 30 dias."
+		}
+		respostas.JSON(w, http.StatusUnauthorized, map[string]any{
+			"erro":         mensagem,
+			"podeReativar": podeReativar,
+			"nick":         credenciais.Nick,
+		})
 		return
 	}
 

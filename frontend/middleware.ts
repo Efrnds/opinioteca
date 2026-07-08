@@ -1,7 +1,14 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-const prefixosProtegidos = ["/home", "/avaliacoes"];
+const prefixosProtegidos = [
+    "/home",
+    "/explorar",
+    "/descoberta",
+    "/configuracoes",
+    "/mensagens",
+    "/notificacoes",
+];
 const prefixoAdmin = "/admin";
 
 function ehRotaProtegida(pathname: string) {

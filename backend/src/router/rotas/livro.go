@@ -28,12 +28,12 @@ var rotasLivros = []Rota{
 		URI:                "/livros/{id}",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarLivroPorID,
-		RequerAutenticacao: true,
+		RequerAutenticacao: false,
 	},
 	{
 		URI:                "/livros/{livroId}/avaliacoes",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarAvaliacoesPorLivro,
-		RequerAutenticacao: true,
+		RequerAutenticacao: false,
 	},
 }

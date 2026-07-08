@@ -1,6 +1,4 @@
-import { auth } from "@/auth";
 import type { Metadata } from "next";
-import LayoutShell from "./components/LayoutShell";
 import Providers from "./providers";
 import "./globals.css";
 import { Figtree } from "next/font/google";
@@ -12,24 +10,21 @@ export const metadata: Metadata = {
     title: "Opinioteca",
     description: "A rede social para amantes de livros.",
     icons: {
-        icon: "/assets/images/Vector.svg",
+        icon: [{ url: "/assets/images/Vector.svg", type: "image/svg+xml" }],
+        shortcut: "/assets/images/Vector.svg",
+        apple: "/assets/images/Vector.svg",
     },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    const session = await auth();
-    const isLoggedIn = !!session;
-
     return (
         <html lang="pt-br" className={cn("font-sans", figtree.variable)}>
-            <body className={`antialiased ${isLoggedIn ? "h-screen w-screen" : ""}`}>
-                <Providers>
-                    {isLoggedIn ? <LayoutShell>{children}</LayoutShell> : children}
-                </Providers>
+            <body className="antialiased">
+                <Providers>{children}</Providers>
             </body>
         </html>
     );
