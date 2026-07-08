@@ -16,11 +16,13 @@ type EstanteCarouselProps = {
 
 const CARD_WIDTH = 140;
 const CARD_GAP = 16;
+const DRAG_THRESHOLD_PX = 10;
 
 export default function EstanteCarousel({ livros, onSelecionar, apenasAtivos = true }: EstanteCarouselProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [indiceAtivo, setIndiceAtivo] = useState(0);
     const x = useMotionValue(0);
+    const suprimirCliqueRef = useRef(false);
 
     const lista = apenasAtivos
         ? livros.filter((item) => item.status !== "lido" && item.porcentagem_atual < 100)
@@ -42,7 +44,23 @@ export default function EstanteCarousel({ livros, onSelecionar, apenasAtivos = t
         }
     }, [lista.length, indiceAtivo, snapTo]);
 
+    function marcarArraste(info: PanInfo) {
+        if (Math.abs(info.offset.x) > DRAG_THRESHOLD_PX || Math.abs(info.velocity.x) > 300) {
+            suprimirCliqueRef.current = true;
+        }
+    }
+
+    function handleDragStart() {
+        suprimirCliqueRef.current = false;
+    }
+
+    function handleDrag(_: unknown, info: PanInfo) {
+        marcarArraste(info);
+    }
+
     function handleDragEnd(_: unknown, info: PanInfo) {
+        marcarArraste(info);
+
         const offset = info.offset.x;
         const velocity = info.velocity.x;
         let next = indiceAtivo;
@@ -54,6 +72,14 @@ export default function EstanteCarousel({ livros, onSelecionar, apenasAtivos = t
         }
 
         snapTo(next);
+    }
+
+    function handleSelecionar(item: EstanteItem) {
+        if (suprimirCliqueRef.current) {
+            suprimirCliqueRef.current = false;
+            return;
+        }
+        onSelecionar(item);
     }
 
     if (lista.length === 0) {
@@ -79,13 +105,15 @@ export default function EstanteCarousel({ livros, onSelecionar, apenasAtivos = t
                         right: 0,
                     }}
                     dragElastic={0.12}
+                    onDragStart={handleDragStart}
+                    onDrag={handleDrag}
                     onDragEnd={handleDragEnd}
                 >
                     {lista.map((item) => (
                         <button
                             key={item.livro.id}
                             type="button"
-                            onClick={() => onSelecionar(item)}
+                            onClick={() => handleSelecionar(item)}
                             className="group flex w-[140px] shrink-0 flex-col gap-2 rounded-2xl bg-background p-2 text-left transition hover:shadow-md"
                         >
                             <div className="relative">

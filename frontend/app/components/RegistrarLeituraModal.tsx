@@ -27,7 +27,6 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const [estante, setEstante] = useState<EstanteItem[]>([]);
     const [carregandoEstante, setCarregandoEstante] = useState(false);
     const [livroSelecionado, setLivroSelecionado] = useState<EstanteItem | null>(null);
-    const [paginasLidas, setPaginasLidas] = useState("");
     const [porcentagem, setPorcentagem] = useState("");
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
@@ -61,7 +60,6 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             void carregarEstante();
         } else {
             setLivroSelecionado(null);
-            setPaginasLidas("");
             setPorcentagem("");
             setErro("");
             setConviteResenhaAberto(false);
@@ -75,34 +73,28 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         setErro("");
         const pctAtual = Math.round(item.porcentagem_atual);
         setPorcentagem(String(pctAtual));
-        setPaginasLidas("");
     }
 
     function voltarParaCarousel() {
         setLivroSelecionado(null);
-        setPaginasLidas("");
         setPorcentagem("");
         setErro("");
     }
 
-    function calcularPaginasSugeridas(novaPct: number) {
-        const total = livroSelecionado?.livro.paginas ?? 0;
-        const atual = livroSelecionado?.porcentagem_atual ?? 0;
-        if (total <= 0 || novaPct <= atual) return "";
-        const diff = novaPct - atual;
-        return String(Math.max(1, Math.round((diff / 100) * total)));
+    function calcularPaginasDoDelta(novaPct: number, pctAtual: number, totalPaginas: number): number | null {
+        if (novaPct <= pctAtual) return null;
+        const diff = novaPct - pctAtual;
+        if (totalPaginas <= 0) return 1;
+        return Math.max(1, Math.round((diff / 100) * totalPaginas));
     }
 
-    function handlePorcentagemChange(valor: string) {
-        setPorcentagem(valor);
-        const novaPct = Number(valor);
-        if (!Number.isNaN(novaPct) && novaPct > (livroSelecionado?.porcentagem_atual ?? 0)) {
-            const sugeridas = calcularPaginasSugeridas(novaPct);
-            if (sugeridas) {
-                setPaginasLidas(sugeridas);
-            }
-        }
-    }
+    const pctAtualLivro = livroSelecionado?.porcentagem_atual ?? 0;
+    const totalPaginasLivro = livroSelecionado?.livro.paginas ?? 0;
+    const novaPctInformada = porcentagem.trim() === "" ? NaN : Number(porcentagem);
+    const paginasCalculadas =
+        livroSelecionado && !Number.isNaN(novaPctInformada)
+            ? calcularPaginasDoDelta(novaPctInformada, pctAtualLivro, totalPaginasLivro)
+            : null;
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
@@ -113,19 +105,23 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             return;
         }
 
-        const paginas = Number(paginasLidas);
-        if (!paginasLidas.trim() || Number.isNaN(paginas) || paginas <= 0) {
-            setErro("Informe quantas páginas leu hoje (maior que zero).");
-            return;
-        }
-
-        const pct = porcentagem.trim() === "" ? 0 : Number(porcentagem);
+        const pct = porcentagem.trim() === "" ? NaN : Number(porcentagem);
         if (Number.isNaN(pct) || pct < 0 || pct > 100) {
             setErro("A porcentagem deve estar entre 0 e 100.");
             return;
         }
-        if (pct < livroSelecionado.porcentagem_atual) {
-            setErro(`A porcentagem não pode ser menor que ${Math.round(livroSelecionado.porcentagem_atual)}%.`);
+        if (pct <= livroSelecionado.porcentagem_atual) {
+            setErro(`Informe uma porcentagem maior que ${Math.round(livroSelecionado.porcentagem_atual)}%.`);
+            return;
+        }
+
+        const paginas = calcularPaginasDoDelta(
+            pct,
+            livroSelecionado.porcentagem_atual,
+            livroSelecionado.livro.paginas,
+        );
+        if (paginas === null || paginas <= 0) {
+            setErro("Não foi possível calcular as páginas lidas.");
             return;
         }
 
@@ -252,33 +248,26 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="flex flex-col gap-1">
-                                            <label className="font-gabarito-bold text-sm text-azul-900">
-                                                Páginas lidas hoje
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min={1}
-                                                value={paginasLidas}
-                                                onChange={(e) => setPaginasLidas(e.target.value)}
-                                                placeholder="Ex: 25"
-                                                className={inputRetangularClassName}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <label className="font-gabarito-bold text-sm text-azul-900">% do livro</label>
-                                            <input
-                                                type="number"
-                                                min={Math.round(livroSelecionado.porcentagem_atual)}
-                                                max={100}
-                                                value={porcentagem}
-                                                onChange={(e) => handlePorcentagemChange(e.target.value)}
-                                                placeholder="Ex: 40"
-                                                className={inputRetangularClassName}
-                                            />
-                                        </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="font-gabarito-bold text-sm text-azul-900">
+                                            Porcentagem lida do livro
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={Math.round(livroSelecionado.porcentagem_atual) + 1}
+                                            max={100}
+                                            value={porcentagem}
+                                            onChange={(e) => setPorcentagem(e.target.value)}
+                                            placeholder="Ex: 40"
+                                            className={inputRetangularClassName}
+                                            required
+                                        />
+                                        {paginasCalculadas !== null && (
+                                            <p className="font-gabarito-regular text-xs text-cinza-700">
+                                                ≈ {paginasCalculadas} {paginasCalculadas === 1 ? "página" : "páginas"} lidas
+                                                hoje
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             )}
