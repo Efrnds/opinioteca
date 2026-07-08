@@ -2,206 +2,114 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { BuscaLivrosResposta, LivroBusca } from "@/types/livro";
-import FormularioLivroCampos from "@/app/components/FormularioLivroCampos";
-import { useCategoriasLivro } from "@/lib/hooks/useCategorias";
-import {
-    dadosDeLivroBusca,
-    dadosLivroVazios,
-    type DadosLivroForm,
-    livroPrecisaCadastro,
-    registrarLivroUsuario,
-} from "@/lib/livro-cadastro";
-import { BookPlus, Loader2, Search, X } from "lucide-react";
+import type { EstanteItem } from "@/types/estante";
+import { dadosDeLivroBusca } from "@/lib/livro-cadastro";
+import ConviteResenhaModal from "@/app/components/ConviteResenhaModal";
+import EstanteCarousel from "@/app/components/EstanteCarousel";
+import NovaAvaliacaoModal from "@/app/components/NovaAvaliacaoModal";
+import { ArrowLeft, Loader2, X } from "lucide-react";
 import Image from "next/image";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 type RegistrarLeituraModalProps = {
     open: boolean;
     onClose: () => void;
 };
 
-const DEBOUNCE_MS = 500;
-const MIN_CARACTERES_BUSCA = 2;
-
-const inputClassName =
-    "w-full px-4 py-2 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
-
 const inputRetangularClassName =
     "w-full px-4 py-2 border-2 border-[#515151] rounded-2xl outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
-function chaveLivro(livro: LivroBusca) {
-    return `${livro.origem}-${livro.id ?? livro.google_volume_id}`;
-}
-
-function parseBuscaResposta(data: unknown): BuscaLivrosResposta {
-    if (Array.isArray(data)) {
-        return { resultados: data };
-    }
-    if (data && typeof data === "object" && "resultados" in data) {
-        const resposta = data as BuscaLivrosResposta;
-        return {
-            resultados: Array.isArray(resposta.resultados) ? resposta.resultados : [],
-            aviso: resposta.aviso,
-        };
-    }
-    return { resultados: [] };
-}
-
 export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeituraModalProps) {
-    const [busca, setBusca] = useState("");
-    const [resultados, setResultados] = useState<LivroBusca[]>([]);
-    const [buscando, setBuscando] = useState(false);
-    const [modoManual, setModoManual] = useState(false);
-    const [dadosLivro, setDadosLivro] = useState<DadosLivroForm | null>(null);
-    const { categorias, carregando: carregandoCategorias } = useCategoriasLivro(open);
-    const [avisoBusca, setAvisoBusca] = useState("");
+    const { data: session } = useSession();
+    const nick = session?.user?.nick ?? "";
+
+    const [estante, setEstante] = useState<EstanteItem[]>([]);
+    const [carregandoEstante, setCarregandoEstante] = useState(false);
+    const [livroSelecionado, setLivroSelecionado] = useState<EstanteItem | null>(null);
     const [paginasLidas, setPaginasLidas] = useState("");
     const [porcentagem, setPorcentagem] = useState("");
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
-    const buscaRef = useRef(busca);
-    buscaRef.current = busca;
+    const [conviteResenhaAberto, setConviteResenhaAberto] = useState(false);
+    const [livroConcluido, setLivroConcluido] = useState<EstanteItem["livro"] | null>(null);
+    const [avaliacaoAberta, setAvaliacaoAberta] = useState(false);
+
+    const carregarEstante = useCallback(async () => {
+        if (!nick) {
+            setEstante([]);
+            return;
+        }
+        setCarregandoEstante(true);
+        try {
+            const res = await fetch(`/api/usuarios/${encodeURIComponent(nick)}/estante`);
+            if (!res.ok) {
+                setEstante([]);
+                return;
+            }
+            const data = (await res.json()) as { livros?: EstanteItem[] };
+            setEstante(Array.isArray(data.livros) ? data.livros : []);
+        } catch {
+            setEstante([]);
+        } finally {
+            setCarregandoEstante(false);
+        }
+    }, [nick]);
 
     useEffect(() => {
-        if (!open) {
-            setBusca("");
-            setResultados([]);
-            setModoManual(false);
-            setDadosLivro(null);
-            setAvisoBusca("");
+        if (open) {
+            void carregarEstante();
+        } else {
+            setLivroSelecionado(null);
             setPaginasLidas("");
             setPorcentagem("");
             setErro("");
+            setConviteResenhaAberto(false);
+            setLivroConcluido(null);
+            setAvaliacaoAberta(false);
         }
-    }, [open]);
+    }, [open, carregarEstante]);
 
-    useEffect(() => {
-        if (!open || modoManual || dadosLivro) {
-            return;
-        }
+    function selecionarLivro(item: EstanteItem) {
+        setLivroSelecionado(item);
+        setErro("");
+        const pctAtual = Math.round(item.porcentagem_atual);
+        setPorcentagem(String(pctAtual));
+        setPaginasLidas("");
+    }
 
-        const termo = busca.trim();
+    function voltarParaCarousel() {
+        setLivroSelecionado(null);
+        setPaginasLidas("");
+        setPorcentagem("");
+        setErro("");
+    }
 
-        if (termo.length < MIN_CARACTERES_BUSCA) {
-            setResultados([]);
-            setAvisoBusca("");
-            setBuscando(false);
-            return;
-        }
+    function calcularPaginasSugeridas(novaPct: number) {
+        const total = livroSelecionado?.livro.paginas ?? 0;
+        const atual = livroSelecionado?.porcentagem_atual ?? 0;
+        if (total <= 0 || novaPct <= atual) return "";
+        const diff = novaPct - atual;
+        return String(Math.max(1, Math.round((diff / 100) * total)));
+    }
 
-        const controller = new AbortController();
-
-        const timer = setTimeout(async () => {
-            setBuscando(true);
-            setAvisoBusca("");
-
-            try {
-                const res = await fetch(`/api/livros/buscar?q=${encodeURIComponent(termo)}`, {
-                    signal: controller.signal,
-                });
-                const data = await res.json();
-
-                if (buscaRef.current.trim() !== termo) {
-                    return;
-                }
-
-                if (!res.ok) {
-                    setResultados([]);
-                    setAvisoBusca(
-                        data.erro || "Não foi possível buscar agora. Tente de novo ou cadastre o livro manualmente.",
-                    );
-                    return;
-                }
-
-                const { resultados: itens, aviso } = parseBuscaResposta(data);
-                setResultados(itens);
-
-                if (itens.length === 0 && aviso) {
-                    setAvisoBusca(aviso);
-                } else if (itens.length === 0) {
-                    setAvisoBusca(`Nenhum livro encontrado para "${termo}".`);
-                } else {
-                    setAvisoBusca("");
-                }
-            } catch (err) {
-                if (err instanceof DOMException && err.name === "AbortError") {
-                    return;
-                }
-                if (buscaRef.current.trim() !== termo) {
-                    return;
-                }
-                setResultados([]);
-                setAvisoBusca("Não foi possível buscar agora. Tente de novo ou cadastre o livro manualmente.");
-            } finally {
-                if (!controller.signal.aborted && buscaRef.current.trim() === termo) {
-                    setBuscando(false);
-                }
+    function handlePorcentagemChange(valor: string) {
+        setPorcentagem(valor);
+        const novaPct = Number(valor);
+        if (!Number.isNaN(novaPct) && novaPct > (livroSelecionado?.porcentagem_atual ?? 0)) {
+            const sugeridas = calcularPaginasSugeridas(novaPct);
+            if (sugeridas) {
+                setPaginasLidas(sugeridas);
             }
-        }, DEBOUNCE_MS);
-
-        return () => {
-            clearTimeout(timer);
-            controller.abort();
-        };
-    }, [busca, open, modoManual, dadosLivro]);
-
-    function selecionarLivro(livro: LivroBusca) {
-        setDadosLivro(dadosDeLivroBusca(livro));
-        setModoManual(false);
-        setBusca("");
-        setResultados([]);
-        setAvisoBusca("");
-        setErro("");
-    }
-
-    function iniciarCadastroManual() {
-        setModoManual(true);
-        setDadosLivro(dadosLivroVazios(busca.trim()));
-        setResultados([]);
-        setErro("");
-    }
-
-    function limparLivro() {
-        setDadosLivro(null);
-        setModoManual(false);
-        setBusca("");
-        setResultados([]);
-        setErro("");
-    }
-
-    function atualizarDado(campo: keyof DadosLivroForm, valor: string | number[]) {
-        setDadosLivro((atual) => (atual ? { ...atual, [campo]: valor } : atual));
-    }
-
-    function validarDadosLivro(dados: DadosLivroForm) {
-        if (!dados.titulo.trim() || !dados.autor.trim()) {
-            return "Título e autor são obrigatórios.";
         }
-        if (livroPrecisaCadastro(dados) && dados.categorias_ids.length === 0) {
-            return "Selecione ao menos uma categoria para o livro.";
-        }
-        return "";
-    }
-
-    async function registrarLivro(dados: DadosLivroForm): Promise<number> {
-        const validacao = validarDadosLivro(dados);
-        if (validacao) {
-            throw new Error(validacao);
-        }
-        return registrarLivroUsuario(dados);
     }
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
         setErro("");
 
-        if (!dadosLivro) {
-            setErro("Selecione ou cadastre um livro.");
-            return;
-        }
-        if (!dadosLivro.titulo.trim() || !dadosLivro.autor.trim()) {
-            setErro("Título e autor são obrigatórios.");
+        if (!livroSelecionado) {
+            setErro("Selecione um livro da sua estante.");
             return;
         }
 
@@ -216,16 +124,18 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             setErro("A porcentagem deve estar entre 0 e 100.");
             return;
         }
+        if (pct < livroSelecionado.porcentagem_atual) {
+            setErro(`A porcentagem não pode ser menor que ${Math.round(livroSelecionado.porcentagem_atual)}%.`);
+            return;
+        }
 
         setEnviando(true);
         try {
-            const livroId = await registrarLivro(dadosLivro);
-
             const res = await fetch("/api/diario", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    livro_id: livroId,
+                    livro_id: livroSelecionado.livro.id,
                     paginas_lidas: paginas,
                     porcentagem_leitura: pct,
                 }),
@@ -238,7 +148,15 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             }
 
             window.dispatchEvent(new Event("diario:refresh"));
-            onClose();
+
+            if (pct >= 100 && !livroSelecionado.tem_resenha) {
+                setLivroConcluido(livroSelecionado.livro);
+                setConviteResenhaAberto(true);
+                voltarParaCarousel();
+                void carregarEstante();
+            } else {
+                onClose();
+            }
         } catch (err) {
             setErro(err instanceof Error ? err.message : "Não foi possível registrar a leitura.");
         } finally {
@@ -246,168 +164,173 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         }
     }
 
-    const exibirFormularioLivro = !!dadosLivro;
+    const livroInicialAvaliacao = livroConcluido
+        ? dadosDeLivroBusca({
+              id: livroConcluido.id,
+              titulo: livroConcluido.titulo,
+              autor: livroConcluido.autor,
+              paginas: livroConcluido.paginas,
+              capa_url: livroConcluido.capa_url,
+          })
+        : null;
 
     return (
-        <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
-            <DialogContent className="flex max-h-[92vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:max-h-[90vh] sm:max-w-lg sm:rounded-4xl">
-                <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-                    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
-                        <DialogHeader>
-                            <DialogTitle className="font-gabarito-bold text-2xl text-azul-900">
-                                Registrar leitura
-                            </DialogTitle>
-                        </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+                <DialogContent className="flex max-h-[92vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:max-h-[90vh] sm:max-w-lg sm:rounded-4xl">
+                    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+                        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
+                            <DialogHeader>
+                                <DialogTitle className="font-gabarito-bold text-2xl text-azul-900">
+                                    Registrar leitura
+                                </DialogTitle>
+                            </DialogHeader>
 
-                        {!exibirFormularioLivro ? (
-                            <div className="relative flex flex-col gap-3">
-                                <div className="relative">
-                                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cinza-700" />
-                                    <input
-                                        type="text"
-                                        value={busca}
-                                        onChange={(e) => {
-                                            setBusca(e.target.value);
-                                            if (e.target.value.trim().length >= MIN_CARACTERES_BUSCA) {
-                                                setBuscando(true);
-                                            }
-                                        }}
-                                        placeholder="Buscar livro por título ou autor..."
-                                        className={`${inputClassName} pl-10`}
-                                        autoFocus
-                                    />
-                                    {buscando && (
-                                        <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-azul-600" />
+                            {!livroSelecionado ? (
+                                <div className="flex flex-col gap-4">
+                                    {carregandoEstante ? (
+                                        <div className="flex items-center justify-center py-12">
+                                            <Loader2 className="h-8 w-8 animate-spin text-azul-600" />
+                                        </div>
+                                    ) : (
+                                        <EstanteCarousel livros={estante} onSelecionar={selecionarLivro} />
                                     )}
                                 </div>
+                            ) : (
+                                <div className="flex flex-col gap-4 rounded-2xl bg-background p-4">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={voltarParaCarousel}
+                                            className="flex items-center gap-1 font-gabarito-bold text-sm text-azul-600 hover:text-azul-800"
+                                        >
+                                            <ArrowLeft className="h-4 w-4" />
+                                            Voltar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={voltarParaCarousel}
+                                            className="rounded-full p-1 hover:bg-white"
+                                            aria-label="Trocar livro"
+                                        >
+                                            <X className="h-5 w-5 text-cinza-700" />
+                                        </button>
+                                    </div>
 
-                                {avisoBusca && !buscando && (
-                                    <p className="rounded-2xl bg-amber-50 px-4 py-3 font-gabarito-regular text-sm text-amber-900">
-                                        {avisoBusca}
-                                    </p>
-                                )}
+                                    <div className="flex gap-3">
+                                        {livroSelecionado.livro.capa_url ? (
+                                            <Image
+                                                src={livroSelecionado.livro.capa_url}
+                                                alt={livroSelecionado.livro.titulo}
+                                                width={64}
+                                                height={96}
+                                                className="h-24 w-16 shrink-0 rounded-lg object-cover"
+                                                unoptimized
+                                            />
+                                        ) : (
+                                            <div className="flex h-24 w-16 shrink-0 items-center justify-center rounded-lg bg-azul-200 text-2xl">
+                                                📖
+                                            </div>
+                                        )}
+                                        <div className="min-w-0">
+                                            <p className="line-clamp-2 font-gabarito-bold text-base text-azul-900">
+                                                {livroSelecionado.livro.titulo}
+                                            </p>
+                                            <p className="font-gabarito-regular text-xs text-cinza-700">
+                                                {livroSelecionado.livro.autor}
+                                            </p>
+                                            {livroSelecionado.livro.paginas > 0 && (
+                                                <p className="mt-1 font-gabarito-regular text-xs text-cinza-700">
+                                                    {livroSelecionado.livro.paginas} páginas no total
+                                                </p>
+                                            )}
+                                            {livroSelecionado.porcentagem_atual > 0 && (
+                                                <p className="mt-0.5 font-gabarito-bold text-xs text-azul-600">
+                                                    Progresso atual: {Math.round(livroSelecionado.porcentagem_atual)}%
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                {resultados.length > 0 && (
-                                    <ul className="max-h-64 overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-lg">
-                                        {resultados.map((livro) => (
-                                            <li key={chaveLivro(livro)}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => selecionarLivro(livro)}
-                                                    className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-background"
-                                                >
-                                                    {livro.capa_url ? (
-                                                        <Image
-                                                            src={livro.capa_url}
-                                                            alt={livro.titulo}
-                                                            width={32}
-                                                            height={48}
-                                                            className="h-12 w-8 shrink-0 rounded object-cover"
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className="flex h-12 w-8 shrink-0 items-center justify-center rounded bg-azul-200 text-sm">
-                                                            📖
-                                                        </div>
-                                                    )}
-                                                    <div className="min-w-0">
-                                                        <p className="truncate font-gabarito-bold text-sm text-azul-900">{livro.titulo}</p>
-                                                        <p className="truncate font-gabarito-regular text-xs text-cinza-700">
-                                                            {livro.autor || "Autor não informado"}
-                                                        </p>
-                                                    </div>
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="font-gabarito-bold text-sm text-azul-900">
+                                                Páginas lidas hoje
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                value={paginasLidas}
+                                                onChange={(e) => setPaginasLidas(e.target.value)}
+                                                placeholder="Ex: 25"
+                                                className={inputRetangularClassName}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="font-gabarito-bold text-sm text-azul-900">% do livro</label>
+                                            <input
+                                                type="number"
+                                                min={Math.round(livroSelecionado.porcentagem_atual)}
+                                                max={100}
+                                                value={porcentagem}
+                                                onChange={(e) => handlePorcentagemChange(e.target.value)}
+                                                placeholder="Ex: 40"
+                                                className={inputRetangularClassName}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
-                                <button
-                                    type="button"
-                                    onClick={iniciarCadastroManual}
-                                    className="flex items-center justify-center gap-2 rounded-full border-2 border-dashed border-azul-600 py-3 font-gabarito-bold text-azul-600 transition hover:bg-azul-50"
+                            {erro && <p className="font-gabarito-regular text-sm text-red-600">{erro}</p>}
+                        </div>
+
+                        {livroSelecionado && (
+                            <div className="shrink-0 border-t border-cinza-200 bg-background p-4 sm:p-6">
+                                <Button
+                                    type="submit"
+                                    disabled={enviando}
+                                    className="w-full rounded-full bg-azul-600 py-6 font-gabarito-bold text-lg hover:bg-azul-700"
                                 >
-                                    <BookPlus className="h-5 w-5" />
-                                    Cadastrar livro manualmente
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-4 rounded-2xl bg-background p-4">
-                                <div className="flex items-center justify-between gap-2">
-                                    <p className="font-gabarito-bold text-base text-azul-900">
-                                        {modoManual ? "Cadastro do livro" : dadosLivro.titulo}
-                                    </p>
-                                    <button
-                                        type="button"
-                                        onClick={limparLivro}
-                                        className="shrink-0 rounded-full p-1 hover:bg-white"
-                                        aria-label="Trocar livro"
-                                    >
-                                        <X className="h-5 w-5 text-cinza-700" />
-                                    </button>
-                                </div>
-
-                                <FormularioLivroCampos
-                                    dados={dadosLivro}
-                                    modoManual={modoManual}
-                                    categorias={categorias}
-                                    carregandoCategorias={carregandoCategorias}
-                                    onChange={atualizarDado}
-                                    exibirCamposCompletos={modoManual}
-                                />
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="flex flex-col gap-1">
-                                        <label className="font-gabarito-bold text-sm text-azul-900">Páginas lidas</label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            value={paginasLidas}
-                                            onChange={(e) => setPaginasLidas(e.target.value)}
-                                            placeholder="Ex: 25"
-                                            className={inputRetangularClassName}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <label className="font-gabarito-bold text-sm text-azul-900">% do livro</label>
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            max={100}
-                                            value={porcentagem}
-                                            onChange={(e) => setPorcentagem(e.target.value)}
-                                            placeholder="Ex: 40"
-                                            className={inputRetangularClassName}
-                                        />
-                                    </div>
-                                </div>
+                                    {enviando ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                            Registrando...
+                                        </>
+                                    ) : (
+                                        "Registrar leitura de hoje"
+                                    )}
+                                </Button>
                             </div>
                         )}
+                    </form>
+                </DialogContent>
+            </Dialog>
 
-                        {erro && <p className="font-gabarito-regular text-sm text-red-600">{erro}</p>}
-                    </div>
+            <ConviteResenhaModal
+                open={conviteResenhaAberto}
+                livro={livroConcluido}
+                onAceitar={() => {
+                    setConviteResenhaAberto(false);
+                    setAvaliacaoAberta(true);
+                }}
+                onDispensar={() => {
+                    setConviteResenhaAberto(false);
+                    setLivroConcluido(null);
+                    onClose();
+                }}
+            />
 
-                    {exibirFormularioLivro && (
-                        <div className="shrink-0 border-t border-cinza-200 bg-background p-4 sm:p-6">
-                            <Button
-                                type="submit"
-                                disabled={enviando}
-                                className="w-full rounded-full bg-azul-600 py-6 font-gabarito-bold text-lg hover:bg-azul-700"
-                            >
-                                {enviando ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                        Registrando...
-                                    </>
-                                ) : (
-                                    "Registrar leitura de hoje"
-                                )}
-                            </Button>
-                        </div>
-                    )}
-                </form>
-            </DialogContent>
-        </Dialog>
+            <NovaAvaliacaoModal
+                open={avaliacaoAberta}
+                livroInicial={livroInicialAvaliacao}
+                onClose={() => {
+                    setAvaliacaoAberta(false);
+                    setLivroConcluido(null);
+                    onClose();
+                }}
+            />
+        </>
     );
 }

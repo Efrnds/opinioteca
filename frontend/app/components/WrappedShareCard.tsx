@@ -1,0 +1,490 @@
+"use client";
+
+import type { CSSProperties } from "react";
+import type { OpinioWrapped } from "@/types/wrapped";
+import { forwardRef } from "react";
+
+import {
+    OPINOTECA_AZUL_200,
+    OPINOTECA_AZUL_500,
+    OPINOTECA_AZUL_600,
+    OPINOTECA_AZUL_900,
+    OPINOTECA_CINZA_700,
+    OPINOTECA_OFF_WHITE,
+    OPINOTECA_WHITE,
+    WRAPPED_SHARE_GRADIENT_CSS,
+    accentCardStyle,
+    anoDoPeriodo,
+    chipStyle,
+    formatarMesCurto,
+    formatarPeriodoShare,
+    heroRingInnerStyle,
+    heroRingStyle,
+    sparklesBadgeStyle,
+} from "@/lib/wrapped-visuals";
+import { WRAPPED_CARD_HEIGHT, WRAPPED_CARD_WIDTH } from "@/lib/wrapped-share";
+
+type WrappedShareCardProps = {
+    dados: OpinioWrapped;
+    nick: string;
+};
+
+function IconSparkles({ size = 88 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+                d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+                stroke={OPINOTECA_AZUL_600}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
+function IconBookOpen({ size = 112 }: { size?: number }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+                d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"
+                stroke={OPINOTECA_AZUL_600}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
+function ShareDecorations({ ghost }: { ghost: string }) {
+    const layer: CSSProperties = { pointerEvents: "none", position: "absolute", inset: 0, overflow: "hidden" };
+
+    return (
+        <div style={layer}>
+            {/* brand blue orbs — solid, no blur (html-to-image safe) */}
+            <div
+                style={{
+                    position: "absolute",
+                    left: -72,
+                    top: -96,
+                    width: 280,
+                    height: 280,
+                    borderRadius: "50%",
+                    background: "rgba(0, 72, 255, 0.12)",
+                }}
+            />
+            <div
+                style={{
+                    position: "absolute",
+                    right: -96,
+                    top: 120,
+                    width: 320,
+                    height: 320,
+                    borderRadius: "50%",
+                    background: "rgba(153, 182, 255, 0.35)",
+                }}
+            />
+            <div
+                style={{
+                    position: "absolute",
+                    bottom: 160,
+                    left: -48,
+                    width: 224,
+                    height: 224,
+                    borderRadius: "50%",
+                    background: "rgba(60, 115, 255, 0.14)",
+                }}
+            />
+            <div
+                style={{
+                    position: "absolute",
+                    right: -32,
+                    bottom: -80,
+                    width: 304,
+                    height: 304,
+                    borderRadius: "50%",
+                    background: "rgba(0, 72, 255, 0.08)",
+                }}
+            />
+
+            {/* geometric accents */}
+            <div
+                style={{
+                    position: "absolute",
+                    right: 40,
+                    top: 240,
+                    width: 56,
+                    height: 56,
+                    borderRadius: 16,
+                    border: `1px solid ${OPINOTECA_AZUL_200}`,
+                    background: OPINOTECA_WHITE,
+                    transform: "rotate(12deg)",
+                    boxShadow: "0 6px 16px rgba(27, 36, 50, 0.06)",
+                }}
+            />
+            <div
+                style={{
+                    position: "absolute",
+                    left: 28,
+                    top: 368,
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    border: `1px solid ${OPINOTECA_AZUL_200}`,
+                    background: OPINOTECA_WHITE,
+                }}
+            />
+            <div
+                style={{
+                    position: "absolute",
+                    right: 48,
+                    bottom: 336,
+                    width: 24,
+                    height: 24,
+                    border: `1px solid ${OPINOTECA_AZUL_500}`,
+                    background: "rgba(0, 72, 255, 0.10)",
+                    transform: "rotate(45deg)",
+                }}
+            />
+
+            {/* dot grid */}
+            <div
+                style={{
+                    position: "absolute",
+                    inset: 0,
+                    opacity: 0.18,
+                    backgroundImage: `radial-gradient(circle, ${OPINOTECA_AZUL_200} 1px, transparent 1px)`,
+                    backgroundSize: "28px 28px",
+                }}
+            />
+
+            {/* ghost typography */}
+            <p
+                style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    transform: "translate(-50%, -42%)",
+                    margin: 0,
+                    fontFamily: "Gabarito-Bold, sans-serif",
+                    fontSize: 380,
+                    lineHeight: 1,
+                    letterSpacing: "-0.04em",
+                    color: "rgba(0, 72, 255, 0.06)",
+                    userSelect: "none",
+                }}
+            >
+                {ghost}
+            </p>
+
+            {/* static book stack */}
+            <div
+                style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "46%",
+                    transform: "translateX(-50%)",
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: 4,
+                    opacity: 0.45,
+                }}
+            >
+                {[0, 1, 2].map((i) => (
+                    <div
+                        key={i}
+                        style={{
+                            borderRadius: 8,
+                            border: `1px solid ${OPINOTECA_AZUL_200}`,
+                            background: `linear-gradient(to bottom, ${OPINOTECA_WHITE}, ${OPINOTECA_OFF_WHITE})`,
+                            width: 28 + i * 6,
+                            height: 52 + i * 14,
+                        }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function InfoChip({ valor, rotulo }: { valor: string; rotulo: string }) {
+    return (
+        <div style={chipStyle()}>
+            <p
+                style={{
+                    margin: 0,
+                    fontFamily: "Gabarito-Bold, sans-serif",
+                    fontSize: 44,
+                    lineHeight: 1,
+                    color: OPINOTECA_AZUL_900,
+                    textAlign: "center",
+                    wordBreak: "break-word",
+                }}
+            >
+                {valor}
+            </p>
+            <p
+                style={{
+                    margin: "8px 0 0",
+                    fontSize: 22,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.22em",
+                    color: OPINOTECA_CINZA_700,
+                    textAlign: "center",
+                }}
+            >
+                {rotulo}
+            </p>
+        </div>
+    );
+}
+
+function BottomInfoStrip({ items }: { items: { valor: string; rotulo: string }[] }) {
+    return (
+        <div style={{ display: "flex", width: "100%", gap: 16 }}>
+            {items.map((item) => (
+                <InfoChip key={item.rotulo} valor={item.valor} rotulo={item.rotulo} />
+            ))}
+        </div>
+    );
+}
+
+const WrappedShareCard = forwardRef<HTMLDivElement, WrappedShareCardProps>(function WrappedShareCard({ dados, nick }, ref) {
+    const paginas = (dados.paginas_lidas ?? 0).toLocaleString("pt-BR");
+    const livros = dados.livros_finalizados ?? 0;
+    const sequencia = dados.maior_sequencia ?? 0;
+    const diasAtivos = dados.dias_com_leitura ?? 0;
+    const generoTop = dados.genero_favorito ?? dados.generos_favoritos?.[0]?.nome ?? "Variado";
+    const destaque = dados.livro_destaque_detalhe?.titulo ?? dados.livro_destaque ?? "—";
+    const mesTop = formatarMesCurto(dados.mes_mais_ativo);
+    const paginasMes = (dados.paginas_mes_ativo ?? 0).toLocaleString("pt-BR");
+    const anoGhost = anoDoPeriodo(dados.periodo_fim);
+    const periodo = formatarPeriodoShare(dados.periodo_inicio, dados.periodo_fim);
+
+    return (
+        <div
+            ref={ref}
+            aria-hidden
+            style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: WRAPPED_CARD_WIDTH,
+                height: WRAPPED_CARD_HEIGHT,
+                zIndex: -1,
+                opacity: 0.01,
+                pointerEvents: "none",
+                overflow: "hidden",
+            }}
+        >
+            <div
+                style={{
+                    position: "relative",
+                    display: "flex",
+                    flexDirection: "column",
+                    width: WRAPPED_CARD_WIDTH,
+                    height: WRAPPED_CARD_HEIGHT,
+                    padding: "72px 56px 56px",
+                    boxSizing: "border-box",
+                    color: OPINOTECA_AZUL_900,
+                    background: WRAPPED_SHARE_GRADIENT_CSS,
+                    fontFamily: "Gabarito-Regular, sans-serif",
+                    overflow: "hidden",
+                }}
+            >
+                <ShareDecorations ghost={anoGhost} />
+
+                {/* inset frame */}
+                <div
+                    style={{
+                        pointerEvents: "none",
+                        position: "absolute",
+                        inset: 24,
+                        borderRadius: 64,
+                        border: `1px solid ${OPINOTECA_AZUL_200}`,
+                    }}
+                />
+
+                {/* top bar */}
+                <div style={{ position: "relative", zIndex: 10 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24 }}>
+                        <p
+                            style={{
+                                margin: 0,
+                                fontSize: 24,
+                                fontWeight: 500,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.28em",
+                                color: OPINOTECA_CINZA_700,
+                            }}
+                        >
+                            {periodo}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 26, color: OPINOTECA_AZUL_500 }}>OpinioWrapped</p>
+                    </div>
+                </div>
+
+                {/* hero center */}
+                <div
+                    style={{
+                        position: "relative",
+                        zIndex: 10,
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        textAlign: "center",
+                        padding: "32px 8px",
+                        gap: 48,
+                    }}
+                >
+                    <div style={sparklesBadgeStyle()}>
+                        <IconSparkles size={88} />
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+                        <h2
+                            style={{
+                                margin: 0,
+                                maxWidth: "92%",
+                                fontFamily: "Gabarito-Bold, sans-serif",
+                                fontSize: 148,
+                                lineHeight: 0.92,
+                                letterSpacing: "-0.02em",
+                                color: OPINOTECA_AZUL_600,
+                            }}
+                        >
+                            {paginas}
+                        </h2>
+                        <p
+                            style={{
+                                margin: 0,
+                                maxWidth: "88%",
+                                fontSize: 34,
+                                lineHeight: 1.45,
+                                color: OPINOTECA_AZUL_900,
+                            }}
+                        >
+                            páginas lidas nos últimos 12 meses.
+                        </p>
+                    </div>
+
+                    <div style={heroRingStyle(288)}>
+                        <div style={heroRingInnerStyle(288)} />
+                        <IconBookOpen size={112} />
+                    </div>
+
+                    <BottomInfoStrip
+                        items={[
+                            { valor: String(livros), rotulo: `livro${livros === 1 ? "" : "s"}` },
+                            { valor: String(sequencia), rotulo: "dias seguidos" },
+                            { valor: String(diasAtivos), rotulo: "dias ativos" },
+                        ]}
+                    />
+                </div>
+
+                {/* lower summary */}
+                <div style={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", gap: 20 }}>
+                    <BottomInfoStrip
+                        items={[
+                            { valor: generoTop, rotulo: "gênero favorito" },
+                            { valor: mesTop, rotulo: "melhor mês" },
+                        ]}
+                    />
+
+                    <div style={accentCardStyle()}>
+                        <p
+                            style={{
+                                margin: 0,
+                                fontSize: 22,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.24em",
+                                color: OPINOTECA_CINZA_700,
+                            }}
+                        >
+                            páginas no pico
+                        </p>
+                        <p
+                            style={{
+                                margin: "12px 0 0",
+                                fontFamily: "Gabarito-Bold, sans-serif",
+                                fontSize: 80,
+                                lineHeight: 1,
+                                color: OPINOTECA_AZUL_600,
+                            }}
+                        >
+                            {paginasMes}
+                        </p>
+                    </div>
+
+                    <div style={{ ...accentCardStyle(), textAlign: "left" as const }}>
+                        <p
+                            style={{
+                                margin: 0,
+                                fontSize: 22,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.24em",
+                                color: OPINOTECA_CINZA_700,
+                            }}
+                        >
+                            livro destaque
+                        </p>
+                        <p
+                            style={{
+                                margin: "16px 0 0",
+                                fontFamily: "Gabarito-Bold, sans-serif",
+                                fontSize: 48,
+                                lineHeight: 1.1,
+                                color: OPINOTECA_AZUL_900,
+                            }}
+                        >
+                            {destaque}
+                        </p>
+                    </div>
+
+                    {/* footer */}
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 24,
+                            paddingTop: 16,
+                            borderTop: `1px solid ${OPINOTECA_AZUL_200}`,
+                        }}
+                    >
+                        <div>
+                            <p
+                                style={{
+                                    margin: 0,
+                                    fontFamily: "Gabarito-Bold, sans-serif",
+                                    fontSize: 36,
+                                    color: OPINOTECA_AZUL_900,
+                                }}
+                            >
+                                @{nick}
+                            </p>
+                            <p style={{ margin: "6px 0 0", fontSize: 26, color: OPINOTECA_CINZA_700 }}>Opinoteca</p>
+                        </div>
+                        <div
+                            style={{
+                                borderRadius: 999,
+                                padding: "14px 28px",
+                                background: OPINOTECA_AZUL_600,
+                                fontFamily: "Gabarito-Bold, sans-serif",
+                                fontSize: 26,
+                                color: OPINOTECA_WHITE,
+                            }}
+                        >
+                            12 meses
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
+
+export default WrappedShareCard;

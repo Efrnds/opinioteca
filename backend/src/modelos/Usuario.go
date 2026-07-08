@@ -19,6 +19,8 @@ type Usuario struct {
 	CriadoEm           time.Time  `json:"criadoEm,omitempty"`
 	RankConfiabilidade int        `json:"rankConfiabilidade"`
 	AssinaturaID       uint64     `json:"assinaturaId"`
+	AssinaturaExpiraEm *time.Time `json:"assinaturaExpiraEm,omitempty"`
+	Plano              PlanoStatus `json:"plano,omitempty"`
 	SequenciaAtual     int        `json:"sequenciaAtual"`
 	MaiorSequencia     int        `json:"maiorSequencia"`
 	ModoZen            bool       `json:"modoZen"`
@@ -109,11 +111,15 @@ func (usuario *Usuario) ListarPublico() Usuario {
 			ContaApagada: true,
 		}
 	}
+	plano := StatusPlano(*usuario)
 	return Usuario{
 		ID:                 usuario.ID,
 		Nome:               usuario.Nome,
 		Nick:               usuario.Nick,
 		Image:              usuario.Image,
+		AssinaturaID:       usuario.AssinaturaID,
+		AssinaturaExpiraEm: PtrTempoJSON(usuario.AssinaturaExpiraEm),
+		Plano:              plano,
 		RankConfiabilidade: usuario.RankConfiabilidade,
 		SequenciaAtual:     usuario.SequenciaAtual,
 		PerfilPrivado:      usuario.PerfilPrivado,
@@ -131,6 +137,7 @@ func (usuario *Usuario) ListarPerfilPrivadoReduzido() Usuario {
 }
 
 func (usuario *Usuario) ListarPrivado() Usuario {
+	plano := StatusPlano(*usuario)
 	return Usuario{
 		ID:                 usuario.ID,
 		Nome:               usuario.Nome,
@@ -139,6 +146,8 @@ func (usuario *Usuario) ListarPrivado() Usuario {
 		Image:              usuario.Image,
 		Status:             usuario.Status,
 		AssinaturaID:       usuario.AssinaturaID,
+		AssinaturaExpiraEm: PtrTempoJSON(usuario.AssinaturaExpiraEm),
+		Plano:              plano,
 		ModoZen:            usuario.ModoZen,
 		RankConfiabilidade: usuario.RankConfiabilidade,
 		SequenciaAtual:     usuario.SequenciaAtual,
@@ -156,8 +165,10 @@ type UsuarioAdmin struct {
 	Image              string    `json:"image,omitempty"`
 	CriadoEm           time.Time `json:"criadoEm"`
 	RankConfiabilidade int       `json:"rankConfiabilidade"`
-	AssinaturaID       uint64    `json:"assinaturaId"`
-	SequenciaAtual     int       `json:"sequenciaAtual"`
+	AssinaturaID       uint64     `json:"assinaturaId"`
+	AssinaturaExpiraEm *time.Time `json:"assinaturaExpiraEm,omitempty"`
+	Plano              PlanoStatus `json:"plano"`
+	SequenciaAtual     int        `json:"sequenciaAtual"`
 	MaiorSequencia     int       `json:"maiorSequencia"`
 	ModoZen            bool      `json:"modoZen"`
 	Status             string    `json:"status"`
@@ -165,6 +176,7 @@ type UsuarioAdmin struct {
 }
 
 func (usuario *Usuario) ListarAdmin() UsuarioAdmin {
+	plano := StatusPlano(*usuario)
 	return UsuarioAdmin{
 		ID:                 usuario.ID,
 		Nome:               usuario.Nome,
@@ -174,6 +186,8 @@ func (usuario *Usuario) ListarAdmin() UsuarioAdmin {
 		CriadoEm:           usuario.CriadoEm,
 		RankConfiabilidade: usuario.RankConfiabilidade,
 		AssinaturaID:       usuario.AssinaturaID,
+		AssinaturaExpiraEm: PtrTempoJSON(usuario.AssinaturaExpiraEm),
+		Plano:              plano,
 		SequenciaAtual:     usuario.SequenciaAtual,
 		MaiorSequencia:     usuario.MaiorSequencia,
 		ModoZen:            usuario.ModoZen,

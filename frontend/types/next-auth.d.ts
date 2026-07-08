@@ -11,6 +11,7 @@ declare module "next-auth" {
             email?: string | null;
             image?: string | null;
             nick?: string;
+            assinaturaId?: number;
         };
     }
 
@@ -20,6 +21,7 @@ declare module "next-auth" {
         isAdmin?: boolean;
         nick?: string;
         image?: string;
+        assinaturaId?: number;
     }
 }
 
@@ -32,5 +34,6 @@ declare module "next-auth/jwt" {
         name?: string;
         nick?: string;
         image?: string;
+        assinaturaId?: number;
     }
 }

@@ -9,5 +9,5 @@ var rotaUploadAvatar = Rota{
 	URI:                "/upload/avatar",
 	Metodo:             http.MethodPost,
 	Funcao:             controllers.UploadAvatar,
-	RequerAutenticacao: false,
+	RequerAutenticacao: true,
 }

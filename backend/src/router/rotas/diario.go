@@ -24,4 +24,16 @@ var rotasDiario = []Rota{
 		Funcao:             controllers.BuscarHistoricoDiario,
 		RequerAutenticacao: true,
 	},
+	{
+		URI:                "/diario/{nick}/estatisticas",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarEstatisticasLeitura,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/diario/{nick}/wrapped",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarOpinioWrapped,
+		RequerAutenticacao: true,
+	},
 }

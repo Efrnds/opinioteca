@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ChevronDown, Flag, Tags, Users } from "lucide-react";
+import { BookOpen, ChevronDown, CreditCard, FileText, Flag, Tags, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAdminReport } from "./AdminShell";
 import { RELATORIOS, type RelatorioSlug } from "@/lib/admin/relatorios";
@@ -85,6 +85,30 @@ export default function AdminSidebar() {
                 >
                     <Users className="h-4 w-4 shrink-0" />
                     Usuários
+                </Link>
+
+                <Link
+                    href="/admin/assinaturas"
+                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
+                        pathname.startsWith("/admin/assinaturas")
+                            ? "bg-azul-600 text-white"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                    }`}
+                >
+                    <CreditCard className="h-4 w-4 shrink-0" />
+                    Assinaturas
+                </Link>
+
+                <Link
+                    href="/admin/templates"
+                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
+                        pathname.startsWith("/admin/templates")
+                            ? "bg-azul-600 text-white"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                    }`}
+                >
+                    <FileText className="h-4 w-4 shrink-0" />
+                    Templates
                 </Link>
 
                 <Link

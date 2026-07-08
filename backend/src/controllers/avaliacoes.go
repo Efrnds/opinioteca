@@ -95,6 +95,17 @@ func CriarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
+	usuario, erro := repoUsuarios.BuscarPorID(usuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if req.TemplateID != nil && *req.TemplateID > 0 && !modelos.TemPlanoTop(usuario) {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Templates de resenha disponíveis no OpinioTop"))
+		return
+	}
+
 	servicoLivros := servicos.NovoServicoLivros(db)
 	livroID, erro := servicoLivros.ResolverLivro(req.LivroID, req.GoogleVolumeID)
 	if erro != nil {
@@ -270,6 +281,17 @@ func AtualizarAvaliacao(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer db.Close()
+
+	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
+	usuario, erro := repoUsuarios.BuscarPorID(usuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if !modelos.TemPlanoTop(usuario) {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Edição de resenhas disponível no OpinioTop"))
+		return
+	}
 
 	repoAvaliacoes := repositorios.NovoRepositorioDeAvaliacoes(db)
 	if erro = repoAvaliacoes.Atualizar(id, usuarioID, req.Nota, req.Texto); erro == sql.ErrNoRows {

@@ -134,11 +134,21 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
     }, []);
 
     useEffect(() => {
-        if (session?.accessToken) {
-            recarregarContagem();
-            recarregarMensagensNaoLidas();
-            carregarNotificacoes();
+        const token = session?.accessToken;
+        if (!token) {
+            setContagemNaoLidas(0);
+            setMensagensNaoLidasTotal(0);
+            setNotificacoes([]);
+            wsClient.disconnect();
+            return;
         }
+
+        setContagemNaoLidas(0);
+        setMensagensNaoLidasTotal(0);
+        setNotificacoes([]);
+        recarregarContagem();
+        recarregarMensagensNaoLidas();
+        carregarNotificacoes();
     }, [session?.accessToken, recarregarContagem, recarregarMensagensNaoLidas, carregarNotificacoes]);
 
     useEffect(() => {

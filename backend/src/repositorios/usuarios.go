@@ -6,15 +6,68 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
-const colunasUsuario = `id, nome, nick, email, image_url, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm, inativado_em`
+const colunasUsuarioBase = `id, nome, nick, email, image_url, rank_confiabilidade, assinatura_id, is_admin, sequencia_atual, maior_sequencia, modo_zen, status, criadoEm`
 
-func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario) error {
+var (
+	schemaInativadoOnce sync.Once
+	schemaTemInativado   bool
+
+	schemaAssinaturaExpiraOnce sync.Once
+	schemaTemAssinaturaExpira   bool
+)
+
+// schemaTemInativadoEm detecta se a migration 20260708 já rodou (coluna inativado_em).
+// Sem a coluna, login/listagens continuam funcionando; soft-delete/reativação exigem a migration.
+func schemaTemInativadoEm(db *sql.DB) bool {
+	schemaInativadoOnce.Do(func() {
+		var existe bool
+		erro := db.QueryRow(`
+			SELECT EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_schema = current_schema()
+				  AND table_name = 'usuarios'
+				  AND column_name = 'inativado_em'
+			)`).Scan(&existe)
+		schemaTemInativado = erro == nil && existe
+	})
+	return schemaTemInativado
+}
+
+func schemaTemAssinaturaExpiraEm(db *sql.DB) bool {
+	schemaAssinaturaExpiraOnce.Do(func() {
+		var existe bool
+		erro := db.QueryRow(`
+			SELECT EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_schema = current_schema()
+				  AND table_name = 'usuarios'
+				  AND column_name = 'assinatura_expira_em'
+			)`).Scan(&existe)
+		schemaTemAssinaturaExpira = erro == nil && existe
+	})
+	return schemaTemAssinaturaExpira
+}
+
+func colunasUsuario(db *sql.DB) string {
+	cols := colunasUsuarioBase
+	if schemaTemAssinaturaExpiraEm(db) {
+		cols += ", assinatura_expira_em"
+	}
+	if schemaTemInativadoEm(db) {
+		cols += ", inativado_em"
+	}
+	return cols
+}
+
+func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	var image sql.NullString
-	var inativadoEm sql.NullTime
-	if erro := linhas.Scan(
+	destinos := []any{
 		&usuario.ID,
 		&usuario.Nome,
 		&usuario.Nick,
@@ -28,18 +81,41 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario) error {
 		&usuario.ModoZen,
 		&usuario.Status,
 		&usuario.CriadoEm,
-		&inativadoEm,
-	); erro != nil {
+	}
+	comAssinaturaExpira := schemaTemAssinaturaExpiraEm(db)
+	comInativado := schemaTemInativadoEm(db)
+	var assinaturaExpira sql.NullTime
+	var inativadoEm sql.NullTime
+	if comAssinaturaExpira {
+		destinos = append(destinos, &assinaturaExpira)
+	}
+	if comInativado {
+		destinos = append(destinos, &inativadoEm)
+	}
+	if erro := linhas.Scan(destinos...); erro != nil {
 		return erro
 	}
 	if image.Valid {
 		usuario.Image = image.String
 	}
-	if inativadoEm.Valid {
+	if comAssinaturaExpira && assinaturaExpira.Valid && modelos.TempoJSONSeguro(assinaturaExpira.Time) {
+		t := assinaturaExpira.Time
+		usuario.AssinaturaExpiraEm = &t
+	}
+	if comInativado && inativadoEm.Valid && modelos.TempoJSONSeguro(inativadoEm.Time) {
 		t := inativadoEm.Time
 		usuario.InativadoEm = &t
 	}
 	return nil
+}
+
+// AtualizarModoZen persiste a preferência de modo zen do usuário.
+func (repositorio Usuarios) AtualizarModoZen(usuarioID uint64, modoZen bool) error {
+	_, erro := repositorio.db.Exec(
+		`UPDATE usuarios SET modo_zen = $1 WHERE id = $2`,
+		modoZen, usuarioID,
+	)
+	return erro
 }
 
 // Usuarios é a struct responsável por representar o repositório de usuários.
@@ -78,7 +154,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick)
 
 	linhas, erro := repositorio.db.Query(
-		fmt.Sprintf("SELECT %s FROM usuarios WHERE (nome ILIKE $1 OR nick ILIKE $1) AND status = 'ativo'", colunasUsuario),
+		fmt.Sprintf("SELECT %s FROM usuarios WHERE (nome ILIKE $1 OR nick ILIKE $1) AND status = 'ativo'", colunasUsuario(repositorio.db)),
 		nomeOuNick)
 	if erro != nil {
 		return nil, erro
@@ -88,7 +164,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 	usuarios := make([]modelos.Usuario, 0)
 	for linhas.Next() {
 		var usuario modelos.Usuario
-		if erro = scanUsuario(linhas, &usuario); erro != nil {
+		if erro = scanUsuario(linhas, &usuario, repositorio.db); erro != nil {
 			return nil, erro
 		}
 
@@ -101,7 +177,7 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 // BuscarTodos retorna todos os usuários (ativos e inativos) para o painel admin.
 func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		fmt.Sprintf("SELECT %s FROM usuarios ORDER BY id", colunasUsuario),
+		fmt.Sprintf("SELECT %s FROM usuarios ORDER BY id", colunasUsuario(repositorio.db)),
 	)
 	if erro != nil {
 		return nil, erro
@@ -111,7 +187,7 @@ func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 	usuarios := make([]modelos.Usuario, 0)
 	for linhas.Next() {
 		var usuario modelos.Usuario
-		if erro = scanUsuario(linhas, &usuario); erro != nil {
+		if erro = scanUsuario(linhas, &usuario, repositorio.db); erro != nil {
 			return nil, erro
 		}
 		usuarios = append(usuarios, usuario)
@@ -123,7 +199,7 @@ func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 // BuscarPorID trás um usuário específico do banco de dados, com base no ID fornecido, retornando o usuário e um erro, se houver.
 func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		fmt.Sprintf("SELECT %s FROM usuarios WHERE id = $1", colunasUsuario),
+		fmt.Sprintf("SELECT %s FROM usuarios WHERE id = $1", colunasUsuario(repositorio.db)),
 		usuarioID)
 	if erro != nil {
 		return modelos.Usuario{}, erro
@@ -132,7 +208,7 @@ func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, erro
 
 	var usuario modelos.Usuario
 	if linhas.Next() {
-		if erro = scanUsuario(linhas, &usuario); erro != nil {
+		if erro = scanUsuario(linhas, &usuario, repositorio.db); erro != nil {
 			return modelos.Usuario{}, erro
 		}
 	}
@@ -143,7 +219,7 @@ func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, erro
 // BuscarPorNick busca um usuário pelo nick (case insensitive).
 func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		fmt.Sprintf("SELECT %s FROM usuarios WHERE LOWER(nick) = LOWER($1)", colunasUsuario),
+		fmt.Sprintf("SELECT %s FROM usuarios WHERE LOWER(nick) = LOWER($1)", colunasUsuario(repositorio.db)),
 		nick,
 	)
 	if erro != nil {
@@ -153,7 +229,7 @@ func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) 
 
 	var usuario modelos.Usuario
 	if linhas.Next() {
-		if erro = scanUsuario(linhas, &usuario); erro != nil {
+		if erro = scanUsuario(linhas, &usuario, repositorio.db); erro != nil {
 			return modelos.Usuario{}, erro
 		}
 	}
@@ -163,10 +239,12 @@ func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) 
 
 // BuscarPorNickParaLogin retorna credenciais do usuário pelo nick (case insensitive).
 func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario, error) {
-	linha, erro := repositorio.db.Query(
-		"SELECT id, senha, status, is_admin, inativado_em FROM usuarios WHERE LOWER(nick) = LOWER($1)",
-		nick,
-	)
+	comInativado := schemaTemInativadoEm(repositorio.db)
+	query := "SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(nick) = LOWER($1)"
+	if comInativado {
+		query = "SELECT id, senha, status, is_admin, inativado_em FROM usuarios WHERE LOWER(nick) = LOWER($1)"
+	}
+	linha, erro := repositorio.db.Query(query, nick)
 	if erro != nil {
 		return modelos.Usuario{}, erro
 	}
@@ -175,16 +253,19 @@ func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario
 	var usuario modelos.Usuario
 	var inativadoEm sql.NullTime
 	if linha.Next() {
-		if erro = linha.Scan(
+		destinos := []any{
 			&usuario.ID,
 			&usuario.Senha,
 			&usuario.Status,
 			&usuario.IsAdmin,
-			&inativadoEm,
-		); erro != nil {
+		}
+		if comInativado {
+			destinos = append(destinos, &inativadoEm)
+		}
+		if erro = linha.Scan(destinos...); erro != nil {
 			return modelos.Usuario{}, erro
 		}
-		if inativadoEm.Valid {
+		if comInativado && inativadoEm.Valid && modelos.TempoJSONSeguro(inativadoEm.Time) {
 			t := inativadoEm.Time
 			usuario.InativadoEm = &t
 		}
@@ -266,6 +347,9 @@ func (repositorio Usuarios) CriarAdmin(usuario modelos.Usuario, isAdmin bool) (u
 
 // Inativar soft-delete: status inativo + timestamp para janela de reativação.
 func (repositorio Usuarios) Inativar(usuarioID uint64) error {
+	if !schemaTemInativadoEm(repositorio.db) {
+		return fmt.Errorf("migration pendente: execute backend/sql/migrations/20260708_producao.sql")
+	}
 	_, erro := repositorio.db.Exec(
 		"UPDATE usuarios SET status = 'inativo', inativado_em = NOW() WHERE id = $1",
 		usuarioID,
@@ -275,6 +359,9 @@ func (repositorio Usuarios) Inativar(usuarioID uint64) error {
 
 // Reativar restaura conta se ainda dentro da janela de 30 dias.
 func (repositorio Usuarios) Reativar(usuarioID uint64) error {
+	if !schemaTemInativadoEm(repositorio.db) {
+		return fmt.Errorf("migration pendente: execute backend/sql/migrations/20260708_producao.sql")
+	}
 	resultado, erro := repositorio.db.Exec(
 		`UPDATE usuarios
 		 SET status = 'ativo', inativado_em = NULL
@@ -594,7 +681,7 @@ func (repositorio Usuarios) BuscarPorNickEmailOuID(consulta string) (modelos.Usu
 	}
 
 	linhas, erro := repositorio.db.Query(
-		fmt.Sprintf("SELECT %s FROM usuarios WHERE LOWER(email) = LOWER($1)", colunasUsuario),
+		fmt.Sprintf("SELECT %s FROM usuarios WHERE LOWER(email) = LOWER($1)", colunasUsuario(repositorio.db)),
 		consulta,
 	)
 	if erro != nil {
@@ -604,7 +691,7 @@ func (repositorio Usuarios) BuscarPorNickEmailOuID(consulta string) (modelos.Usu
 
 	var usuario modelos.Usuario
 	if linhas.Next() {
-		if erro = scanUsuario(linhas, &usuario); erro != nil {
+		if erro = scanUsuario(linhas, &usuario, repositorio.db); erro != nil {
 			return modelos.Usuario{}, erro
 		}
 		return usuario, nil

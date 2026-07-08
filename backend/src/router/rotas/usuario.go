@@ -97,4 +97,46 @@ var rotasUsuarios = []Rota{
 		Funcao:             controllers.AtualizarSenha,
 		RequerAutenticacao: true,
 	},
+	{
+		URI:                "/usuarios/{nick}/modo-zen",
+		Metodo:             http.MethodPut,
+		Funcao:             controllers.AtualizarModoZen,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/usuarios/{nick}/meta-leitura",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarMetaLeitura,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/usuarios/{nick}/meta-leitura",
+		Metodo:             http.MethodPut,
+		Funcao:             controllers.SalvarMetaLeitura,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/usuarios/{nick}/estante",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarEstante,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/usuarios/{nick}/estante",
+		Metodo:             http.MethodPost,
+		Funcao:             controllers.AdicionarEstante,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/usuarios/{nick}/estante/{livroId}",
+		Metodo:             http.MethodPut,
+		Funcao:             controllers.AtualizarEstante,
+		RequerAutenticacao: true,
+	},
+	{
+		URI:                "/usuarios/{nick}/estante/{livroId}",
+		Metodo:             http.MethodDelete,
+		Funcao:             controllers.RemoverEstante,
+		RequerAutenticacao: true,
+	},
 }

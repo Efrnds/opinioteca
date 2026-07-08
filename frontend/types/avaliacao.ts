@@ -16,6 +16,9 @@ export type AvaliacaoFeed = {
         nome: string;
         nick: string;
         image?: string;
+        assinaturaId?: number;
+        temPlanoTop?: boolean;
+        temPlanoPro?: boolean;
     };
     livro: {
         id: number;
@@ -42,5 +45,8 @@ export type ComentarioAvaliacao = {
         nome: string;
         nick: string;
         image?: string;
+        assinaturaId?: number;
+        temPlanoTop?: boolean;
+        temPlanoPro?: boolean;
     };
 };

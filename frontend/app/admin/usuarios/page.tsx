@@ -10,6 +10,7 @@ import AdminTable from "@/app/components/admin/AdminTable";
 import UsuarioFormModal from "@/app/components/admin/UsuarioFormModal";
 import type { UsuarioAdmin } from "@/types/admin";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 function formatarData(iso: string) {
@@ -83,6 +84,23 @@ export default function AdminUsuariosPage() {
                                 key: "cadastro",
                                 header: "Cadastro",
                                 render: (u) => formatarData(u.criadoEm),
+                            },
+                            {
+                                key: "plano",
+                                header: "Plano",
+                                render: (u) => (
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="font-gabarito-medium text-sm text-azul-900">
+                                            {u.plano?.nome ?? "Gratuito"}
+                                        </span>
+                                        <Link
+                                            href={`/admin/assinaturas?nick=${encodeURIComponent(u.nick)}`}
+                                            className="font-gabarito-regular text-xs text-azul-600 hover:underline"
+                                        >
+                                            Gerenciar em Assinaturas
+                                        </Link>
+                                    </div>
+                                ),
                             },
                             {
                                 key: "tipo",

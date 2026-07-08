@@ -13,9 +13,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     }
 
     return (
-        <>
+        <div className="flex min-h-dvh flex-col">
             <Header />
             <Main>{children}</Main>
-        </>
+        </div>
     );
 }

@@ -3,6 +3,8 @@ package repositorios
 import (
 	"backend/src/modelos"
 	"database/sql"
+	"fmt"
+	"strings"
 )
 
 type Descoberta struct {
@@ -82,9 +84,16 @@ func (repositorio Descoberta) UsuariosSugeridos(viewerID uint64, limite int) ([]
 		limite = 12
 	}
 
+	cols := colunasUsuario(repositorio.db)
+	// Prefixa com alias u. para o JOIN.
+	partes := strings.Split(cols, ", ")
+	for i, p := range partes {
+		partes[i] = "u." + p
+	}
+	selectCols := strings.Join(partes, ", ")
+
 	linhas, erro := repositorio.db.Query(
-		`SELECT u.id, u.nome, u.nick, u.email, u.image_url, u.rank_confiabilidade, u.assinatura_id,
-		        u.is_admin, u.sequencia_atual, u.maior_sequencia, u.modo_zen, u.status, u.criadoEm, u.inativado_em
+		fmt.Sprintf(`SELECT %s
 		 FROM usuarios u
 		 LEFT JOIN usuario_configuracoes c ON c.usuario_id = u.id
 		 WHERE u.status = 'ativo'
@@ -97,7 +106,7 @@ func (repositorio Descoberta) UsuariosSugeridos(viewerID uint64, limite int) ([]
 		 ORDER BY (
 		     SELECT COUNT(*) FROM seguidores sg WHERE sg.id_seguido = u.id
 		 ) DESC, u.rank_confiabilidade DESC, u.id DESC
-		 LIMIT $2`,
+		 LIMIT $2`, selectCols),
 		viewerID,
 		limite,
 	)
@@ -109,7 +118,7 @@ func (repositorio Descoberta) UsuariosSugeridos(viewerID uint64, limite int) ([]
 	usuarios := make([]modelos.Usuario, 0)
 	for linhas.Next() {
 		var usuario modelos.Usuario
-		if erro = scanUsuario(linhas, &usuario); erro != nil {
+		if erro = scanUsuario(linhas, &usuario, repositorio.db); erro != nil {
 			return nil, erro
 		}
 		usuarios = append(usuarios, usuario)

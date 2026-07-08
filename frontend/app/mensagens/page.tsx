@@ -192,6 +192,7 @@ function previewAPartirDoHistorico(mensagens: Mensagem[], meuID: number) {
 
 function MensagensConteudo() {
     const { data: session } = useSession();
+    const accessToken = session?.accessToken;
     const searchParams = useSearchParams();
     const { subscribe, setChatAtivo: setChatAtivoWS, recarregarMensagensNaoLidas } = useWebSocket();
     const meuID = Number(session?.user?.id || 0);
@@ -445,8 +446,16 @@ function MensagensConteudo() {
     }, [subscribe, meuID, marcarMensagemLida]);
 
     useEffect(() => {
+        setConversas([]);
+        setMensagens([]);
+        setChatAtivo(null);
+        novoChatProcessado.current = null;
+        if (!accessToken) {
+            setCarregandoInbox(false);
+            return;
+        }
         carregarInbox();
-    }, [carregarInbox]);
+    }, [accessToken, carregarInbox]);
 
     useEffect(() => {
         if (carregandoInbox) return;

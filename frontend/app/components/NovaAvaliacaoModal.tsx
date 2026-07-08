@@ -14,11 +14,16 @@ import {
     registrarLivroUsuario,
 } from "@/lib/livro-cadastro";
 import { textoContemLink } from "@/lib/texto";
+import { TEMPLATES_RESENHA } from "@/lib/templates-resenha";
+import type { TemplateResenha } from "@/types/template";
+import { podeUsarFeatureTop } from "@/lib/plano";
 import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookPlus, ImageIcon, Loader2, Search, Star, X } from "lucide-react";
+import { BookPlus, ImageIcon, Loader2, Lock, Search, Star, X } from "lucide-react";
 import Image from "next/image";
 import { ChangeEvent, ClipboardEvent, FormEvent, useEffect, useId, useRef, useState } from "react";
+import { usePlano } from "./PlanoProvider";
+import PlanoUpgradeModal from "./PlanoUpgradeModal";
 
 type NovaAvaliacaoModalProps = {
     open: boolean;
@@ -66,6 +71,7 @@ function parseBuscaResposta(data: unknown): BuscaLivrosResposta {
 }
 
 export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null }: NovaAvaliacaoModalProps) {
+    const { temPlanoTop: temTop } = usePlano();
     const [busca, setBusca] = useState("");
     const [resultados, setResultados] = useState<LivroBusca[]>([]);
     const [buscando, setBuscando] = useState(false);
@@ -86,9 +92,24 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const [buscandoGifs, setBuscandoGifs] = useState(false);
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
+    const [templateSelecionado, setTemplateSelecionado] = useState<number | null>(null);
+    const [templatesResenha, setTemplatesResenha] = useState<TemplateResenha[]>(TEMPLATES_RESENHA);
+    const [upgradeTemplatesAberto, setUpgradeTemplatesAberto] = useState(false);
     const inputImagemId = useId();
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
+
+    useEffect(() => {
+        if (!open) return;
+        fetch("/api/templates")
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setTemplatesResenha(data as TemplateResenha[]);
+                }
+            })
+            .catch(() => {});
+    }, [open]);
 
     useEffect(() => {
         if (!open) {
@@ -103,6 +124,8 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             setContemSpoiler(false);
             limparAnexo();
             setShowGifPicker(false);
+            setTemplateSelecionado(null);
+            setTemplatesResenha(TEMPLATES_RESENHA);
             setErro("");
         }
     }, [open]);
@@ -323,6 +346,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                 contem_spoiler: contemSpoiler,
             };
             if (anexoUrl) payload.anexo_url = anexoUrl;
+            if (templateSelecionado) payload.template_id = templateSelecionado;
 
             const res = await fetch("/api/avaliacoes", {
                 method: "POST",
@@ -351,6 +375,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const precisaCompletar = dadosLivro ? livroPrecisaCompletar(dadosLivro) : false;
 
     return (
+        <>
         <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
             <DialogContent className="flex max-h-[92vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:max-h-[90vh] sm:max-w-lg sm:rounded-4xl">
                 <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
@@ -514,6 +539,63 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                         onCheckedChange={setContemSpoiler}
                                         aria-label="Marcar resenha como contendo spoiler"
                                     />
+                                </div>
+
+                                <div>
+                                    <p className="mb-2 font-gabarito-bold text-sm text-azul-900">Modelos de resenha</p>
+                                    <p className="mb-3 font-gabarito-regular text-xs text-cinza-700">
+                                        Escolha um ponto de partida — você pode editar o texto depois.
+                                    </p>
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        {templatesResenha.map((template) => {
+                                            const selecionado = templateSelecionado === template.id;
+                                            const bloqueado = !temTop;
+                                            return (
+                                                <button
+                                                    key={template.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (bloqueado) {
+                                                            setUpgradeTemplatesAberto(true);
+                                                            return;
+                                                        }
+                                                        setTemplateSelecionado(template.id);
+                                                        setTexto(template.texto);
+                                                        setErro("");
+                                                    }}
+                                                    className={`rounded-2xl border-2 px-3 py-2.5 text-left transition ${
+                                                        bloqueado
+                                                            ? "cursor-pointer border-cinza-200 bg-cinza-100/80 opacity-70"
+                                                            : selecionado
+                                                              ? "border-azul-600 bg-azul-50"
+                                                              : "border-cinza-200 bg-white hover:border-azul-300 hover:bg-azul-50/40"
+                                                    }`}
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <p className="font-gabarito-bold text-sm text-azul-900">{template.nome}</p>
+                                                        {bloqueado ? (
+                                                            <Lock className="h-3.5 w-3.5 shrink-0 text-cinza-500" />
+                                                        ) : null}
+                                                    </div>
+                                                    <p className="mt-0.5 font-gabarito-regular text-[11px] leading-snug text-cinza-600">
+                                                        {template.descricao}
+                                                    </p>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {!temTop && (
+                                        <p className="mt-2 font-gabarito-regular text-xs text-cinza-600">
+                                            Modelos exclusivos do{" "}
+                                            <button
+                                                type="button"
+                                                onClick={() => setUpgradeTemplatesAberto(true)}
+                                                className="font-gabarito-bold text-azul-600 underline"
+                                            >
+                                                OpinioTop
+                                            </button>
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -681,5 +763,11 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                 </form>
             </DialogContent>
         </Dialog>
+        <PlanoUpgradeModal
+            open={upgradeTemplatesAberto}
+            onClose={() => setUpgradeTemplatesAberto(false)}
+            recurso="templatesResenha"
+        />
+        </>
     );
 }

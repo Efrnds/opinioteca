@@ -2,8 +2,8 @@
 
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
 import { avaliacaoTemSpoiler, urlAvaliacao } from "@/lib/avaliacao";
-import { mediaUrl } from "@/lib/media";
-import { ArrowBigDown, ArrowBigUp, Flag, Loader2, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react";
+import { usePlano } from "./PlanoProvider";
+import { ArrowBigDown, ArrowBigUp, Flag, Loader2, MessageCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,7 +12,12 @@ import Box from "./Box";
 import { useAuthGate } from "./AuthGateProvider";
 import ComentarioComposer, { ComentarioMidia } from "./ComentarioComposer";
 import { useConfiguracoes } from "./ConfiguracoesProvider";
+import BadgeTop from "./BadgeTop";
+import AvatarUsuario from "./AvatarUsuario";
 import DenunciarModal from "./DenunciarModal";
+import EditarAvaliacaoModal from "./EditarAvaliacaoModal";
+import NomeUsuario from "./NomeUsuario";
+import PlanoUpgradeModal from "./PlanoUpgradeModal";
 import SpoilerGuard from "./SpoilerGuard";
 import { useWebSocket } from "./WebSocketProvider";
 
@@ -34,6 +39,7 @@ type PostCardProps = {
     podeApagar?: boolean;
     aoApagar?: (avaliacaoId: number) => Promise<void> | void;
     onRemovido?: (avaliacaoId: number) => void;
+    onAtualizado?: (avaliacaoId: number, dados: { nota: number; texto: string }) => void;
     ocultarLinkPost?: boolean;
     comentariosIniciaisAbertos?: boolean;
     midiaComLightbox?: boolean;
@@ -106,6 +112,7 @@ export default function PostCard({
     podeApagar = false,
     aoApagar,
     onRemovido,
+    onAtualizado,
     ocultarLinkPost = false,
     comentariosIniciaisAbertos = false,
     midiaComLightbox = false,
@@ -116,7 +123,6 @@ export default function PostCard({
     const { subscribe } = useWebSocket();
     const usuario = post?.usuario ?? { id: 0, nome: "Usuário", nick: "desconhecido", image: undefined };
     const livro = post?.livro ?? { id: 0, titulo: "Livro não informado", autor: "Autor não informado", capa_url: undefined };
-    const inicial = usuario.nome?.charAt(0).toUpperCase() || usuario.nick?.charAt(0).toUpperCase() || "?";
     const textoPost = post?.texto ?? "";
     const notaPost = Number.isFinite(post?.nota) ? post.nota : 0;
 
@@ -137,17 +143,29 @@ export default function PostCard({
     const [erroApagar, setErroApagar] = useState("");
     const [denunciarAberto, setDenunciarAberto] = useState(false);
     const [denunciarComentarioId, setDenunciarComentarioId] = useState<number | null>(null);
+    const [editarAberto, setEditarAberto] = useState(false);
+    const [upgradeEditarAberto, setUpgradeEditarAberto] = useState(false);
+    const [textoLocal, setTextoLocal] = useState(textoPost);
+    const [notaLocal, setNotaLocal] = useState(notaPost);
     const menuRef = useRef<HTMLDivElement | null>(null);
+
+    const { temPlanoTop: temTop } = usePlano();
 
     const ehProprioPost = session?.user?.id === String(usuario.id);
     const podeExcluir = ehProprioPost || (podeApagar && !!aoApagar);
+    const podeEditar = ehProprioPost;
     const podeDenunciar = !!session?.user?.id && !ehProprioPost;
-    const mostrarMenu = podeExcluir || podeDenunciar;
+    const mostrarMenu = podeExcluir || podeDenunciar || podeEditar;
     const temSpoiler = avaliacaoTemSpoiler(post.contem_spoiler);
     const ocultarSpoiler = temSpoiler && (status !== "authenticated" || config.ocultarSpoilersPadrao);
     const contaApagada = !!(usuario as { contaApagada?: boolean }).contaApagada;
     const meuID = session?.user?.id ?? "";
     const comentariosArvore = useMemo(() => montarArvoreComentarios(comentarios), [comentarios]);
+
+    useEffect(() => {
+        setTextoLocal(post?.texto ?? "");
+        setNotaLocal(Number.isFinite(post?.nota) ? post.nota : 0);
+    }, [post?.texto, post?.nota]);
 
     useEffect(() => {
         setVotos(post.votos);
@@ -390,8 +408,6 @@ export default function PostCard({
         const ehProprioComentario = meuID === String(no.usuario.id);
         const podeDenunciarComentario = !!meuID && !ehProprioComentario;
         const margem = nivel === 0 ? "ml-0" : nivel === 1 ? "ml-4" : nivel === 2 ? "ml-8" : "ml-12";
-        const inicialComentario =
-            no.usuario.nome?.charAt(0).toUpperCase() || no.usuario.nick?.charAt(0).toUpperCase() || "?";
 
         return (
             <div
@@ -400,19 +416,16 @@ export default function PostCard({
             >
                 <div className="flex gap-2.5">
                     <Link href={`/perfil/${no.usuario.nick}`} className="shrink-0 transition hover:opacity-80">
-                        {no.usuario.image ? (
-                            <Image
-                                src={mediaUrl(no.usuario.image)!}
-                                alt={no.usuario.nome}
-                                width={28}
-                                height={28}
-                                className="h-7 w-7 rounded-full object-cover ring-1 ring-black/5"
-                            />
-                        ) : (
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 font-gabarito-bold text-[10px] text-azul-900 ring-1 ring-black/5">
-                                {inicialComentario}
-                            </div>
-                        )}
+                        <AvatarUsuario
+                            image={no.usuario.image}
+                            nome={no.usuario.nome}
+                            nick={no.usuario.nick}
+                            assinaturaId={no.usuario.assinaturaId}
+                            temPlanoPro={no.usuario.temPlanoPro}
+                            size={28}
+                            className="ring-1 ring-black/5"
+                            inicialClassName="text-[10px]"
+                        />
                     </Link>
                     <div className="min-w-0 flex-1">
                         <div className="rounded-2xl bg-white/70 px-3 py-2 ring-1 ring-black/5 backdrop-blur-sm">
@@ -421,8 +434,17 @@ export default function PostCard({
                                     href={`/perfil/${no.usuario.nick}`}
                                     className="cursor-pointer transition hover:underline"
                                 >
-                                    {no.usuario.nome}{" "}
-                                    <span className="font-gabarito-regular text-cinza-600">@{no.usuario.nick}</span>
+                                    <NomeUsuario
+                                        inline
+                                        nome={no.usuario.nome}
+                                        nick={no.usuario.nick}
+                                        assinaturaId={no.usuario.assinaturaId}
+                                        temPlanoTop={no.usuario.temPlanoTop}
+                                        temPlanoPro={no.usuario.temPlanoPro}
+                                        mostrarNick
+                                        nomeClassName="font-gabarito-bold text-xs text-azul-900"
+                                        nickClassName="font-gabarito-regular text-cinza-600"
+                                    />
                                 </Link>
                             </p>
                             {no.texto && (
@@ -504,22 +526,32 @@ export default function PostCard({
                     }}
                     className={`flex min-w-0 items-center gap-3 transition ${contaApagada ? "cursor-default" : "hover:opacity-80"}`}
                 >
-                    {usuario.image && !contaApagada ? (
-                        <Image
-                            src={mediaUrl(usuario.image)!}
-                            alt={usuario.nome}
-                            width={44}
-                            height={44}
-                            className="h-11 w-11 shrink-0 rounded-full object-cover"
-                        />
-                    ) : (
+                    {contaApagada ? (
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-200 font-gabarito-bold text-lg text-azul-900">
-                            {contaApagada ? "?" : inicial}
+                            ?
                         </div>
+                    ) : (
+                        <AvatarUsuario
+                            image={usuario.image}
+                            nome={usuario.nome}
+                            nick={usuario.nick}
+                            assinaturaId={usuario.assinaturaId}
+                            temPlanoPro={usuario.temPlanoPro}
+                            size={44}
+                            className="h-11 w-11"
+                            inicialClassName="text-lg"
+                        />
                     )}
                     <div className="min-w-0">
-                        <p className={`truncate font-gabarito-bold text-lg text-azul-900 ${contaApagada ? "" : "hover:underline"}`}>
-                            {contaApagada ? "Conta apagada" : usuario.nome}
+                        <p className={`flex flex-wrap items-center gap-1.5 truncate font-gabarito-bold text-lg text-azul-900 ${contaApagada ? "" : "hover:underline"}`}>
+                            <span>{contaApagada ? "Conta apagada" : usuario.nome}</span>
+                            {!contaApagada ? (
+                                <BadgeTop
+                                    temPlanoTop={usuario.temPlanoTop}
+                                    temPlanoPro={usuario.temPlanoPro}
+                                    assinaturaId={usuario.assinaturaId}
+                                />
+                            ) : null}
                         </p>
                         {!contaApagada && (
                             <p className="truncate font-gabarito-regular text-sm text-cinza-700 hover:underline">
@@ -547,6 +579,23 @@ export default function PostCard({
                             </button>
                             {menuAberto && (
                                 <div className="absolute right-0 top-7 z-10 min-w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
+                                    {podeEditar && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuAberto(false);
+                                                if (temTop) {
+                                                    setEditarAberto(true);
+                                                } else {
+                                                    setUpgradeEditarAberto(true);
+                                                }
+                                            }}
+                                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-azul-900 transition hover:bg-azul-50"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                            Editar resenha
+                                        </button>
+                                    )}
                                     {podeDenunciar && (
                                         <button
                                             type="button"
@@ -604,8 +653,8 @@ export default function PostCard({
                     <p className="truncate font-gabarito-bold text-base text-azul-900">{livro.titulo}</p>
                     <p className="truncate font-gabarito-regular text-sm text-cinza-700">{livro.autor}</p>
                     <p className="mt-1 font-gabarito-bold text-azul-600">
-                        {"★".repeat(notaPost)}
-                        {"☆".repeat(Math.max(0, 5 - notaPost))}
+                        {"★".repeat(notaLocal)}
+                        {"☆".repeat(Math.max(0, 5 - notaLocal))}
                     </p>
                 </div>
             </Link>
@@ -621,9 +670,9 @@ export default function PostCard({
             >
                 {ocultarLinkPost ? (
                     <div className="flex flex-col gap-3">
-                        {textoPost && (
+                        {textoLocal && (
                             <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
-                                {textoPost}
+                                {textoLocal}
                             </p>
                         )}
                         <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" expandido comLightbox={midiaComLightbox} />
@@ -633,9 +682,9 @@ export default function PostCard({
                         href={urlAvaliacao(post.id)}
                         className="flex flex-col gap-3 rounded-2xl transition hover:bg-background/60"
                     >
-                        {textoPost && (
+                        {textoLocal && (
                             <p className="whitespace-pre-wrap font-gabarito-regular text-base leading-relaxed text-azul-900">
-                                {textoPost}
+                                {textoLocal}
                             </p>
                         )}
                         <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" expandido comLightbox={midiaComLightbox} />
@@ -736,6 +785,27 @@ export default function PostCard({
             referenciaId={denunciarComentarioId ?? 0}
             titulo="Denunciar comentário"
         />
+        {podeEditar && (
+            <>
+                <EditarAvaliacaoModal
+                    open={editarAberto}
+                    onClose={() => setEditarAberto(false)}
+                    avaliacaoId={post.id}
+                    notaInicial={notaLocal}
+                    textoInicial={textoLocal}
+                    onSalvo={(dados) => {
+                        setTextoLocal(dados.texto);
+                        setNotaLocal(dados.nota);
+                        onAtualizado?.(post.id, dados);
+                    }}
+                />
+                <PlanoUpgradeModal
+                    open={upgradeEditarAberto}
+                    onClose={() => setUpgradeEditarAberto(false)}
+                    recurso="edicaoResenhas"
+                />
+            </>
+        )}
         </>
     );
 }

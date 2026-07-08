@@ -44,6 +44,9 @@ type UsuarioFeed struct {
 	Nome         string `json:"nome"`
 	Nick         string `json:"nick"`
 	Image        string `json:"image,omitempty"`
+	AssinaturaID uint64 `json:"assinaturaId,omitempty"`
+	TemPlanoTop  bool   `json:"temPlanoTop,omitempty"`
+	TemPlanoPro  bool   `json:"temPlanoPro,omitempty"`
 	ContaApagada bool   `json:"contaApagada,omitempty"`
 }
 

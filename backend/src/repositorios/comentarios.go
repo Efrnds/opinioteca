@@ -83,7 +83,7 @@ func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID 
 	}
 
 	linhas, erro := repositorio.db.Query(
-		`SELECT c.id, c.pai_id, c.texto, c.anexo_url, c.criadoEm, u.id, u.nome, u.nick, COALESCE(u.image_url, ''),
+		`SELECT c.id, c.pai_id, c.texto, c.anexo_url, c.criadoEm, u.id, u.nome, u.nick, COALESCE(u.image_url, ''), u.assinatura_id, u.assinatura_expira_em,
 		        COALESCE(v.saldo, 0) AS votos,
 				COALESCE(vu.tipo_voto, '') AS voto_usuario
 		 FROM comentarios c
@@ -110,6 +110,7 @@ func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID 
 		var item modelos.ComentarioResposta
 		var paiID sql.NullInt64
 		var anexo sql.NullString
+		var assinaturaExpira sql.NullTime
 		if erro := linhas.Scan(
 			&item.ID,
 			&paiID,
@@ -120,6 +121,8 @@ func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID 
 			&item.Usuario.Nome,
 			&item.Usuario.Nick,
 			&item.Usuario.Image,
+			&item.Usuario.AssinaturaID,
+			&assinaturaExpira,
 			&item.Votos,
 			&item.VotoUsuario,
 		); erro != nil {
@@ -132,6 +135,13 @@ func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID 
 		if anexo.Valid {
 			item.AnexoURL = &anexo.String
 		}
+		u := modelos.Usuario{AssinaturaID: item.Usuario.AssinaturaID}
+		if assinaturaExpira.Valid {
+			t := assinaturaExpira.Time
+			u.AssinaturaExpiraEm = &t
+		}
+		item.Usuario.TemPlanoTop = modelos.TemPlanoTop(u)
+		item.Usuario.TemPlanoPro = modelos.TemPlanoPro(u)
 		comentarios = append(comentarios, item)
 	}
 
@@ -213,7 +223,7 @@ func (repositorio Comentarios) BuscarComentarioDestaque(avaliacaoID uint64) (*mo
 
 	erro := repositorio.db.QueryRow(
 		`SELECT c.id, c.pai_id, c.texto, c.criadoEm,
-		        u.id, u.nome, u.nick, COALESCE(u.image_url, ''),
+		        u.id, u.nome, u.nick, COALESCE(u.image_url, ''), u.assinatura_id,
 		        COALESCE(v.saldo, 0) AS votos
 		 FROM comentarios c
 		 INNER JOIN usuarios u ON u.id = c.usuario_id
@@ -236,6 +246,7 @@ func (repositorio Comentarios) BuscarComentarioDestaque(avaliacaoID uint64) (*mo
 		&comentario.Usuario.Nome,
 		&comentario.Usuario.Nick,
 		&comentario.Usuario.Image,
+		&comentario.Usuario.AssinaturaID,
 		&comentario.Votos,
 	)
 
@@ -259,7 +270,7 @@ func (repositorio Comentarios) BuscarDestaquesPorAvaliacoes(avaliacaoIDs []uint6
 	}
 
 	query := `SELECT cdc.avaliacao_id, c.id, c.pai_id, c.texto, c.criadoEm,
-	                 u.id, u.nome, u.nick, COALESCE(u.image_url, ''), cdc.votos
+	                 u.id, u.nome, u.nick, COALESCE(u.image_url, ''), u.assinatura_id, cdc.votos
 	          FROM comentario_destaque_cache cdc
 	          INNER JOIN comentarios c ON c.id = cdc.comentario_id
 	          INNER JOIN usuarios u ON u.id = c.usuario_id
@@ -286,6 +297,7 @@ func (repositorio Comentarios) BuscarDestaquesPorAvaliacoes(avaliacaoIDs []uint6
 			&comentario.Usuario.Nome,
 			&comentario.Usuario.Nick,
 			&comentario.Usuario.Image,
+			&comentario.Usuario.AssinaturaID,
 			&comentario.Votos,
 		); erro != nil {
 			return nil, erro

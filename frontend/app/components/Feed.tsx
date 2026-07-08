@@ -2,6 +2,7 @@
 
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
 import { normalizarPostFeed } from "@/lib/avaliacao";
+import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "./WebSocketProvider";
 import PostCard from "./PostCard";
@@ -32,6 +33,8 @@ type ComentarioAtualizadoWS = {
 };
 
 export default function Feed() {
+    const { data: session } = useSession();
+    const accessToken = session?.accessToken;
     const { subscribe } = useWebSocket();
     const [aba, setAba] = useState<AbaFeed>("forYou");
     const [posts, setPosts] = useState<AvaliacaoFeed[]>([]);
@@ -91,6 +94,9 @@ export default function Feed() {
     );
 
     useEffect(() => {
+        setPosts([]);
+        setTemMais(true);
+        setErro("");
         carregarFeed(0, false);
 
         function onRefresh() {
@@ -100,7 +106,7 @@ export default function Feed() {
 
         window.addEventListener("feed:refresh", onRefresh);
         return () => window.removeEventListener("feed:refresh", onRefresh);
-    }, [carregarFeed]);
+    }, [accessToken, carregarFeed]);
 
     useEffect(() => {
         return subscribe((tipo, payload) => {

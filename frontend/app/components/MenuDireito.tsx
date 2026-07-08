@@ -9,19 +9,21 @@ import Box from "./Box";
 import { useConfiguracoes } from "./ConfiguracoesProvider";
 import DescobertaSecoes from "./DescobertaSecoes";
 import RegistrarLeituraModal from "./RegistrarLeituraModal";
+import { usePlano } from "./PlanoProvider";
 
 export default function MenuDireito() {
     const pathname = usePathname();
     const { carregando, sequencia, streak, jaLeuHoje, diaHoje } = useDiario();
     const { config } = useConfiguracoes();
+    const { modoZen } = usePlano();
     const [modalAberto, setModalAberto] = useState(false);
-    const mostrarStreak = config.mostrarStreak;
+    const mostrarStreak = config.mostrarStreak && !modoZen;
     // Evita duplicar as seções quando o conteúdo já está na coluna principal.
     const mostrarDescobertaLateral =
         !pathname.startsWith("/explorar") && !pathname.startsWith("/descoberta");
 
     return (
-        <section className="flex h-full w-full min-w-0 flex-col gap-3 overflow-hidden">
+        <section className="flex h-full min-h-0 w-full min-w-0 flex-col gap-3 overflow-hidden">
             {mostrarStreak ? (
                 <Box className="flex w-full min-w-0 shrink-0 flex-col gap-2 !p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -117,7 +119,7 @@ export default function MenuDireito() {
 
             <RegistrarLeituraModal open={modalAberto} onClose={() => setModalAberto(false)} />
 
-            {mostrarDescobertaLateral ? (
+            {mostrarDescobertaLateral && !modoZen ? (
                 <div className="min-h-0 flex-1 overflow-hidden">
                     <DescobertaSecoes variante="lateral" mostrarTitulo />
                 </div>

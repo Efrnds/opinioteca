@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { Pencil } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { ChangeEvent, FormEvent, useId, useState } from "react";
 import { useAuthTransition } from "./AuthTransitionProvider";
@@ -91,6 +91,8 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
 
         const senhaDigitada = password;
 
+        await signOut({ redirect: false });
+
         const result = await signIn("credentials", {
             nick: nickLogin,
             password: senhaDigitada,
@@ -111,6 +113,15 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                     setPodeReativar(true);
                     setPassword(senhaDigitada);
                     setErro(data.erro || "Conta desativada. Você pode reativá-la.");
+                    return;
+                }
+                if (loginRes.status >= 500) {
+                    setPassword("");
+                    setErro(
+                        typeof data?.erro === "string"
+                            ? data.erro
+                            : "Erro no servidor ao autenticar. Tente de novo em instantes."
+                    );
                     return;
                 }
             } catch {
@@ -139,6 +150,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 setErro(data?.erro || "Não foi possível reativar a conta.");
                 return;
             }
+            await signOut({ redirect: false });
             const result = await signIn("credentials", {
                 nick: nickLogin,
                 password,
@@ -189,6 +201,8 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 setErro("Não foi possível criar a conta. Verifique os dados.");
                 return;
             }
+
+            await signOut({ redirect: false });
 
             const result = await signIn("credentials", {
                 nick,

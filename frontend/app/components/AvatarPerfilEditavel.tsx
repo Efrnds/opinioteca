@@ -1,11 +1,14 @@
 "use client";
 
+import { ehAvatarGif, podeExibirAvatarGif } from "@/lib/avatar";
 import { mediaUrl } from "@/lib/media";
 import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, Lock } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
+import PlanoUpgradeModal from "./PlanoUpgradeModal";
+import { usePlano } from "./PlanoProvider";
 
 type AvatarPerfilEditavelProps = {
     nome: string;
@@ -15,6 +18,10 @@ type AvatarPerfilEditavelProps = {
     onAtualizado: (image?: string) => void;
 };
 
+function arquivoEhGif(arquivo: File) {
+    return arquivo.type === "image/gif" || arquivo.name.toLowerCase().endsWith(".gif");
+}
+
 export default function AvatarPerfilEditavel({
     nome,
     nick,
@@ -23,15 +30,24 @@ export default function AvatarPerfilEditavel({
     onAtualizado,
 }: AvatarPerfilEditavelProps) {
     const { update } = useSession();
+    const { temPlanoPro: temPro } = usePlano();
     const inputId = useId();
     const inputRef = useRef<HTMLInputElement>(null);
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
+    const [ctaGifAberto, setCtaGifAberto] = useState(false);
 
     const inicial = nome?.charAt(0).toUpperCase() || nick.charAt(0).toUpperCase();
+    const exibirGif = image && podeExibirAvatarGif(image, undefined, undefined, temPro);
+    const avatarEhGif = image && ehAvatarGif(image);
 
     async function handleArquivo(arquivo: File) {
-        const erroValidacao = validarArquivoImagem(arquivo);
+        if (arquivoEhGif(arquivo) && !temPro) {
+            setCtaGifAberto(true);
+            return;
+        }
+
+        const erroValidacao = validarArquivoImagem(arquivo, { permitirGif: temPro });
         if (erroValidacao) {
             setErro(erroValidacao);
             return;
@@ -48,7 +64,12 @@ export default function AvatarPerfilEditavel({
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                setErro((data as { erro?: string }).erro || "Não foi possível atualizar a foto.");
+                const msg = (data as { erro?: string }).erro || "Não foi possível atualizar a foto.";
+                if (res.status === 403 && arquivoEhGif(arquivo)) {
+                    setCtaGifAberto(true);
+                    return;
+                }
+                setErro(msg);
                 return;
             }
             const imagemFinal = mediaUrl(novaUrl) || undefined;
@@ -68,12 +89,13 @@ export default function AvatarPerfilEditavel({
                 className="group relative h-24 w-24 shrink-0 cursor-pointer"
                 title="Alterar foto de perfil"
             >
-                {image ? (
+                {exibirGif ? (
                     <Image
                         src={mediaUrl(image)!}
                         alt={nome}
                         width={96}
                         height={96}
+                        unoptimized={!!avatarEhGif}
                         className="h-24 w-24 rounded-full border-4 border-white object-cover"
                     />
                 ) : (
@@ -88,21 +110,43 @@ export default function AvatarPerfilEditavel({
                         <Camera className="h-6 w-6 text-white" />
                     )}
                 </div>
+                {!temPro && (
+                    <span
+                        className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-white ring-2 ring-white"
+                        title="GIF no perfil — OpinioPro"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            setCtaGifAberto(true);
+                        }}
+                    >
+                        <Lock className="h-3 w-3" />
+                    </span>
+                )}
                 <input
                     ref={inputRef}
                     id={inputId}
                     type="file"
-                    accept="image/*"
+                    accept={temPro ? "image/*" : "image/jpeg,image/png,image/webp"}
                     className="hidden"
                     disabled={enviando}
-                    onChange={e => {
+                    onChange={(e) => {
                         const arquivo = e.target.files?.[0];
                         if (arquivo) void handleArquivo(arquivo);
                         e.target.value = "";
                     }}
                 />
             </label>
+            {!temPro && (
+                <button
+                    type="button"
+                    onClick={() => setCtaGifAberto(true)}
+                    className="font-gabarito-regular text-[10px] text-violet-700 hover:underline"
+                >
+                    GIF no perfil (Pro)
+                </button>
+            )}
             {erro && <p className="max-w-28 font-gabarito-regular text-[10px] text-red-600">{erro}</p>}
+            <PlanoUpgradeModal open={ctaGifAberto} onClose={() => setCtaGifAberto(false)} recurso="gifAvatar" />
         </div>
     );
 }

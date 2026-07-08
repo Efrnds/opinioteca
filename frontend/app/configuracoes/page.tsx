@@ -23,6 +23,11 @@ import { toast } from "sonner";
 import { mediaUrl } from "@/lib/media";
 import Box from "../components/Box";
 import { useConfiguracoes } from "../components/ConfiguracoesProvider";
+import MetaLeituraCard from "../components/MetaLeituraCard";
+import OpinioWrappedModal from "../components/OpinioWrappedModal";
+import PlanoSecao from "../components/PlanoSecao";
+import PlanoUpgradeModal from "../components/PlanoUpgradeModal";
+import { usePlano } from "../components/PlanoProvider";
 import packageJson from "../../package.json";
 
 const SECOES = [
@@ -616,6 +621,10 @@ function ContaSecao() {
 
 function PreferenciasSecao() {
     const { config, salvar } = useConfiguracoes();
+    const { modoZen, temPlanoPro, alternarModoZen } = usePlano();
+    const [ctaZenAberto, setCtaZenAberto] = useState(false);
+    const [ctaWrappedAberto, setCtaWrappedAberto] = useState(false);
+    const [wrappedAberto, setWrappedAberto] = useState(false);
 
     async function atualizar(parcial: Partial<ConfiguracaoUsuario>) {
         const ok = await salvar(parcial);
@@ -623,20 +632,67 @@ function PreferenciasSecao() {
         else toast.error("Não foi possível salvar.");
     }
 
+    async function toggleZen(checked: boolean) {
+        if (!temPlanoPro) {
+            setCtaZenAberto(true);
+            return;
+        }
+        const ok = await alternarModoZen();
+        if (ok) {
+            toast.success(checked ? "Modo Zen ativado." : "Modo Zen desativado.");
+        } else {
+            toast.error("Não foi possível alterar o Modo Zen.");
+        }
+    }
+
     return (
-        <div className="divide-y divide-cinza-200">
-            <ToggleLinha
-                label="Ocultar spoilers por padrão"
-                descricao="Esconde trechos marcados como spoiler até você revelar."
-                checked={config.ocultarSpoilersPadrao}
-                onChange={(v) => void atualizar({ ocultarSpoilersPadrao: v })}
-            />
-            <ToggleLinha
-                label="Mostrar streak"
-                descricao="Exibe sua sequência de leitura no menu e no perfil."
-                checked={config.mostrarStreak}
-                onChange={(v) => void atualizar({ mostrarStreak: v })}
-            />
+        <div className="flex flex-col gap-6">
+            <div className="divide-y divide-cinza-200">
+                <ToggleLinha
+                    label="Ocultar spoilers por padrão"
+                    descricao="Esconde trechos marcados como spoiler até você revelar."
+                    checked={config.ocultarSpoilersPadrao}
+                    onChange={(v) => void atualizar({ ocultarSpoilersPadrao: v })}
+                />
+                <ToggleLinha
+                    label="Mostrar streak"
+                    descricao="Exibe sua sequência de leitura no menu e no perfil."
+                    checked={config.mostrarStreak}
+                    onChange={(v) => void atualizar({ mostrarStreak: v })}
+                />
+                <ToggleLinha
+                    label="Modo Zen"
+                    descricao="Esconde streak, descobertas e atalhos flutuantes para focar na leitura."
+                    checked={modoZen}
+                    onChange={(v) => void toggleZen(v)}
+                />
+            </div>
+
+            <MetaLeituraCard />
+
+            <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-azul-50 p-4">
+                <p className="font-gabarito-bold text-base text-azul-900">OpinioWrapped</p>
+                <p className="mt-1 font-gabarito-regular text-sm text-cinza-700">
+                    Seu ano em leitura — estatísticas dos últimos 12 meses.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (!temPlanoPro) {
+                            setCtaWrappedAberto(true);
+                            return;
+                        }
+                        setWrappedAberto(true);
+                    }}
+                    className="mt-3 rounded-full bg-gradient-to-r from-violet-600 to-azul-600 px-4 py-2 font-gabarito-bold text-sm text-white"
+                >
+                    {temPlanoPro ? "Ver meu Wrapped" : "Conhecer OpinioPro"}
+                </button>
+            </div>
+
+            <PlanoUpgradeModal open={ctaZenAberto} onClose={() => setCtaZenAberto(false)} recurso="modoZen" />
+            <PlanoUpgradeModal open={ctaWrappedAberto} onClose={() => setCtaWrappedAberto(false)} recurso="opinioWrapped" />
+            <OpinioWrappedModal open={wrappedAberto} onClose={() => setWrappedAberto(false)} />
         </div>
     );
 }
@@ -734,8 +790,8 @@ function ConfiguracoesConteudo() {
     }
 
     return (
-        <div className="flex w-full min-w-0 flex-col gap-6 lg:flex-row">
-            <aside className="w-full shrink-0 lg:w-56">
+        <div className="flex w-full min-w-0 flex-col gap-6 lg:flex-row lg:items-start">
+            <aside className="w-full shrink-0 lg:sticky lg:top-[4.5rem] lg:w-52 xl:w-56">
                 <Box className="flex flex-col gap-1 p-2">
                     <h1 className="px-3 py-2 font-gabarito-bold text-xl text-azul-900">Configurações</h1>
                     <nav className="flex gap-1 overflow-x-auto lg:flex-col">
@@ -766,11 +822,7 @@ function ConfiguracoesConteudo() {
                 {secao === "conta" && <ContaSecao />}
                 {secao === "preferencias" && <PreferenciasSecao />}
                 {secao === "notificacoes" && <NotificacoesSecao />}
-                {secao === "plano" && (
-                    <p className="font-gabarito-regular text-cinza-700">
-                        Planos e assinaturas em breve. Por enquanto todos usam o plano gratuito.
-                    </p>
-                )}
+                {secao === "plano" && <PlanoSecao />}
                 {secao === "privacidade" && <PrivacidadeSecao />}
                 {secao === "sobre" && (
                     <div className="flex flex-col gap-3 font-gabarito-regular text-azul-900">

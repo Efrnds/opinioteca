@@ -29,13 +29,13 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
     useEffect(() => {
         const body = document.body;
         if (status === "authenticated" && !isLandingRoute) {
-            body.classList.add("h-screen", "w-screen");
+            body.classList.add("min-h-dvh", "w-full");
         } else {
-            body.classList.remove("h-screen", "w-screen");
+            body.classList.remove("min-h-dvh", "w-full");
         }
 
         return () => {
-            body.classList.remove("h-screen", "w-screen");
+            body.classList.remove("min-h-dvh", "w-full");
         };
     }, [status, isLandingRoute]);
 

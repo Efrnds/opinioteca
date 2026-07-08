@@ -203,6 +203,12 @@ func RegistrarDiario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	repoEstante := repositorios.NovoRepositorioDeEstante(db)
+	if erro = repoEstante.SincronizarAposLeitura(tx, usuarioID, req.LivroID, req.PorcentagemLeitura); erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
 	if erro = tx.Commit(); erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
@@ -309,20 +315,138 @@ func BuscarHistoricoDiario(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	registros, erro := repoDiario.BuscarHistorico(usuario.ID, limite)
-	if erro != nil {
-		respostas.Erro(w, http.StatusInternalServerError, erro)
-		return
+	historicoLimitado := false
+	var desde time.Time
+	if !modelos.TemPlanoTop(usuario) {
+		desde = agoraDiario().AddDate(0, -1, 0)
+		historicoLimitado = true
 	}
 
-	livros, erro := repoDiario.BuscarResumoLivros(usuario.ID)
+	var registros []modelos.DiarioHistoricoItem
+	var livros []modelos.DiarioLivroResumo
+	if desde.IsZero() {
+		registros, erro = repoDiario.BuscarHistorico(usuario.ID, limite)
+		if erro != nil {
+			respostas.Erro(w, http.StatusInternalServerError, erro)
+			return
+		}
+		livros, erro = repoDiario.BuscarResumoLivros(usuario.ID)
+	} else {
+		registros, erro = repoDiario.BuscarHistoricoDesde(usuario.ID, limite, desde)
+		if erro != nil {
+			respostas.Erro(w, http.StatusInternalServerError, erro)
+			return
+		}
+		livros, erro = repoDiario.BuscarResumoLivrosDesde(usuario.ID, desde)
+	}
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
 	respostas.JSON(w, http.StatusOK, modelos.DiarioHistoricoResposta{
-		Registros: registros,
-		Livros:    livros,
+		Registros:         registros,
+		Livros:            livros,
+		HistoricoLimitado: historicoLimitado,
 	})
+}
+
+func BuscarEstatisticasLeitura(w http.ResponseWriter, r *http.Request) {
+	nick := mux.Vars(r)["nick"]
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
+	repoDiario := repositorios.NovoRepositorioDeDiario(db)
+
+	usuario, erro := repoUsuarios.BuscarPorNick(nick)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if usuario.ID == 0 {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	ehDono := viewerID != 0 && viewerID == usuario.ID
+	config, _ := repositorios.NovoRepositorioDeConfiguracoes(db).BuscarOuCriar(usuario.ID)
+	segue, _ := repoUsuarios.Segue(viewerID, usuario.ID)
+
+	if config.VisibilidadePerfil == modelos.VisibilidadePrivado && !ehDono && !segue {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este perfil é privado"))
+		return
+	}
+	if !modelos.PermiteAcesso(config.HistoricoVisivelPara, ehDono, segue) {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Histórico de leitura privado"))
+		return
+	}
+
+	if !modelos.TemPlanoTop(usuario) {
+		respostas.JSON(w, http.StatusOK, modelos.EstatisticasLeituraResposta{
+			Disponivel: false,
+			Teaser:     ehDono,
+		})
+		return
+	}
+
+	stats, erro := repoDiario.BuscarEstatisticasMensais(usuario.ID, agoraDiario())
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.JSON(w, http.StatusOK, stats)
+}
+
+func BuscarOpinioWrapped(w http.ResponseWriter, r *http.Request) {
+	nick := mux.Vars(r)["nick"]
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
+	usuario, erro := repoUsuarios.BuscarPorNick(nick)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if usuario.ID == 0 {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	ehDono := viewerID != 0 && viewerID == usuario.ID
+	if !ehDono {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Acesso negado"))
+		return
+	}
+
+	if !modelos.TemPlanoPro(usuario) {
+		respostas.JSON(w, http.StatusOK, modelos.OpinioWrappedResposta{
+			Disponivel: false,
+			Teaser:     true,
+		})
+		return
+	}
+
+	repoDiario := repositorios.NovoRepositorioDeDiario(db)
+	wrapped, erro := repoDiario.BuscarOpinioWrapped(usuario.ID, usuario.MaiorSequencia, usuario.SequenciaAtual)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.JSON(w, http.StatusOK, wrapped)
 }

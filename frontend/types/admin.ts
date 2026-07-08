@@ -1,3 +1,5 @@
+import type { PlanoStatus } from "@/types/plano";
+
 export type UsuarioAdmin = {
     id: number;
     nome: string;
@@ -7,6 +9,8 @@ export type UsuarioAdmin = {
     criadoEm: string;
     rankConfiabilidade: number;
     assinaturaId: number;
+    assinaturaExpiraEm?: string | null;
+    plano?: PlanoStatus;
     sequenciaAtual: number;
     maiorSequencia: number;
     modoZen: boolean;

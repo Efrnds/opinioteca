@@ -35,4 +35,16 @@ export type DiarioLivroResumo = {
 export type DiarioHistoricoResposta = {
     registros: DiarioRegistro[];
     livros: DiarioLivroResumo[];
+    historico_limitado?: boolean;
+};
+
+export type EstatisticasLeituraResposta = {
+    disponivel: boolean;
+    teaser?: boolean;
+    mes_referencia?: string;
+    paginas_lidas_mes?: number;
+    livros_finalizados_mes?: number;
+    dias_com_leitura_mes?: number;
+    registros_mes?: number;
+    total_livros_ativos?: number;
 };
