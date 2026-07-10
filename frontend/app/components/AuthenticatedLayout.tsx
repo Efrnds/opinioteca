@@ -1,7 +1,8 @@
 "use client";
 
+import { destinoPosLogin } from "@/lib/session-cleanup";
 import { useSession } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import AuthLoadingScreen from "./AuthLoadingScreen";
 import GuestPublicChrome from "./GuestPublicChrome";
@@ -17,7 +18,6 @@ function ehRotaGuestComChrome(pathname: string) {
 }
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-    const router = useRouter();
     const pathname = usePathname();
     const { status } = useSession();
     const { isAuthTransitioning, endAuthTransition } = useAuthTransition();
@@ -39,15 +39,16 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
         };
     }, [status, isLandingRoute]);
 
+    // Já autenticado na landing (cookie residual / refresh): hard redirect, sem soft nav.
     useEffect(() => {
         if (status !== "authenticated" || !isLandingRoute) {
             return;
         }
 
         const params = new URLSearchParams(window.location.search);
-        const callbackUrl = params.get("callbackUrl") ?? "/home";
-        router.replace(callbackUrl);
-    }, [status, isLandingRoute, router]);
+        const destino = destinoPosLogin(params.get("callbackUrl"));
+        window.location.replace(destino);
+    }, [status, isLandingRoute]);
 
     useEffect(() => {
         if (isAuthTransitioning && status === "authenticated" && !isLandingRoute) {

@@ -10,8 +10,8 @@ func RelevanciaVolume(item VolumeItem, consulta string) int {
 	autor := normalizarTextoBusca(strings.Join(item.VolumeInfo.Authors, " "))
 	consulta = normalizarTextoBusca(consulta)
 
-	score := similaridadeTexto(titulo, consulta, true)
-	score += similaridadeTexto(autor, consulta, false)
+	score := similaridadeTitulo(titulo, consulta)
+	score += similaridadeAutor(autor, consulta)
 	score += pontuarPopularidade(item.VolumeInfo.RatingsCount, item.VolumeInfo.AverageRating)
 	score += penalidadesTitulo(titulo, consulta)
 	return score
@@ -22,8 +22,8 @@ func RelevanciaLivro(titulo, autor, consulta string, bonus int) int {
 	autor = normalizarTextoBusca(autor)
 	consulta = normalizarTextoBusca(consulta)
 
-	score := similaridadeTexto(titulo, consulta, true)
-	score += similaridadeTexto(autor, consulta, false)
+	score := similaridadeTitulo(titulo, consulta)
+	score += similaridadeAutor(autor, consulta)
 	score += penalidadesTitulo(titulo, consulta)
 	score += bonus
 	return score
@@ -42,21 +42,17 @@ func normalizarTextoBusca(s string) string {
 	return strings.Join(strings.Fields(replacer.Replace(s)), " ")
 }
 
-func similaridadeTexto(texto, consulta string, ehTitulo bool) int {
+func similaridadeTitulo(texto, consulta string) int {
 	if texto == "" || consulta == "" {
 		return 0
 	}
 
 	score := 0
-	pesoTermo := 8
-	if ehTitulo {
-		pesoTermo = 12
-	}
 
-	if ehTitulo && strings.Contains(texto, consulta) {
+	if strings.Contains(texto, consulta) {
 		score += 150
 	}
-	if ehTitulo && strings.HasPrefix(texto, consulta) {
+	if strings.HasPrefix(texto, consulta) {
 		score += 50
 	}
 
@@ -65,21 +61,67 @@ func similaridadeTexto(texto, consulta string, ehTitulo bool) int {
 	for _, termo := range termos {
 		if strings.Contains(texto, termo) {
 			matched++
-			score += pesoTermo
+			score += 12
 		}
 	}
 
-	if ehTitulo && len(termos) > 0 && matched == len(termos) {
+	if len(termos) > 0 && matched == len(termos) {
 		score += 60
 	}
 
-	if ehTitulo {
-		if strings.Contains(texto, " and the ") || strings.Contains(texto, " e a ") || strings.Contains(texto, " e o ") {
-			score += 25
+	if strings.Contains(texto, " and the ") || strings.Contains(texto, " e a ") || strings.Contains(texto, " e o ") {
+		score += 25
+	}
+	if texto == consulta {
+		score -= 35
+	}
+
+	return score
+}
+
+// similaridadeAutor prioriza obras cujo autor contém o termo buscado
+// (ex.: "marx" → Karl Marx), acima de títulos que só citam o nome.
+func similaridadeAutor(autor, consulta string) int {
+	if autor == "" || consulta == "" {
+		return 0
+	}
+
+	score := 0
+	if strings.Contains(autor, consulta) {
+		score += 220
+	}
+
+	termosConsulta := strings.Fields(consulta)
+	tokensAutor := strings.Fields(autor)
+	matched := 0
+
+	for _, termo := range termosConsulta {
+		achou := false
+		for _, token := range tokensAutor {
+			if token == termo {
+				score += 90
+				achou = true
+				break
+			}
+			if len(termo) >= 3 && strings.HasPrefix(token, termo) {
+				score += 45
+				achou = true
+				break
+			}
+			if strings.Contains(token, termo) {
+				score += 20
+				achou = true
+				break
+			}
 		}
-		if texto == consulta {
-			score -= 35
+		if achou || strings.Contains(autor, termo) {
+			matched++
+			score += 10
 		}
+	}
+
+	if len(termosConsulta) > 0 && matched == len(termosConsulta) {
+		score += 50
 	}
 
 	return score

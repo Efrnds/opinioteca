@@ -710,15 +710,24 @@ export default function PerfilNickPage() {
                     email={perfil.email ?? session?.user?.email ?? ""}
                     image={perfil.image}
                     banner={perfil.banner}
+                    bannerPosicao={perfil.bannerPosicao}
                     editavel={ehMeuPerfil}
-                    onAtualizado={(novoBanner) => {
-                        setPerfil((atual) => (atual ? { ...atual, banner: novoBanner } : atual));
+                    onAtualizado={({ banner: novoBanner, bannerPosicao: novaPosicao }) => {
+                        setPerfil((atual) =>
+                            atual
+                                ? {
+                                      ...atual,
+                                      ...(novoBanner !== undefined ? { banner: novoBanner } : {}),
+                                      ...(novaPosicao !== undefined ? { bannerPosicao: novaPosicao } : {}),
+                                  }
+                                : atual,
+                        );
                         deletePerfilCache(nick);
                     }}
                 />
 
                 <div className="px-4 pb-4">
-                    <div className="-mt-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="relative z-10 -mt-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div className="flex min-w-0 flex-1 gap-2">
                             {ehMeuPerfil ? (
                                 <AvatarPerfilEditavel
@@ -727,6 +736,7 @@ export default function PerfilNickPage() {
                                     email={perfil.email ?? session?.user?.email ?? ""}
                                     image={perfil.image}
                                     banner={perfil.banner}
+                                    bannerPosicao={perfil.bannerPosicao}
                                     onAtualizado={(novaImage) => {
                                         setPerfil((atual) => (atual ? { ...atual, image: novaImage } : atual));
                                         deletePerfilCache(nick);
@@ -1098,6 +1108,8 @@ export default function PerfilNickPage() {
                 nome={perfil.nome}
                 email={perfil.email ?? session?.user?.email ?? ""}
                 image={perfil.image}
+                banner={perfil.banner}
+                bannerPosicao={perfil.bannerPosicao}
                 onSalvo={(novoNick) => {
                     deletePerfilCache(nick);
                     deletePerfilCache(novoNick);

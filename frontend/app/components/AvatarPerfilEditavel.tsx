@@ -16,6 +16,7 @@ type AvatarPerfilEditavelProps = {
     email: string;
     image?: string;
     banner?: string;
+    bannerPosicao?: string;
     onAtualizado: (image?: string) => void;
 };
 
@@ -29,6 +30,7 @@ export default function AvatarPerfilEditavel({
     email,
     image,
     banner,
+    bannerPosicao,
     onAtualizado,
 }: AvatarPerfilEditavelProps) {
     const { update } = useSession();
@@ -62,7 +64,7 @@ export default function AvatarPerfilEditavel({
             const res = await fetch(`/api/usuarios/${encodeURIComponent(nick)}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nome, nick, email, image: novaUrl, banner }),
+                body: JSON.stringify({ nome, nick, email, image: novaUrl, banner, bannerPosicao }),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));

@@ -7,6 +7,7 @@ import (
 	"backend/src/repositorios"
 	"backend/src/respostas"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -79,7 +80,7 @@ func PesquisaGlobal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	livros := mesclarLivrosPesquisa(livrosLocais, volumesGoogle, errGoogle, limite)
+	livros := mesclarLivrosPesquisa(termo, livrosLocais, volumesGoogle, errGoogle, limite)
 
 	respostas.JSON(w, http.StatusOK, modelos.PesquisaGlobalResponse{
 		Usuarios: usuarios,
@@ -87,13 +88,21 @@ func PesquisaGlobal(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func mesclarLivrosPesquisa(locais []modelos.LivroPesquisa, volumes []googlebooks.VolumeItem, errGoogle error, limite int) []modelos.LivroPesquisa {
+func mesclarLivrosPesquisa(termo string, locais []modelos.LivroPesquisa, volumes []googlebooks.VolumeItem, errGoogle error, limite int) []modelos.LivroPesquisa {
+	type candidatoPesquisa struct {
+		item  modelos.LivroPesquisa
+		score int
+	}
+
 	isbnsVistos := map[string]bool{}
 	volumesVistos := map[string]bool{}
-	resultado := make([]modelos.LivroPesquisa, 0, len(locais)+5)
+	candidatos := make([]candidatoPesquisa, 0, len(locais)+len(volumes))
 
 	for _, l := range locais {
-		resultado = append(resultado, l)
+		candidatos = append(candidatos, candidatoPesquisa{
+			item:  l,
+			score: googlebooks.RelevanciaLivro(l.Titulo, l.Autor, termo, 15),
+		})
 		if l.ISBN != "" {
 			isbnsVistos[l.ISBN] = true
 		}
@@ -120,22 +129,30 @@ func mesclarLivrosPesquisa(locais []modelos.LivroPesquisa, volumes []googlebooks
 			if item.GoogleVolumeID != "" {
 				volumesVistos[item.GoogleVolumeID] = true
 			}
-			resultado = append(resultado, modelos.LivroPesquisa{
-				Titulo:         item.Titulo,
-				Autor:          item.Autor,
-				CapaURL:        item.CapaURL,
-				GoogleVolumeID: item.GoogleVolumeID,
-				ISBN:           item.ISBN,
+			candidatos = append(candidatos, candidatoPesquisa{
+				item: modelos.LivroPesquisa{
+					Titulo:         item.Titulo,
+					Autor:          item.Autor,
+					CapaURL:        item.CapaURL,
+					GoogleVolumeID: item.GoogleVolumeID,
+					ISBN:           item.ISBN,
+				},
+				score: googlebooks.RelevanciaVolume(volume, termo),
 			})
-			if len(resultado) >= limite {
-				break
-			}
 		}
 	}
 
-	if len(resultado) > limite {
-		return resultado[:limite]
+	sort.SliceStable(candidatos, func(i, j int) bool {
+		return candidatos[i].score > candidatos[j].score
+	})
+
+	if len(candidatos) > limite {
+		candidatos = candidatos[:limite]
 	}
 
+	resultado := make([]modelos.LivroPesquisa, len(candidatos))
+	for i, c := range candidatos {
+		resultado[i] = c.item
+	}
 	return resultado
 }

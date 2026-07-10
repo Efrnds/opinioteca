@@ -23,9 +23,9 @@ export default function MenuDireito() {
         !pathname.startsWith("/explorar") && !pathname.startsWith("/descoberta");
 
     return (
-        <section className="flex w-full min-w-0 flex-col gap-3">
+        <section className="flex min-h-0 w-full min-w-0 flex-1 flex-col justify-between gap-3">
             {mostrarStreak ? (
-                <Box className="flex w-full min-w-0 flex-col gap-2 !p-3">
+                <Box className="flex w-full min-w-0 shrink-0 flex-col gap-2 !p-3">
                     <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                             <h2 className="font-gabarito-bold text-base leading-tight text-azul-900">
@@ -120,7 +120,7 @@ export default function MenuDireito() {
             <RegistrarLeituraModal open={modalAberto} onClose={() => setModalAberto(false)} />
 
             {mostrarDescobertaLateral && !modoZen ? (
-                <div className="min-w-0">
+                <div className="mt-auto min-w-0 shrink-0">
                     <DescobertaSecoes variante="lateral" mostrarTitulo />
                 </div>
             ) : null}

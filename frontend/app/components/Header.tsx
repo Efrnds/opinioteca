@@ -6,7 +6,7 @@ import type { PesquisaResultado } from "@/types/pesquisa";
 import { hrefLivroPesquisa, keyLivroPesquisa } from "@/types/pesquisa";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Loader2, LogOut, Menu, Search, User } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { encerrarSessaoCompleta } from "@/lib/session-cleanup";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -117,7 +117,7 @@ export default function Header() {
     }, [buscaMobileAberta]);
 
     async function handleSignOut() {
-        await signOut({ callbackUrl: "/" });
+        await encerrarSessaoCompleta("/");
     }
 
     function fecharBusca() {

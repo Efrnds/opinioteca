@@ -9,6 +9,7 @@ export type PerfilCacheUsuario = {
     nick: string;
     image?: string;
     banner?: string;
+    bannerPosicao?: string;
     email?: string;
     assinaturaId?: number;
     plano?: PlanoStatus;

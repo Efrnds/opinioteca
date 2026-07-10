@@ -4,11 +4,8 @@ import type { OpinioWrapped } from "@/types/wrapped";
 import {
     baixarImagemWrapped,
     compartilharImagemStories,
-    copiarTextoWrapped,
     gerarImagemWrapped,
     podeCompartilharArquivo,
-    textoCompartilharWrapped,
-    urlWhatsAppWrapped,
 } from "@/lib/wrapped-share";
 import {
     WRAPPED_SHARE_GRADIENT_TAILWIND,
@@ -26,10 +23,8 @@ import {
     BookOpen,
     ChevronLeft,
     ChevronRight,
-    Copy,
     Download,
     Flame,
-    MessageCircle,
     Share2,
     Sparkles,
     Star,
@@ -558,16 +553,6 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
         toast.success("Imagem baixada!");
     }, [gerarImagem]);
 
-    const compartilharWhatsApp = useCallback(() => {
-        if (!dados || !nick) return;
-        window.open(urlWhatsAppWrapped(textoCompartilharWrapped(dados, nick)), "_blank", "noopener,noreferrer");
-    }, [dados, nick]);
-
-    const copiarLink = useCallback(async () => {
-        if (!dados || !nick) return;
-        await copiarTextoWrapped(textoCompartilharWrapped(dados, nick));
-    }, [dados, nick]);
-
     if (!open) return null;
 
     return (
@@ -660,32 +645,13 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
 
                                                 <button
                                                     type="button"
-                                                    onClick={compartilharWhatsApp}
-                                                    className="flex w-full items-center justify-center gap-3 rounded-[1.35rem] bg-[#25D366] px-4 py-4 font-gabarito-bold text-sm text-white shadow-xl transition hover:brightness-110"
+                                                    disabled={gerandoImagem}
+                                                    onClick={() => void baixarImagem()}
+                                                    className="flex w-full items-center justify-center gap-3 rounded-[1.35rem] border border-white/12 bg-white/10 px-4 py-4 font-gabarito-bold text-sm text-white backdrop-blur-xl transition hover:bg-white/18 disabled:opacity-60"
                                                 >
-                                                    <MessageCircle className="h-5 w-5" />
-                                                    Compartilhar no WhatsApp
+                                                    <Download className="h-5 w-5" />
+                                                    Baixar PNG
                                                 </button>
-
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => void copiarLink()}
-                                                        className="flex items-center justify-center gap-2 rounded-[1.25rem] border border-white/12 bg-white/10 px-3 py-3 text-sm text-white backdrop-blur-xl transition hover:bg-white/18"
-                                                    >
-                                                        <Copy className="h-4 w-4" />
-                                                        Copiar texto
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        disabled={gerandoImagem}
-                                                        onClick={() => void baixarImagem()}
-                                                        className="flex items-center justify-center gap-2 rounded-[1.25rem] border border-white/12 bg-white/10 px-3 py-3 text-sm text-white backdrop-blur-xl transition hover:bg-white/18 disabled:opacity-60"
-                                                    >
-                                                        <Download className="h-4 w-4" />
-                                                        Baixar PNG
-                                                    </button>
-                                                </div>
                                             </div>
                                         ) : (
                                             <div className="flex w-full flex-col items-center gap-6">

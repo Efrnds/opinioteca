@@ -2,6 +2,9 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { mediaUrl } from "@/lib/media";
 
+/** Alinhado ao JWT do backend (6h). Sessões longas deixavam identidade “fantasma” em browsers compartilhados. */
+const SESSION_MAX_AGE_SEC = 60 * 60 * 6;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
     providers: [
         CredentialsProvider({
@@ -42,13 +45,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 if (res.ok && data?.token) {
                     const usuario = data.usuario;
+                    const id = usuario?.id != null && String(usuario.id) !== "" ? String(usuario.id) : null;
+                    if (!id || !usuario?.nick) {
+                        return null;
+                    }
+                    if (process.env.NODE_ENV === "development") {
+                        console.info("[auth] authorize ok", { id, nick: usuario.nick });
+                    }
                     return {
-                        id: String(usuario?.id ?? ""),
-                        email: usuario?.email,
-                        name: usuario?.nome,
-                        nick: usuario?.nick,
-                        image: mediaUrl(usuario?.image),
-                        assinaturaId: usuario?.assinaturaId,
+                        id,
+                        email: usuario.email,
+                        name: usuario.nome,
+                        nick: usuario.nick,
+                        image: mediaUrl(usuario.image),
+                        assinaturaId: usuario.assinaturaId,
                         accessToken: data.token,
                         isAdmin: Boolean(data.isAdmin),
                     };
@@ -60,20 +70,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ],
     callbacks: {
         async jwt({ token, user, trigger, session }) {
-            // Login: substitui identidade inteira; merge condicional deixava nick/imagem do usuário anterior.
+            // Login: objeto NOVO — nunca espalhar/mesclar o token anterior (campos órfãos vazavam identidade).
             if (user) {
-                token.sub = user.id;
-                token.id = user.id;
-                token.accessToken = user.accessToken;
-                token.isAdmin = Boolean(user.isAdmin);
-                token.email = user.email ?? undefined;
-                token.name = user.name ?? undefined;
-                token.nick = user.nick ?? undefined;
-                token.image = user.image ? mediaUrl(user.image) : undefined;
-                token.assinaturaId = user.assinaturaId ?? undefined;
-                return token;
+                return {
+                    sub: user.id,
+                    id: user.id,
+                    accessToken: user.accessToken,
+                    isAdmin: Boolean(user.isAdmin),
+                    email: user.email ?? undefined,
+                    name: user.name ?? undefined,
+                    nick: user.nick ?? undefined,
+                    image: user.image ? mediaUrl(user.image) : undefined,
+                    assinaturaId: user.assinaturaId ?? undefined,
+                };
             }
             if (trigger === "update" && session) {
+                // update() só pode alterar perfil; id/sub/accessToken vêm só do token atual.
                 if (session.name !== undefined) token.name = session.name as string;
                 if (session.image !== undefined) {
                     token.image = session.image ? mediaUrl(session.image as string) : undefined;
@@ -96,13 +108,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 nick?: string;
                 assinaturaId?: number;
             };
-            user.id = token.id as string;
+            // Identidade só do token — nunca preservar leftovers de session.user.
+            user.id = (token.id as string) ?? (token.sub as string);
             user.email = (token.email as string | null | undefined) ?? null;
             user.name = (token.name as string | null | undefined) ?? null;
-            user.nick = token.nick ?? undefined;
+            user.nick = (token.nick as string | undefined) ?? undefined;
             user.image = token.image ? mediaUrl(token.image as string) : null;
             user.assinaturaId = token.assinaturaId != null ? (token.assinaturaId as number) : undefined;
             return session;
+        },
+    },
+    events: {
+        async signIn({ user }) {
+            if (process.env.NODE_ENV === "development") {
+                console.info("[auth] signIn", { id: user.id, nick: user.nick });
+            }
+        },
+        async signOut() {
+            if (process.env.NODE_ENV === "development") {
+                console.info("[auth] signOut");
+            }
         },
     },
     pages: {
@@ -110,6 +135,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     session: {
         strategy: "jwt",
+        maxAge: SESSION_MAX_AGE_SEC,
+    },
+    jwt: {
+        maxAge: SESSION_MAX_AGE_SEC,
     },
     secret: process.env.AUTH_SECRET,
+    trustHost: true,
 });

@@ -1210,17 +1210,19 @@ function ConfiguracoesConteudo() {
     }
 
     return (
-        <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-            <aside className="w-full shrink-0 lg:sticky lg:top-16 lg:w-48 xl:w-56">
-                <Box className="flex flex-col gap-1 !p-2">
-                    <h1 className="px-3 py-2 font-gabarito-bold text-lg text-azul-900 sm:text-xl">Configurações</h1>
-                    <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 scrollbar-thin lg:flex-col lg:overflow-visible lg:pb-0">
+        <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-4 xl:gap-6 2xl:gap-8">
+            <aside className="w-full shrink-0 lg:sticky lg:top-16 lg:w-56 xl:w-64 2xl:w-72">
+                <Box className="flex flex-col gap-1.5 !p-3 sm:!p-3.5">
+                    <h1 className="px-3 py-2.5 font-gabarito-bold text-lg text-azul-900 sm:text-xl">
+                        Configurações
+                    </h1>
+                    <nav className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-thin lg:flex-col lg:overflow-visible lg:pb-0">
                         {SECOES.map((s) => (
                             <button
                                 key={s.id}
                                 type="button"
                                 onClick={() => irPara(s.id)}
-                                className={`shrink-0 rounded-xl px-3 py-2 text-left font-gabarito-medium text-sm transition sm:px-4 sm:py-2.5 ${
+                                className={`shrink-0 rounded-xl px-4 py-3 text-left font-gabarito-medium text-sm transition sm:px-4 sm:py-3.5 sm:text-base ${
                                     secao === s.id
                                         ? "bg-azul-600 text-azul-600-foreground"
                                         : "text-azul-800 hover:bg-azul-100"
@@ -1233,7 +1235,7 @@ function ConfiguracoesConteudo() {
                 </Box>
             </aside>
 
-            <Box className="min-w-0 flex-1 !p-4 sm:!p-5">
+            <Box className="min-w-0 flex-1 !p-5 sm:!p-6 lg:!p-8">
                 {secao !== "conta" ? (
                     <h2 className="mb-4 font-gabarito-bold text-2xl text-azul-900">
                         {SECOES.find((s) => s.id === secao)?.rotulo}

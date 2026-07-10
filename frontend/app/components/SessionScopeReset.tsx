@@ -1,6 +1,8 @@
 "use client";
 
 import { clearPerfilCache } from "@/lib/perfil-cache";
+import { limparStorageCliente } from "@/lib/session-cleanup";
+import { wsClient } from "@/lib/ws/client";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef, type ReactNode } from "react";
 
@@ -17,15 +19,32 @@ function sessionScopeKey(status: string, userId?: string, accessToken?: string) 
  */
 export default function SessionScopeReset({ children }: { children: ReactNode }) {
     const { data: session, status } = useSession();
-    const scopeKey = sessionScopeKey(status, session?.user?.id, session?.accessToken);
+    const userId = session?.user?.id;
+    const scopeKey = sessionScopeKey(status, userId, session?.accessToken);
     const prevKeyRef = useRef(scopeKey);
+    const prevUserIdRef = useRef<string | undefined>(userId);
 
     useEffect(() => {
-        if (prevKeyRef.current !== scopeKey) {
-            clearPerfilCache();
-            prevKeyRef.current = scopeKey;
+        if (prevKeyRef.current === scopeKey) {
+            return;
         }
-    }, [scopeKey]);
+
+        clearPerfilCache();
+        try {
+            wsClient.disconnect();
+        } catch {
+            /* ignore */
+        }
+
+        const prevUserId = prevUserIdRef.current;
+        // Troca real de conta (não só loading→authenticated do mesmo user): limpa storage residual.
+        if (prevUserId && userId && prevUserId !== userId) {
+            limparStorageCliente();
+        }
+
+        prevKeyRef.current = scopeKey;
+        prevUserIdRef.current = userId;
+    }, [scopeKey, userId]);
 
     return (
         <div key={scopeKey} className="contents">

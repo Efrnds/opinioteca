@@ -69,6 +69,7 @@
         status VARCHAR(255) NOT NULL CHECK (status IN ('ativo', 'inativo')),
         image_url VARCHAR(512),
         banner_url VARCHAR(512),
+        banner_posicao VARCHAR(32),
         inativado_em TIMESTAMP NULL,
         criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );

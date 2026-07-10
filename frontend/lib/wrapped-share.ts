@@ -1,7 +1,6 @@
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 
-import type { OpinioWrapped } from "@/types/wrapped";
 import { WRAPPED_SHARE_BG_COLOR, WRAPPED_SHARE_GRADIENT_CSS, getWrappedShareTema } from "@/lib/wrapped-visuals";
 import type { WrappedShareTemaId } from "@/lib/wrapped-visuals";
 
@@ -9,45 +8,6 @@ export const WRAPPED_CARD_WIDTH = 1080;
 export const WRAPPED_CARD_HEIGHT = 1920;
 
 const GRADIENT_FUNDO = WRAPPED_SHARE_GRADIENT_CSS;
-
-export function urlPerfilWrapped(nick: string): string {
-    if (typeof window !== "undefined") {
-        return `${window.location.origin}/perfil/${encodeURIComponent(nick)}`;
-    }
-    return `/perfil/${encodeURIComponent(nick)}`;
-}
-
-export function textoCompartilharWrapped(dados: OpinioWrapped, nick: string): string {
-    const paginas = (dados.paginas_lidas ?? 0).toLocaleString("pt-BR");
-    const livros = dados.livros_finalizados ?? 0;
-    const sequencia = dados.maior_sequencia ?? 0;
-    const genero = dados.genero_favorito ?? dados.generos_favoritos?.[0]?.nome;
-    const url = urlPerfilWrapped(nick);
-
-    const partes = [
-        `Meu OpinioWrapped 📚: ${paginas} páginas e ${livros} livro${livros === 1 ? "" : "s"} finalizado${livros === 1 ? "" : "s"} nos últimos 12 meses!`,
-    ];
-
-    if (sequencia > 0) {
-        partes.push(`Maior sequência: ${sequencia} dia${sequencia === 1 ? "" : "s"}.`);
-    }
-
-    if (genero) {
-        partes.push(`Gênero favorito: ${genero}.`);
-    }
-
-    if (dados.livro_destaque) {
-        partes.push(`Destaque: ${dados.livro_destaque}.`);
-    }
-
-    partes.push(`Veja o meu na Opinioteca: ${url}`);
-
-    return partes.join(" ");
-}
-
-export function urlWhatsAppWrapped(texto: string): string {
-    return `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
-}
 
 export function podeCompartilharArquivo(): boolean {
     if (typeof navigator === "undefined" || !navigator.canShare) return false;
@@ -57,17 +17,6 @@ export function podeCompartilharArquivo(): boolean {
         });
         return navigator.canShare({ files: [probe] });
     } catch {
-        return false;
-    }
-}
-
-export async function copiarTextoWrapped(texto: string): Promise<boolean> {
-    try {
-        await navigator.clipboard.writeText(texto);
-        toast.success("Link copiado!");
-        return true;
-    } catch {
-        toast.error("Não foi possível copiar o link.");
         return false;
     }
 }

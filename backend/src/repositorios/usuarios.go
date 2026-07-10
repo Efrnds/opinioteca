@@ -21,6 +21,9 @@ var (
 
 	schemaBannerOnce sync.Once
 	schemaTemBanner  bool
+
+	schemaBannerPosicaoOnce sync.Once
+	schemaTemBannerPosicao  bool
 )
 
 // schemaTemInativadoEm detecta se a migration 20260708 já rodou (coluna inativado_em).
@@ -73,6 +76,22 @@ func schemaTemBannerUrl(db *sql.DB) bool {
 	return schemaTemBanner
 }
 
+func schemaTemBannerPosicaoCol(db *sql.DB) bool {
+	schemaBannerPosicaoOnce.Do(func() {
+		var existe bool
+		erro := db.QueryRow(`
+			SELECT EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_schema = current_schema()
+				  AND table_name = 'usuarios'
+				  AND column_name = 'banner_posicao'
+			)`).Scan(&existe)
+		schemaTemBannerPosicao = erro == nil && existe
+	})
+	return schemaTemBannerPosicao
+}
+
 func colunasUsuario(db *sql.DB) string {
 	cols := colunasUsuarioBase
 	if schemaTemAssinaturaExpiraEm(db) {
@@ -83,6 +102,9 @@ func colunasUsuario(db *sql.DB) string {
 	}
 	if schemaTemBannerUrl(db) {
 		cols += ", banner_url"
+	}
+	if schemaTemBannerPosicaoCol(db) {
+		cols += ", banner_posicao"
 	}
 	return cols
 }
@@ -107,9 +129,11 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	comAssinaturaExpira := schemaTemAssinaturaExpiraEm(db)
 	comInativado := schemaTemInativadoEm(db)
 	comBanner := schemaTemBannerUrl(db)
+	comBannerPosicao := schemaTemBannerPosicaoCol(db)
 	var assinaturaExpira sql.NullTime
 	var inativadoEm sql.NullTime
 	var banner sql.NullString
+	var bannerPosicao sql.NullString
 	if comAssinaturaExpira {
 		destinos = append(destinos, &assinaturaExpira)
 	}
@@ -118,6 +142,9 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	}
 	if comBanner {
 		destinos = append(destinos, &banner)
+	}
+	if comBannerPosicao {
+		destinos = append(destinos, &bannerPosicao)
 	}
 	if erro := linhas.Scan(destinos...); erro != nil {
 		return erro
@@ -135,6 +162,9 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	}
 	if comBanner && banner.Valid {
 		usuario.Banner = banner.String
+	}
+	if comBannerPosicao && bannerPosicao.Valid {
+		usuario.BannerPosicao = bannerPosicao.String
 	}
 	return nil
 }
@@ -432,8 +462,14 @@ func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario
 func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario) error {
 	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, '') WHERE id = $5"
 	args := []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuarioID}
-	if schemaTemBannerUrl(repositorio.db) {
-		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = NULLIF($5, '') WHERE id = $6"
+	comBanner := schemaTemBannerUrl(repositorio.db)
+	comBannerPosicao := schemaTemBannerPosicaoCol(repositorio.db)
+	if comBanner && comBannerPosicao {
+		// Campos de banner vazios preservam o valor atual (outros PUTs não enviam o campo).
+		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = COALESCE(NULLIF($5, ''), banner_url), banner_posicao = COALESCE(NULLIF($6, ''), banner_posicao) WHERE id = $7"
+		args = []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Banner, usuario.BannerPosicao, usuarioID}
+	} else if comBanner {
+		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = COALESCE(NULLIF($5, ''), banner_url) WHERE id = $6"
 		args = []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Banner, usuarioID}
 	}
 
@@ -454,8 +490,13 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usuario) error {
 	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), status = $5, is_admin = $6 WHERE id = $7"
 	args := []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Status, usuario.IsAdmin, usuarioID}
-	if schemaTemBannerUrl(repositorio.db) {
-		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = NULLIF($5, ''), status = $6, is_admin = $7 WHERE id = $8"
+	comBanner := schemaTemBannerUrl(repositorio.db)
+	comBannerPosicao := schemaTemBannerPosicaoCol(repositorio.db)
+	if comBanner && comBannerPosicao {
+		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = COALESCE(NULLIF($5, ''), banner_url), banner_posicao = COALESCE(NULLIF($6, ''), banner_posicao), status = $7, is_admin = $8 WHERE id = $9"
+		args = []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Banner, usuario.BannerPosicao, usuario.Status, usuario.IsAdmin, usuarioID}
+	} else if comBanner {
+		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = COALESCE(NULLIF($5, ''), banner_url), status = $6, is_admin = $7 WHERE id = $8"
 		args = []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Banner, usuario.Status, usuario.IsAdmin, usuarioID}
 	}
 

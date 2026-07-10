@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { signOut } from "next-auth/react";
+import { encerrarSessaoCompleta } from "@/lib/session-cleanup";
 import {
     Dialog,
     DialogContent,
@@ -16,7 +16,7 @@ export default function SessaoExpiradaProvider({ children }: { children: React.R
 
     const encerrarSessao = useCallback(() => {
         setAberto(false);
-        signOut({ callbackUrl: "/" });
+        void encerrarSessaoCompleta("/");
     }, []);
 
     useEffect(() => {

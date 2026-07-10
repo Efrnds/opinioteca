@@ -797,14 +797,14 @@ function MensagensConteudo() {
 
     return (
         <>
-            <Box className="flex h-full min-h-0 overflow-hidden p-0">
+            <Box className="flex h-full min-h-0 flex-col overflow-hidden p-0 lg:flex-row">
                 <aside
                     className={cn(
-                        "w-full shrink-0 flex-col lg:flex lg:w-80 lg:border-r lg:border-cinza-200",
+                        "h-full min-h-0 w-full shrink-0 flex-col lg:flex lg:w-80 lg:border-r lg:border-cinza-200",
                         chatAtivo ? "hidden lg:flex" : "flex",
                     )}
                 >
-                    <div className="border-b border-cinza-200 px-4 py-4">
+                    <div className="shrink-0 border-b border-cinza-200 px-4 py-4">
                         <div className="flex items-center justify-between gap-2">
                             <h1 className="font-gabarito-bold text-xl text-azul-900">Mensagens</h1>
                             <button
@@ -824,7 +824,7 @@ function MensagensConteudo() {
                             className="mt-3 w-full rounded-full border border-cinza-300 bg-white px-3 py-2 font-gabarito-regular text-sm outline-none focus:border-azul-600"
                         />
                     </div>
-                    <div className="flex-1 overflow-y-auto">
+                    <div className="min-h-0 flex-1 overflow-y-auto">
                         {carregandoInbox ? (
                             <div className="flex justify-center p-6">
                                 <Loader2 className="h-6 w-6 animate-spin text-azul-600" />
@@ -920,7 +920,7 @@ function MensagensConteudo() {
 
                 <section
                     className={cn(
-                        "min-w-0 flex-1 flex-col lg:flex",
+                        "h-full min-h-0 min-w-0 flex-1 flex-col lg:flex",
                         chatAtivo ? "flex" : "hidden lg:flex",
                     )}
                 >
@@ -932,7 +932,7 @@ function MensagensConteudo() {
                         </div>
                     ) : (
                         <>
-                            <header className="flex items-center gap-3 border-b border-cinza-200 px-4 py-3">
+                            <header className="flex shrink-0 items-center gap-3 border-b border-cinza-200 px-4 py-3">
                                 <button
                                     type="button"
                                     onClick={() => setChatAtivo(null)}
@@ -962,7 +962,7 @@ function MensagensConteudo() {
                                 </div>
                             </header>
 
-                            <div className="flex-1 overflow-x-hidden overflow-y-auto px-4 py-4">
+                            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4">
                                 {carregandoChat ? (
                                     <div className="flex justify-center py-8">
                                         <Loader2 className="h-6 w-6 animate-spin text-azul-600" />
@@ -1192,7 +1192,7 @@ function MensagensConteudo() {
                                 <div ref={fimRef} />
                             </div>
 
-                            <form onSubmit={handleEnviar} className="border-t border-cinza-200 px-4 py-3">
+                            <form onSubmit={handleEnviar} className="shrink-0 border-t border-cinza-200 px-4 py-3">
                                 {respostaA && (
                                     <div className="mb-2 flex items-center justify-between rounded-xl border border-cinza-200 bg-cinza-50 px-3 py-2">
                                         <p className="min-w-0 truncate font-gabarito-regular text-xs text-cinza-700">

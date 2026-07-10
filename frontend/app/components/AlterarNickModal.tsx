@@ -13,6 +13,8 @@ type AlterarNickModalProps = {
     nome: string;
     email: string;
     image?: string;
+    banner?: string;
+    bannerPosicao?: string;
     onSalvo: (novoNick: string) => void;
 };
 
@@ -26,6 +28,8 @@ export default function AlterarNickModal({
     nome,
     email,
     image,
+    banner,
+    bannerPosicao,
     onSalvo,
 }: AlterarNickModalProps) {
     const { update } = useSession();
@@ -66,6 +70,8 @@ export default function AlterarNickModal({
                     nick: nickLimpo,
                     email,
                     image: image ?? "",
+                    banner,
+                    bannerPosicao,
                 }),
             });
 

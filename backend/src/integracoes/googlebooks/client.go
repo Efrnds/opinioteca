@@ -67,17 +67,35 @@ func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 		buscarAte = 25
 	}
 
+	queries := montarQueriesBusca(q)
+	if len(queries) == 0 {
+		return []VolumeItem{}, nil
+	}
+
+	type resultadoBusca struct {
+		itens []VolumeItem
+		erro  error
+	}
+
+	ch := make(chan resultadoBusca, len(queries))
+	for _, query := range queries {
+		go func(query string) {
+			itens, erro := c.buscarRaw(query, buscarAte)
+			ch <- resultadoBusca{itens: itens, erro: erro}
+		}(query)
+	}
+
 	vistos := map[string]struct{}{}
-	merged := make([]VolumeItem, 0, buscarAte)
+	merged := make([]VolumeItem, 0, buscarAte*len(queries))
 	var ultimoErro error
 
-	for _, query := range montarQueriesBusca(q) {
-		itens, erro := c.buscarRaw(query, buscarAte)
-		if erro != nil {
-			ultimoErro = erro
+	for range queries {
+		res := <-ch
+		if res.erro != nil {
+			ultimoErro = res.erro
 			continue
 		}
-		for _, item := range itens {
+		for _, item := range res.itens {
 			if _, ok := vistos[item.ID]; ok {
 				continue
 			}
@@ -93,18 +111,26 @@ func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 	return merged, nil
 }
 
+// montarQueriesBusca monta buscas complementares no Google Books.
+// Sempre inclui a consulta geral (títulos etc.) e uma busca inauthor,
+// para sobrenomes como "marx" ou "kant" trazerem obras do autor, não só livros sobre ele.
 func montarQueriesBusca(q string) []string {
 	q = strings.TrimSpace(q)
 	if q == "" {
 		return nil
 	}
 
+	queries := []string{q}
 	palavras := strings.Fields(q)
-	if len(palavras) >= 2 {
-		return []string{fmt.Sprintf(`intitle:"%s"`, q), q}
+
+	if len(palavras) == 1 {
+		queries = append(queries, "inauthor:"+q)
+	} else {
+		queries = append(queries, fmt.Sprintf(`inauthor:"%s"`, q))
+		queries = append(queries, fmt.Sprintf(`intitle:"%s"`, q))
 	}
 
-	return []string{q}
+	return queries
 }
 
 func (c *Client) buscarRaw(q string, max int) ([]VolumeItem, error) {

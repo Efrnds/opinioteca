@@ -2,9 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    destinoPosLogin,
+    limparStorageCliente,
+    purgeCookiesAuth,
+    sinalizarTrocaAuth,
+} from "@/lib/session-cleanup";
 import { AnimatePresence, motion } from "framer-motion";
 import { Pencil } from "lucide-react";
-import { signIn, signOut } from "next-auth/react";
+import { getSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { ChangeEvent, FormEvent, useId, useState } from "react";
 import { useAuthTransition } from "./AuthTransitionProvider";
@@ -24,7 +30,6 @@ const inputClassName =
     "w-full px-4 py-1 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
 export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackUrl }: AuthModalProps) {
-    void callbackUrl;
     const { startAuthTransition, endAuthTransition } = useAuthTransition();
     const [nickLogin, setNickLogin] = useState("");
     const [email, setEmail] = useState("");
@@ -82,6 +87,31 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
         return data.url as string;
     }
 
+    /** Limpa sessão anterior + storage; prepara cookie limpo antes do signIn. */
+    async function prepararLoginLimpo() {
+        limparStorageCliente();
+        try {
+            await signOut({ redirect: false });
+        } catch {
+            /* ignore */
+        }
+        await purgeCookiesAuth();
+    }
+
+    /** Hard reload — descarta todo estado React/RSC/SessionProvider da conta anterior. */
+    async function concluirLoginComSucesso() {
+        const sessao = await getSession();
+        if (process.env.NODE_ENV === "development") {
+            console.info("[auth] login session", {
+                id: sessao?.user?.id,
+                nick: sessao?.user?.nick,
+            });
+        }
+        sinalizarTrocaAuth(sessao?.user?.id);
+        const destino = destinoPosLogin(callbackUrl);
+        window.location.href = destino;
+    }
+
     async function handleLogin(e: FormEvent) {
         e.preventDefault();
         setErro("");
@@ -91,45 +121,53 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
 
         const senhaDigitada = password;
 
-        await signOut({ redirect: false });
+        try {
+            await prepararLoginLimpo();
 
-        const result = await signIn("credentials", {
-            nick: nickLogin,
-            password: senhaDigitada,
-            redirect: false,
-        });
+            const result = await signIn("credentials", {
+                nick: nickLogin,
+                password: senhaDigitada,
+                redirect: false,
+            });
 
-        if (result?.error) {
+            if (result?.error) {
+                setCarregando(false);
+                endAuthTransition();
+                try {
+                    const loginRes = await fetch("/api/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ nick: nickLogin, senha: senhaDigitada }),
+                    });
+                    const data = await loginRes.json().catch(() => null);
+                    if (data?.podeReativar) {
+                        setPodeReativar(true);
+                        setPassword(senhaDigitada);
+                        setErro(data.erro || "Conta desativada. Você pode reativá-la.");
+                        return;
+                    }
+                    if (loginRes.status >= 500) {
+                        setPassword("");
+                        setErro(
+                            typeof data?.erro === "string"
+                                ? data.erro
+                                : "Erro no servidor ao autenticar. Tente de novo em instantes.",
+                        );
+                        return;
+                    }
+                } catch {
+                    /* ignore */
+                }
+                setPassword("");
+                setErro("Nome de usuário ou senha inválidos.");
+                return;
+            }
+
+            await concluirLoginComSucesso();
+        } catch {
             setCarregando(false);
             endAuthTransition();
-            try {
-                const loginRes = await fetch("/api/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ nick: nickLogin, senha: senhaDigitada }),
-                });
-                const data = await loginRes.json().catch(() => null);
-                if (data?.podeReativar) {
-                    setPodeReativar(true);
-                    setPassword(senhaDigitada);
-                    setErro(data.erro || "Conta desativada. Você pode reativá-la.");
-                    return;
-                }
-                if (loginRes.status >= 500) {
-                    setPassword("");
-                    setErro(
-                        typeof data?.erro === "string"
-                            ? data.erro
-                            : "Erro no servidor ao autenticar. Tente de novo em instantes."
-                    );
-                    return;
-                }
-            } catch {
-                /* ignore */
-            }
-            setPassword("");
-            setErro("Nome de usuário ou senha inválidos.");
-            return;
+            setErro("Não foi possível entrar. Tente de novo.");
         }
     }
 
@@ -150,7 +188,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 setErro(data?.erro || "Não foi possível reativar a conta.");
                 return;
             }
-            await signOut({ redirect: false });
+            await prepararLoginLimpo();
             const result = await signIn("credentials", {
                 nick: nickLogin,
                 password,
@@ -160,7 +198,9 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 setCarregando(false);
                 endAuthTransition();
                 setErro("Conta reativada, mas o login falhou. Tente entrar de novo.");
+                return;
             }
+            await concluirLoginComSucesso();
         } catch {
             setCarregando(false);
             endAuthTransition();
@@ -202,7 +242,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 return;
             }
 
-            await signOut({ redirect: false });
+            await prepararLoginLimpo();
 
             const result = await signIn("credentials", {
                 nick,
@@ -217,6 +257,8 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 onSwitchMode("login");
                 return;
             }
+
+            await concluirLoginComSucesso();
         } catch (uploadErro) {
             setCarregando(false);
             endAuthTransition();

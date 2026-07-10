@@ -5,7 +5,8 @@ import { itemAtivo, itensMenu } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, MoreHorizontal } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { encerrarSessaoCompleta } from "@/lib/session-cleanup";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -25,7 +26,7 @@ export default function MenuEsquerdo() {
     const nick = session?.user?.nick ?? "Usuário";
 
     async function handleSignOut() {
-        await signOut({ callbackUrl: "/" });
+        await encerrarSessaoCompleta("/");
     }
 
     useEffect(() => {
@@ -44,11 +45,11 @@ export default function MenuEsquerdo() {
     }, [menuContaAberto]);
 
     return (
-        <section className="flex w-full flex-col gap-3">
-            <Box className="flex flex-col gap-3 !p-3 xl:gap-4 xl:!p-4">
-                <h1 className="font-gabarito-bold text-xl text-azul-900 xl:text-2xl">Menu</h1>
+        <section className="flex min-h-0 w-full flex-1 flex-col gap-3">
+            <Box className="flex min-h-0 flex-1 flex-col gap-3 !p-3 xl:gap-4 xl:!p-4">
+                <h1 className="shrink-0 font-gabarito-bold text-xl text-azul-900 xl:text-2xl">Menu</h1>
 
-                <nav className="flex flex-col items-start gap-2.5 xl:gap-3">
+                <nav className="flex min-h-0 flex-1 flex-col items-start gap-2.5 xl:gap-3">
                     {itensMenu.map(({ href, rotulo, icone: Icone }) => {
                         const ativo = itemAtivo(pathname, href);
                         return (
@@ -92,7 +93,7 @@ export default function MenuEsquerdo() {
 
             <NovaAvaliacaoModal open={modalAberto} onClose={() => setModalAberto(false)} />
 
-            <Box ref={contaRef} className="relative flex w-full items-center justify-between gap-2 !p-2.5 xl:!p-3">
+            <Box ref={contaRef} className="relative flex w-full shrink-0 items-center justify-between gap-2 !p-2.5 xl:!p-3">
                 <Link href="/perfil" className="flex min-w-0 items-center gap-2">
                     {session?.user?.image ? (
                         <Image

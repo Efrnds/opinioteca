@@ -27,6 +27,7 @@ type Usuario struct {
 	Status             string     `json:"status"`
 	Image              string     `json:"image,omitempty"`
 	Banner             string     `json:"banner,omitempty"`
+	BannerPosicao      string     `json:"bannerPosicao,omitempty"`
 	InativadoEm        *time.Time `json:"inativadoEm,omitempty"`
 	IsAdmin            bool       `json:"-"`
 	ContaApagada       bool       `json:"contaApagada,omitempty"`
@@ -74,6 +75,7 @@ func (usuario *Usuario) formatar(etapa string) error {
 	usuario.Email = strings.TrimSpace(usuario.Email)
 	usuario.Image = strings.TrimSpace(usuario.Image)
 	usuario.Banner = strings.TrimSpace(usuario.Banner)
+	usuario.BannerPosicao = strings.TrimSpace(usuario.BannerPosicao)
 
 	if etapa == "cadastro" {
 		senhaHash, erro := security.Hash(usuario.Senha)
@@ -94,6 +96,7 @@ func (usuario *Usuario) OcultarSenha() Usuario {
 		Email:              usuario.Email,
 		Image:              usuario.Image,
 		Banner:             usuario.Banner,
+		BannerPosicao:      usuario.BannerPosicao,
 		Senha:              "",
 		AssinaturaID:       usuario.AssinaturaID,
 		MaiorSequencia:     usuario.MaiorSequencia,
@@ -121,6 +124,7 @@ func (usuario *Usuario) ListarPublico() Usuario {
 		Nick:               usuario.Nick,
 		Image:              usuario.Image,
 		Banner:             usuario.Banner,
+		BannerPosicao:      usuario.BannerPosicao,
 		AssinaturaID:       usuario.AssinaturaID,
 		AssinaturaExpiraEm: PtrTempoJSON(usuario.AssinaturaExpiraEm),
 		Plano:              plano,
@@ -137,6 +141,7 @@ func (usuario *Usuario) ListarPerfilPrivadoReduzido() Usuario {
 		Nick:          usuario.Nick,
 		Image:         usuario.Image,
 		Banner:        usuario.Banner,
+		BannerPosicao: usuario.BannerPosicao,
 		PerfilPrivado: true,
 	}
 }
@@ -150,6 +155,7 @@ func (usuario *Usuario) ListarPrivado() Usuario {
 		Email:              usuario.Email,
 		Image:              usuario.Image,
 		Banner:             usuario.Banner,
+		BannerPosicao:      usuario.BannerPosicao,
 		Status:             usuario.Status,
 		AssinaturaID:       usuario.AssinaturaID,
 		AssinaturaExpiraEm: PtrTempoJSON(usuario.AssinaturaExpiraEm),

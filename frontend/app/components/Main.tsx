@@ -25,15 +25,16 @@ export default function Main({ children }: { children: React.ReactNode }) {
     const mostrarAvisoAssinatura = !isMensagens && !isAdmin && !isConfiguracoes;
     const { modoZen } = usePlano();
 
-    // max-h + overflow on the aside (not nested boxes) → at most one scrollbar per column
+    // Fixed viewport height + overflow on the aside → one scrollbar; children can flex-fill
     const sidebarClass =
-        "layout-sidebar sticky top-16 hidden max-h-[calc(100dvh-4rem)] shrink-0 flex-col overflow-y-auto overscroll-contain py-3 lg:flex lg:w-52 xl:w-64 xl:py-4";
+        "layout-sidebar sticky top-16 hidden h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] shrink-0 flex-col overflow-y-auto overscroll-contain py-3 lg:flex lg:w-56 xl:w-64 xl:py-4 2xl:w-72";
 
     return (
         <main
             className={cn(
-                "flex min-w-0 flex-1 gap-2 px-2 sm:gap-3 sm:px-3 lg:gap-4 lg:px-4 xl:gap-6 xl:px-8",
-                isMensagens && "min-h-0 overflow-hidden lg:h-[calc(100dvh-4rem)]",
+                // gap === px at each step → equal gutters between columns and page edges
+                "flex min-w-0 flex-1 gap-2 px-2 sm:gap-3 sm:px-3 lg:gap-4 lg:px-4 xl:gap-6 xl:px-6 2xl:gap-8 2xl:px-8",
+                isMensagens && "h-[calc(100dvh-4rem)] min-h-0 overflow-hidden",
             )}
         >
             <aside className={sidebarClass}>
@@ -45,15 +46,15 @@ export default function Main({ children }: { children: React.ReactNode }) {
                     "min-w-0 flex-1 px-0 py-3 sm:py-4 lg:py-5",
                     // Clear fixed FABs on mobile / tablet (< lg)
                     !isMensagens && "pb-20 lg:pb-5",
-                    isMensagens && "min-h-0 overflow-hidden",
+                    isMensagens && "flex min-h-0 flex-col overflow-hidden py-2 sm:py-3 lg:py-3",
                 )}
             >
                 <div
                     className={cn(
                         "mx-auto flex w-full min-w-0 flex-col gap-3 sm:gap-4",
-                        isMensagens && "h-full",
-                        !isMensagens && !isConfiguracoes && "max-w-2xl",
-                        isConfiguracoes && "max-w-4xl",
+                        isMensagens && "h-full min-h-0",
+                        !isMensagens && !isConfiguracoes && "max-w-2xl xl:max-w-3xl",
+                        isConfiguracoes && "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl",
                     )}
                 >
                     {mostrarAvisoAssinatura ? <AvisoAssinaturaExpirando /> : null}

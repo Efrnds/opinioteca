@@ -5,9 +5,9 @@ import { ROTULOS_STATUS_ESTANTE } from "@/types/estante";
 import type { TemaAparencia } from "@/types/configuracao";
 import { coresTextoSobreFundo, resolverTomDestaque50 } from "@/lib/tema";
 import { cn } from "@/lib/utils";
-import { motion, useMotionValue, animate, type PanInfo } from "framer-motion";
+import { motion, useMotionValue, type PanInfo } from "framer-motion";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useConfiguracoes } from "./ConfiguracoesProvider";
 
 type EstanteCarouselProps = {
@@ -34,8 +34,8 @@ export default function EstanteCarousel({
 }: EstanteCarouselProps) {
     const { config } = useConfiguracoes();
     const containerRef = useRef<HTMLDivElement>(null);
-    const [indiceAtivo, setIndiceAtivo] = useState(0);
     const [arrastando, setArrastando] = useState(false);
+    const [dragConstraints, setDragConstraints] = useState({ left: 0, right: 0 });
     const x = useMotionValue(0);
     /** Fica true do primeiro movimento até depois do ciclo de click. */
     const bloquearCliqueRef = useRef(false);
@@ -55,22 +55,39 @@ export default function EstanteCarousel({
     const lista = apenasAtivos
         ? livros.filter((item) => item.status !== "lido" && item.porcentagem_atual < 100)
         : livros;
+    const listaLength = lista.length;
 
-    const snapTo = useCallback(
-        (index: number) => {
-            const clamped = Math.max(0, Math.min(index, lista.length - 1));
-            setIndiceAtivo(clamped);
-            const target = -clamped * (CARD_WIDTH + CARD_GAP);
-            animate(x, target, { type: "spring", stiffness: 320, damping: 32 });
-        },
-        [lista.length, x],
-    );
+    const atualizarConstraints = useCallback(() => {
+        const container = containerRef.current;
+        if (!container || listaLength === 0) {
+            setDragConstraints({ left: 0, right: 0 });
+            return;
+        }
+        const totalWidth = listaLength * CARD_WIDTH + (listaLength - 1) * CARD_GAP;
+        const overflow = Math.max(0, totalWidth - container.clientWidth);
+        setDragConstraints({ left: -overflow, right: 0 });
+
+        // Mantém o strip dentro dos limites se a lista encolher.
+        const atual = x.get();
+        if (atual < -overflow) {
+            x.set(-overflow);
+        } else if (atual > 0) {
+            x.set(0);
+        }
+    }, [listaLength, x]);
+
+    useLayoutEffect(() => {
+        atualizarConstraints();
+    }, [atualizarConstraints]);
 
     useEffect(() => {
-        if (indiceAtivo >= lista.length) {
-            snapTo(Math.max(0, lista.length - 1));
-        }
-    }, [lista.length, indiceAtivo, snapTo]);
+        const container = containerRef.current;
+        if (!container) return;
+
+        const observer = new ResizeObserver(() => atualizarConstraints());
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, [atualizarConstraints]);
 
     useEffect(() => {
         return () => {
@@ -116,18 +133,6 @@ export default function EstanteCarousel({
 
     function handleDragEnd(_: unknown, info: PanInfo) {
         marcarArraste(info);
-
-        const offset = info.offset.x;
-        const velocity = info.velocity.x;
-        let next = indiceAtivo;
-
-        if (offset < -40 || velocity < -300) {
-            next = indiceAtivo + 1;
-        } else if (offset > 40 || velocity > 300) {
-            next = indiceAtivo - 1;
-        }
-
-        snapTo(next);
         setArrastando(false);
 
         // Mantém o bloqueio até depois do click sintético pós-drag.
@@ -163,11 +168,15 @@ export default function EstanteCarousel({
                     className="flex cursor-grab touch-pan-y active:cursor-grabbing"
                     style={{ x, gap: CARD_GAP }}
                     drag="x"
-                    dragConstraints={{
-                        left: -((lista.length - 1) * (CARD_WIDTH + CARD_GAP)),
-                        right: 0,
+                    dragConstraints={dragConstraints}
+                    dragElastic={0.08}
+                    dragMomentum
+                    dragTransition={{
+                        power: 0.55,
+                        timeConstant: 280,
+                        bounceStiffness: 280,
+                        bounceDamping: 36,
                     }}
-                    dragElastic={0.12}
                     onDragStart={handleDragStart}
                     onDrag={handleDrag}
                     onDragEnd={handleDragEnd}
@@ -224,23 +233,6 @@ export default function EstanteCarousel({
                     ))}
                 </motion.div>
             </div>
-
-            {lista.length > 1 && (
-                <div className="flex items-center justify-center gap-1.5">
-                    {lista.map((item, index) => (
-                        <button
-                            key={item.livro.id}
-                            type="button"
-                            aria-label={`Ir para ${item.livro.titulo}`}
-                            onClick={() => snapTo(index)}
-                            className={cn(
-                                "h-1.5 rounded-full transition-all",
-                                index === indiceAtivo ? "w-5 bg-azul-600" : "w-1.5 bg-azul-200 hover:bg-azul-400",
-                            )}
-                        />
-                    ))}
-                </div>
-            )}
 
             {dica ? (
                 <p className="text-center font-gabarito-regular text-xs text-cinza-700">{dica}</p>
