@@ -114,6 +114,11 @@ func AtualizarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 
 // ReativarUsuario reativa conta soft-deleted dentro da janela de 30 dias.
 func ReativarUsuario(w http.ResponseWriter, r *http.Request) {
+	if !security.LoginPermitido(r) {
+		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
+		return
+	}
+
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {
 		respostas.Erro(w, http.StatusUnprocessableEntity, erro)
@@ -144,11 +149,13 @@ func ReativarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if usuario.ID == 0 {
+		security.RegistrarFalhaLogin(r)
 		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
 		return
 	}
 
 	if erro = security.VerificarSenha(usuario.Senha, req.Senha); erro != nil {
+		security.RegistrarFalhaLogin(r)
 		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
 		return
 	}

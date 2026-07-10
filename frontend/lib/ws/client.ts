@@ -69,7 +69,14 @@ export class WsClient {
 
         let ws: WebSocket;
         try {
-            ws = new WebSocket(`${this.url}?token=${encodeURIComponent(this.token)}`);
+            // Token no subprotocolo (não na query) — evita vazamento em access logs.
+            const proto =
+                "jwt." +
+                btoa(this.token)
+                    .replace(/\+/g, "-")
+                    .replace(/\//g, "_")
+                    .replace(/=+$/, "");
+            ws = new WebSocket(this.url, [proto]);
         } catch {
             this.status = "closed";
             this.scheduleReconnect();

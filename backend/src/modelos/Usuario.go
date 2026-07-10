@@ -77,6 +77,13 @@ func (usuario *Usuario) formatar(etapa string) error {
 	usuario.Banner = strings.TrimSpace(usuario.Banner)
 	usuario.BannerPosicao = strings.TrimSpace(usuario.BannerPosicao)
 
+	if erro := ValidarURLMidiaPerfil(usuario.Image); erro != nil {
+		return erro
+	}
+	if erro := ValidarURLMidiaPerfil(usuario.Banner); erro != nil {
+		return erro
+	}
+
 	if etapa == "cadastro" {
 		senhaHash, erro := security.Hash(usuario.Senha)
 		if erro != nil {

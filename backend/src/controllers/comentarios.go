@@ -39,12 +39,24 @@ func BuscarComentariosAvaliacao(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repoAvaliacoes := repositorios.NovoRepositorioDeAvaliacoes(db)
-	if _, erro = repoAvaliacoes.BuscarPorID(avaliacaoID); erro == sql.ErrNoRows {
+	avaliacao, erro := repoAvaliacoes.BuscarPorID(avaliacaoID)
+	if erro == sql.ErrNoRows {
 		respostas.Erro(w, http.StatusNotFound, errors.New("Avaliação não encontrada"))
 		return
 	}
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	podeVer, erro := repositorios.PodeVerConteudoDoPerfil(db, viewerID, avaliacao.UsuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if !podeVer {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este perfil é privado"))
 		return
 	}
 
@@ -103,6 +115,16 @@ func CriarComentarioAvaliacao(w http.ResponseWriter, r *http.Request) {
 	}
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	podeVer, erro := repositorios.PodeVerConteudoDoPerfil(db, usuarioID, avaliacao.UsuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if !podeVer {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este perfil é privado"))
 		return
 	}
 
@@ -217,6 +239,21 @@ func VotarComentario(w http.ResponseWriter, r *http.Request) {
 
 	if comentario.UsuarioID == usuarioID {
 		respostas.Erro(w, http.StatusForbidden, errors.New("Você não pode votar no seu próprio comentário"))
+		return
+	}
+
+	avaliacao, erro := repositorios.NovoRepositorioDeAvaliacoes(db).BuscarPorID(comentario.AvaliacaoID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Avaliação não encontrada"))
+		return
+	}
+	podeVer, erro := repositorios.PodeVerConteudoDoPerfil(db, usuarioID, avaliacao.UsuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if !podeVer {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Conteúdo indisponível"))
 		return
 	}
 

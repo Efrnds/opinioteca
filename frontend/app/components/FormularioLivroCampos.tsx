@@ -5,7 +5,7 @@ import { mediaUrl } from "@/lib/media";
 import Image from "next/image";
 
 const inputRetangularClassName =
-    "w-full px-4 py-2 border-2 border-[#515151] rounded-2xl outline-none focus:border-azul-600 font-gabarito-regular bg-white";
+    "w-full px-4 py-2 border-2 border-cinza-300 rounded-2xl outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
 type FormularioLivroCamposProps = {
     dados: DadosLivroForm;
@@ -58,7 +58,7 @@ export function SelecionarCategoriasLivro({
                                 className={`rounded-full border-2 px-3 py-1.5 font-gabarito-medium text-sm transition-colors ${
                                     selecionada
                                         ? "border-azul-600 bg-azul-600 text-white"
-                                        : "border-[#515151] bg-white text-azul-900 hover:border-azul-600"
+                                        : "border-cinza-300 bg-white text-azul-900 hover:border-azul-600"
                                 }`}
                             >
                                 {cat.nome_categoria}

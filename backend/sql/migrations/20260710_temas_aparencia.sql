@@ -28,6 +28,6 @@ BEGIN
     ) THEN
         ALTER TABLE usuario_configuracoes
             ADD CONSTRAINT usuario_configuracoes_tema_check
-            CHECK (tema IN ('claro', 'escuro', 'leitor', 'custom'));
+            CHECK (tema IN ('claro', 'escuro', 'leitor', 'custom', 'daltonismo'));
     END IF;
 END $$;

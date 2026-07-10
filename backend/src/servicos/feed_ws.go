@@ -45,6 +45,27 @@ func buscarDestaqueAvaliacao(db *sql.DB, avaliacaoID uint64) *modelos.Comentario
 	return destaques[avaliacaoID]
 }
 
+func donoDaAvaliacao(db *sql.DB, avaliacaoID uint64) (uint64, error) {
+	avaliacao, erro := repositorios.NovoRepositorioDeAvaliacoes(db).BuscarPorID(avaliacaoID)
+	if erro != nil {
+		return 0, erro
+	}
+	return avaliacao.UsuarioID, nil
+}
+
+func broadcastVisivel(db *sql.DB, donoPerfilID uint64, tipo string, payload interface{}) {
+	ids := websockets.IDsConectados()
+	destinos := make([]uint64, 0, len(ids))
+	for _, viewerID := range ids {
+		pode, erro := repositorios.PodeVerConteudoDoPerfil(db, viewerID, donoPerfilID)
+		if erro != nil || !pode {
+			continue
+		}
+		destinos = append(destinos, viewerID)
+	}
+	websockets.BroadcastParaUsuarios(destinos, tipo, payload)
+}
+
 func BroadcastVotosAvaliacao(db *sql.DB, avaliacaoID uint64) {
 	repoVotos := repositorios.NovoRepositorioDeVotos(db)
 	votos, erro := repoVotos.ContarPorAvaliacao(avaliacaoID)
@@ -52,7 +73,12 @@ func BroadcastVotosAvaliacao(db *sql.DB, avaliacaoID uint64) {
 		return
 	}
 
-	websockets.Broadcast("AVALIACAO_ATUALIZADA", avaliacaoAtualizadaPayload{
+	donoID, erro := donoDaAvaliacao(db, avaliacaoID)
+	if erro != nil {
+		return
+	}
+
+	broadcastVisivel(db, donoID, "AVALIACAO_ATUALIZADA", avaliacaoAtualizadaPayload{
 		AvaliacaoID: avaliacaoID,
 		Votos:       &votos,
 	})
@@ -64,9 +90,14 @@ func BroadcastNovoComentario(db *sql.DB, avaliacaoID uint64, comentario modelos.
 		return
 	}
 
+	donoID, erro := donoDaAvaliacao(db, avaliacaoID)
+	if erro != nil {
+		return
+	}
+
 	destaque := buscarDestaqueAvaliacao(db, avaliacaoID)
 
-	websockets.Broadcast("NOVO_COMENTARIO", novoComentarioPayload{
+	broadcastVisivel(db, donoID, "NOVO_COMENTARIO", novoComentarioPayload{
 		AvaliacaoID:        avaliacaoID,
 		Comentario:         comentario,
 		QtdComentarios:     qtd,
@@ -75,9 +106,14 @@ func BroadcastNovoComentario(db *sql.DB, avaliacaoID uint64, comentario modelos.
 }
 
 func BroadcastComentarioAtualizado(db *sql.DB, avaliacaoID uint64, comentario modelos.ComentarioResposta) {
+	donoID, erro := donoDaAvaliacao(db, avaliacaoID)
+	if erro != nil {
+		return
+	}
+
 	destaque := buscarDestaqueAvaliacao(db, avaliacaoID)
 
-	websockets.Broadcast("COMENTARIO_ATUALIZADO", comentarioAtualizadoPayload{
+	broadcastVisivel(db, donoID, "COMENTARIO_ATUALIZADO", comentarioAtualizadoPayload{
 		AvaliacaoID:        avaliacaoID,
 		Comentario:         comentario,
 		ComentarioDestaque: destaque,

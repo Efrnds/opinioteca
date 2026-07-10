@@ -63,30 +63,17 @@ func resolverExtensao(arquivo multipart.File, header *multipart.FileHeader) (str
 	if extMagic, ok := detectarExtensaoPorAssinatura(arquivo); ok {
 		return extMagic, nil
 	}
-
-	ext := strings.ToLower(filepath.Ext(header.Filename))
-	if extensoesPermitidas[ext] {
-		return ext, nil
-	}
-
-	contentType := strings.ToLower(header.Header.Get("Content-Type"))
-	switch {
-	case strings.Contains(contentType, "image/gif"):
-		return ".gif", nil
-	case strings.Contains(contentType, "image/png"):
-		return ".png", nil
-	case strings.Contains(contentType, "image/jpeg"), strings.Contains(contentType, "image/jpg"):
-		return ".jpg", nil
-	case strings.Contains(contentType, "image/webp"):
-		return ".webp", nil
-	}
-
-	return "", errors.New("Formato de imagem não suportado. Use JPG, PNG, WEBP ou GIF")
+	return "", errors.New("Arquivo de imagem inválido ou corrompido")
 }
 
 // SalvarAvatar salva a imagem em uploads/avatars e retorna a URL pública.
 func SalvarAvatar(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	return salvarImagem(arquivo, header, "avatars", tamanhoMaximo)
+}
+
+// SalvarAnexo salva imagem em uploads/anexos (sem still de avatar).
+func SalvarAnexo(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
+	return salvarImagem(arquivo, header, "anexos", tamanhoMaximo)
 }
 
 // SalvarBanner salva a imagem de capa em uploads/banners e retorna a URL pública.
@@ -201,9 +188,4 @@ func GerarPreviewEstatico(caminhoOrigem string, caminhoPreview string) error {
 	defer previewFile.Close()
 
 	return png.Encode(previewFile, dst)
-}
-
-// GerarPreviewEstaticaGif mantém o nome antigo usado por callers; delega ao decoder genérico.
-func GerarPreviewEstaticaGif(caminhoGif string, caminhoPreview string) error {
-	return GerarPreviewEstatico(caminhoGif, caminhoPreview)
 }

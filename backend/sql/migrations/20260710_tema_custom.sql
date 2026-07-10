@@ -25,7 +25,7 @@ BEGIN
 
     ALTER TABLE usuario_configuracoes
         ADD CONSTRAINT usuario_configuracoes_tema_check
-        CHECK (tema IN ('claro', 'escuro', 'leitor', 'custom'));
+        CHECK (tema IN ('claro', 'escuro', 'leitor', 'custom', 'daltonismo'));
 END $$;
 
 -- Quem já tinha pack custom sob claro/escuro/leitor passa a tema custom

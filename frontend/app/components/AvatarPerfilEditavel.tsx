@@ -1,13 +1,14 @@
 "use client";
 
 import {
-    ehAvatarGif,
+    avatarGifPreviewUrl,
+    ehAvatarAnimadoParaAcessibilidade,
+    ehAvatarAnimadoPro,
     gerarStillClient,
-    limparCachePreviewAvatar,
     podeExibirAvatarGif,
 } from "@/lib/avatar";
 import { mediaUrl } from "@/lib/media";
-import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
+import { arquivoEhImagemAnimada, enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
 import { Camera, Loader2, Lock } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -26,10 +27,6 @@ type AvatarPerfilEditavelProps = {
     onAtualizado: (image?: string) => void;
 };
 
-function arquivoEhGif(arquivo: File) {
-    return arquivo.type === "image/gif" || arquivo.name.toLowerCase().endsWith(".gif");
-}
-
 export default function AvatarPerfilEditavel({
     nome,
     nick,
@@ -47,23 +44,27 @@ export default function AvatarPerfilEditavel({
     const [erro, setErro] = useState("");
     const [ctaGifAberto, setCtaGifAberto] = useState(false);
     const [stillClient, setStillClient] = useState<string | null>(null);
+    const [previewServidorFalhou, setPreviewServidorFalhou] = useState(false);
     const reducaoMovimentoAtiva = useReducaoMovimentoPreferida();
 
     const inicial = nome?.charAt(0).toUpperCase() || nick.charAt(0).toUpperCase();
-    const avatarEhGif = Boolean(image && ehAvatarGif(image));
+    const avatarAnimadoPro = Boolean(image && ehAvatarAnimadoPro(image));
+    const avatarAnimadoA11y = Boolean(image && ehAvatarAnimadoParaAcessibilidade(image));
     const src = mediaUrl(image);
+    const previewEstatica = mediaUrl(avatarGifPreviewUrl(image));
     const podeGifPorPlano = Boolean(image && podeExibirAvatarGif(image, undefined, undefined, temPro));
-    const bloquearAnimacao = avatarEhGif && (reducaoMovimentoAtiva || !podeGifPorPlano);
-    const exibirAnimado = Boolean(src && avatarEhGif && !bloquearAnimacao);
+    const bloquearAnimacao =
+        (avatarAnimadoA11y && reducaoMovimentoAtiva) || (avatarAnimadoPro && !podeGifPorPlano);
+    const exibirAnimado = Boolean(src && avatarAnimadoPro && !bloquearAnimacao);
 
     useEffect(() => {
-        if (!bloquearAnimacao || !src || !avatarEhGif) {
+        if (!bloquearAnimacao || !src) {
             setStillClient(null);
+            setPreviewServidorFalhou(false);
             return;
         }
 
         let cancelado = false;
-        limparCachePreviewAvatar();
         void gerarStillClient(src).then((dataUrl) => {
             if (!cancelado && dataUrl) setStillClient(dataUrl);
         });
@@ -71,10 +72,11 @@ export default function AvatarPerfilEditavel({
         return () => {
             cancelado = true;
         };
-    }, [bloquearAnimacao, src, avatarEhGif]);
+    }, [bloquearAnimacao, src]);
 
     async function handleArquivo(arquivo: File) {
-        if (arquivoEhGif(arquivo) && !temPro) {
+        const animado = await arquivoEhImagemAnimada(arquivo);
+        if (animado && !temPro) {
             setCtaGifAberto(true);
             return;
         }
@@ -97,7 +99,7 @@ export default function AvatarPerfilEditavel({
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 const msg = (data as { erro?: string }).erro || "Não foi possível atualizar a foto.";
-                if (res.status === 403 && arquivoEhGif(arquivo)) {
+                if (res.status === 403 && animado) {
                     setCtaGifAberto(true);
                     return;
                 }
@@ -122,8 +124,8 @@ export default function AvatarPerfilEditavel({
                     alt={nome}
                     width={96}
                     height={96}
-                    unoptimized={avatarEhGif}
-                    className="h-24 w-24 rounded-full border-4 border-white object-cover"
+                    unoptimized={avatarAnimadoPro}
+                    className="h-24 w-24 rounded-full border-4 border-superficie object-cover"
                 />
             );
         }
@@ -137,31 +139,44 @@ export default function AvatarPerfilEditavel({
                         alt={nome}
                         width={96}
                         height={96}
-                        className="h-24 w-24 rounded-full border-4 border-white object-cover"
+                        className="h-24 w-24 rounded-full border-4 border-superficie object-cover"
+                    />
+                );
+            }
+            if (previewEstatica && !previewServidorFalhou) {
+                return (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={previewEstatica}
+                        alt={nome}
+                        width={96}
+                        height={96}
+                        onError={() => setPreviewServidorFalhou(true)}
+                        className="h-24 w-24 rounded-full border-4 border-superficie object-cover"
                     />
                 );
             }
             return (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-superficie bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
                     {inicial}
                 </div>
             );
         }
 
-        if (src && !avatarEhGif) {
+        if (src && !avatarAnimadoPro) {
             return (
                 <Image
                     src={src}
                     alt={nome}
                     width={96}
                     height={96}
-                    className="h-24 w-24 rounded-full border-4 border-white object-cover"
+                    className="h-24 w-24 rounded-full border-4 border-superficie object-cover"
                 />
             );
         }
 
         return (
-            <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-superficie bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
                 {inicial}
             </div>
         );

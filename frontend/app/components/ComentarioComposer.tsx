@@ -2,7 +2,7 @@
 
 import { mediaUrl } from "@/lib/media";
 import { textoContemLink } from "@/lib/texto";
-import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
+import { enviarImagemAnexo, validarArquivoImagem } from "@/lib/upload";
 import { ImageIcon, Loader2, Send, X } from "lucide-react";
 import { ChangeEvent, ClipboardEvent, FormEvent, useId, useState } from "react";
 import LightboxImagem from "./LightboxImagem";
@@ -93,7 +93,7 @@ export default function ComentarioComposer({
         try {
             let anexoUrl: string | undefined;
             if (arquivoImagem) {
-                anexoUrl = await enviarImagemAvatar(arquivoImagem);
+                anexoUrl = await enviarImagemAnexo(arquivoImagem);
             } else if (anexoUrlDireto) {
                 anexoUrl = anexoUrlDireto;
             }

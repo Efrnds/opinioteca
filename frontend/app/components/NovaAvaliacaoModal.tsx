@@ -17,9 +17,8 @@ import {
 } from "@/lib/livro-cadastro";
 import { mediaUrl } from "@/lib/media";
 import { textoContemLink } from "@/lib/texto";
-import { TEMPLATES_AVALIACAO } from "@/lib/templates-avaliacao";
 import type { TemplateAvaliacao } from "@/types/template";
-import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
+import { enviarImagemAnexo, validarArquivoImagem } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -81,7 +80,7 @@ type GiphyGif = {
 };
 
 const inputClassName =
-    "w-full px-4 py-2 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
+    "w-full px-4 py-2 border-2 border-cinza-300 rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
 function chaveLivro(livro: LivroBusca) {
     return `${livro.origem}-${livro.id ?? livro.google_volume_id}`;
@@ -220,7 +219,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
     const [templateSelecionado, setTemplateSelecionado] = useState<number | null>(null);
-    const [templatesAvaliacao, setTemplatesAvaliação] = useState<TemplateAvaliacao[]>(TEMPLATES_AVALIACAO);
+    const [templatesAvaliacao, setTemplatesAvaliacao] = useState<TemplateAvaliacao[]>([]);
     const [upgradeTemplatesAberto, setUpgradeTemplatesAberto] = useState(false);
     const inputImagemId = useId();
     const buscaRef = useRef(busca);
@@ -252,8 +251,8 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
         fetch("/api/templates")
             .then((res) => (res.ok ? res.json() : null))
             .then((data) => {
-                if (Array.isArray(data) && data.length > 0) {
-                    setTemplatesAvaliação(data as TemplateAvaliacao[]);
+                if (Array.isArray(data)) {
+                    setTemplatesAvaliacao(data as TemplateAvaliacao[]);
                 }
             })
             .catch(() => {});
@@ -278,7 +277,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             limparAnexo();
             setShowGifPicker(false);
             setTemplateSelecionado(null);
-            setTemplatesAvaliação(TEMPLATES_AVALIACAO);
+            setTemplatesAvaliacao([]);
             setErro("");
             setEstante([]);
         }
@@ -574,7 +573,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
 
             let anexoUrl: string | undefined;
             if (arquivoImagem) {
-                anexoUrl = await enviarImagemAvatar(arquivoImagem);
+                anexoUrl = await enviarImagemAnexo(arquivoImagem);
             } else if (anexoUrlDireto) {
                 anexoUrl = anexoUrlDireto;
             }
@@ -1030,7 +1029,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                     }}
                                                     rows={6}
                                                     placeholder="O que você achou do livro? Você pode combinar texto com imagem ou GIF."
-                                                    className="w-full resize-none rounded-2xl border-2 border-[#515151] bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"
+                                                    className="w-full resize-none rounded-2xl border-2 border-cinza-300 bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"
                                                 />
 
                                                 {(previewImagem || anexoUrlDireto) && (

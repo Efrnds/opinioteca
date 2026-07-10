@@ -23,6 +23,7 @@ func Gerar() *mux.Router {
 		if strings.HasPrefix(rel, "avatars/") && strings.HasSuffix(rel, ".still.png") {
 			prepararPreviewAvatarSobDemanda(rel)
 		}
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		uploadsFS.ServeHTTP(w, req)
 	}))
 

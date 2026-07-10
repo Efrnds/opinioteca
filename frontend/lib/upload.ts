@@ -16,6 +16,25 @@ export async function enviarImagemAvatar(arquivo: File): Promise<string> {
     return data.url as string;
 }
 
+/** Anexos de avaliação/comentário/mensagem — pasta anexos, sem gate Pro de avatar. */
+export async function enviarImagemAnexo(arquivo: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("imagem", arquivo);
+
+    const res = await fetch("/api/upload/anexo", {
+        method: "POST",
+        body: formData,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.url) {
+        throw new Error(data.erro || "Não foi possível enviar o anexo.");
+    }
+
+    return data.url as string;
+}
+
 export async function enviarImagemBanner(arquivo: File): Promise<string> {
     const formData = new FormData();
     formData.append("imagem", arquivo);
@@ -37,6 +56,25 @@ export async function enviarImagemBanner(arquivo: File): Promise<string> {
 type ValidarImagemOpts = {
     permitirGif?: boolean;
 };
+
+/** GIF ou WebP animado (VP8X/ANIM) — exclusivo OpinioPro no avatar. */
+export async function arquivoEhImagemAnimada(arquivo: File): Promise<boolean> {
+    const nome = arquivo.name.toLowerCase();
+    if (arquivo.type === "image/gif" || nome.endsWith(".gif")) return true;
+    if (arquivo.type !== "image/webp" && !nome.endsWith(".webp")) return false;
+
+    const buf = new Uint8Array(await arquivo.slice(0, 256).arrayBuffer());
+    if (buf.length < 16) return false;
+    const asStr = (start: number, len: number) =>
+        String.fromCharCode(...buf.subarray(start, start + len));
+    if (asStr(0, 4) !== "RIFF" || asStr(8, 4) !== "WEBP") return false;
+    const amostra = asStr(0, buf.length);
+    if (amostra.includes("ANIM") || amostra.includes("ANMF")) return true;
+    if (buf.length >= 21 && asStr(12, 4) === "VP8X") {
+        return (buf[20] & 0x02) !== 0;
+    }
+    return false;
+}
 
 export function validarArquivoImagem(arquivo: File, opts?: ValidarImagemOpts): string | null {
     if (!arquivo.type.startsWith("image/")) {

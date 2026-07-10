@@ -41,6 +41,34 @@ func arquivoEhGIF(arquivo multipart.File, header *multipart.FileHeader) bool {
 	return strings.Contains(contentType, "image/gif")
 }
 
+func arquivoEhWebPAnimado(arquivo multipart.File) bool {
+	if arquivo == nil {
+		return false
+	}
+	buf := make([]byte, 256)
+	n, erro := arquivo.Read(buf)
+	_, _ = arquivo.Seek(0, io.SeekStart)
+	if erro != nil && erro != io.EOF {
+		return false
+	}
+	if n < 16 || string(buf[0:4]) != "RIFF" || string(buf[8:12]) != "WEBP" {
+		return false
+	}
+	amostra := string(buf[:n])
+	if strings.Contains(amostra, "ANIM") || strings.Contains(amostra, "ANMF") {
+		return true
+	}
+	// VP8X: bit 1 do byte de flags indica animação.
+	if n >= 21 && string(buf[12:16]) == "VP8X" {
+		return buf[20]&0x02 != 0
+	}
+	return false
+}
+
+func arquivoEhAvatarAnimado(arquivo multipart.File, header *multipart.FileHeader) bool {
+	return arquivoEhGIF(arquivo, header) || arquivoEhWebPAnimado(arquivo)
+}
+
 // UploadAvatar recebe uma imagem e salva em uploads/avatars.
 func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	if erro := r.ParseMultipartForm(5 << 20); erro != nil {
@@ -54,10 +82,10 @@ func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if arquivoEhGIF(arquivo, header) {
+	if arquivoEhAvatarAnimado(arquivo, header) {
 		usuarioID, erroAuth := auth.ExtrairUsuarioID(r)
 		if erroAuth != nil {
-			respostas.Erro(w, http.StatusUnauthorized, errors.New("Faça login para enviar GIF como foto de perfil"))
+			respostas.Erro(w, http.StatusUnauthorized, errors.New("Faça login para enviar avatar animado"))
 			return
 		}
 
@@ -70,7 +98,7 @@ func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 		usuario, erro := repositorios.NovoRepositorioDeUsuarios(db).BuscarPorID(usuarioID)
 		if erro != nil || !modelos.TemPlanoPro(usuario) {
-			respostas.Erro(w, http.StatusForbidden, errors.New("GIF como foto de perfil é exclusivo do OpinioPro"))
+			respostas.Erro(w, http.StatusForbidden, errors.New("Avatar animado (GIF/WebP) é exclusivo do OpinioPro"))
 			return
 		}
 	}
@@ -98,6 +126,29 @@ func UploadBanner(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url, erro := upload.SalvarBanner(arquivo, header)
+	if erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	respostas.JSON(w, http.StatusCreated, uploadResposta{URL: url})
+}
+
+// UploadAnexo salva imagem em uploads/anexos (sem gate Pro de avatar animado).
+func UploadAnexo(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 6<<20)
+	if erro := r.ParseMultipartForm(5 << 20); erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	arquivo, header, erro := r.FormFile("imagem")
+	if erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	url, erro := upload.SalvarAnexo(arquivo, header)
 	if erro != nil {
 		respostas.Erro(w, http.StatusBadRequest, erro)
 		return

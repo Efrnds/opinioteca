@@ -16,14 +16,31 @@ import (
 )
 
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	token := auth.ExtrairTokenDaRequisicao(r)
+	token, protocolEcho := auth.ExtrairTokenWebSocket(r)
 	usuarioID, erro := auth.ExtrairUsuarioIDDoToken(token)
 	if erro != nil {
 		respostas.Erro(w, http.StatusUnauthorized, erro)
 		return
 	}
 
-	conn, erro := websockets.Upgrade(w, r)
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	usuario, erro := repositorios.NovoRepositorioDeUsuarios(db).BuscarPorID(usuarioID)
+	db.Close()
+	if erro != nil || usuario.ID == 0 || usuario.Status != "ativo" {
+		respostas.Erro(w, http.StatusUnauthorized, errors.New("Conta inativa ou inválida"))
+		return
+	}
+
+	var hdr http.Header
+	if protocolEcho != "" {
+		hdr = http.Header{"Sec-WebSocket-Protocol": []string{protocolEcho}}
+	}
+
+	conn, erro := websockets.Upgrade(w, r, hdr)
 	if erro != nil {
 		return
 	}

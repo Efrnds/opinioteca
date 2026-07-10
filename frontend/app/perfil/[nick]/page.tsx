@@ -747,7 +747,7 @@ export default function PerfilNickPage() {
                                     plano={perfil.plano}
                                     temPlanoPro={perfil.plano?.temPlanoPro}
                                     size={96}
-                                    className="h-24 w-24 shrink-0 border-4 border-white"
+                                    className="h-24 w-24 shrink-0 border-4 border-superficie"
                                     inicialClassName="text-3xl"
                                 />
                             )}

@@ -31,15 +31,6 @@ export type TemplateAdminPayload = {
     ordem?: number;
 };
 
-export function templateParaAvaliacao(template: TemplateAdmin): TemplateAvaliacao {
-    return {
-        id: template.id,
-        nome: template.nome,
-        descricao: template.estrutura_json?.descricao ?? "",
-        texto: template.estrutura_json?.texto ?? "",
-    };
-}
-
 export function previewTemplate(texto: string, max = 80) {
     const limpo = texto.replace(/\s+/g, " ").trim();
     if (limpo.length <= max) return limpo;

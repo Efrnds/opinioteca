@@ -53,5 +53,8 @@ func (req *CriarComentarioRequest) Preparar() error {
 	if len(req.Texto) > 800 {
 		return errors.New("Comentário deve ter no máximo 800 caracteres")
 	}
+	if erro := ValidarURLAnexo(req.AnexoURL); erro != nil {
+		return erro
+	}
 	return nil
 }

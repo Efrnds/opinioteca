@@ -52,7 +52,7 @@ func (repositorio Avaliacoes) BuscarPorLivro(livroID uint64) ([]modelos.Avaliaca
 	return scanAvaliacoes(linhas)
 }
 
-func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.AvaliacaoFeed, error) {
+func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID, viewerID uint64) ([]modelos.AvaliacaoFeed, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
@@ -60,10 +60,10 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID uint64) ([]modelos.Aval
 		        l.id, l.titulo, l.autor, l.capa_url
 		 FROM avaliacoes a
 		 INNER JOIN usuarios u ON u.id = a.usuario_id
-		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
-		 WHERE a.livro_id = $1
+		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'`+joinConfigVisibilidade+`
+		 WHERE a.livro_id = $2 AND `+condicaoVisibilidadePerfil("$1")+`
 		 ORDER BY a.criadoEm DESC`,
-		livroID,
+		viewerID, livroID,
 	)
 	if erro != nil {
 		return nil, erro
@@ -203,26 +203,29 @@ const selectFeedBase = `SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_
 		 INNER JOIN usuarios u ON u.id = a.usuario_id
 		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'`
 
-func (repositorio Avaliacoes) BuscarFeed(limite int, cursorCriadoEm *time.Time, cursorID *uint64) ([]modelos.AvaliacaoFeed, error) {
+func (repositorio Avaliacoes) BuscarFeed(viewerID uint64, limite int, cursorCriadoEm *time.Time, cursorID *uint64) ([]modelos.AvaliacaoFeed, error) {
 	var (
 		linhas *sql.Rows
 		erro   error
 	)
 
+	base := selectFeedBase + joinConfigVisibilidade + `
+		 WHERE ` + condicaoVisibilidadePerfil("$1")
+
 	if cursorCriadoEm != nil && cursorID != nil {
 		linhas, erro = repositorio.db.Query(
-			selectFeedBase+`
-		 WHERE (a.criadoEm, a.id) < ($1, $2)
+			base+`
+		 AND (a.criadoEm, a.id) < ($2, $3)
 		 ORDER BY a.criadoEm DESC, a.id DESC
-		 LIMIT $3`,
-			*cursorCriadoEm, *cursorID, limite,
+		 LIMIT $4`,
+			viewerID, *cursorCriadoEm, *cursorID, limite,
 		)
 	} else {
 		linhas, erro = repositorio.db.Query(
-			selectFeedBase+`
+			base+`
 		 ORDER BY a.criadoEm DESC, a.id DESC
-		 LIMIT $1`,
-			limite,
+		 LIMIT $2`,
+			viewerID, limite,
 		)
 	}
 	if erro != nil {

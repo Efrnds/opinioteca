@@ -37,6 +37,11 @@ func ehProprioPerfil(usuarioToken modelos.Usuario, nick string) bool {
 
 // CriarUsuario é a função responsável por criar um novo usuário
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
+	if !security.LoginPermitido(r) {
+		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
+		return
+	}
+
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {
 		respostas.Erro(w, http.StatusUnprocessableEntity, erro)

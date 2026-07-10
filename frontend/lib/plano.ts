@@ -53,10 +53,6 @@ export function badgePlano(assinaturaId?: number, plano?: PlanoStatus): "pro" | 
     return null;
 }
 
-export function podeUsarFeatureTop(assinaturaId?: number, plano?: PlanoStatus) {
-    return temPlanoTop(assinaturaId, plano);
-}
-
 export function rotuloPlano(assinaturaId?: number | null): string {
     const mapa: Record<number, string> = {
         [PLANO_GRATUITO]: "Gratuito",

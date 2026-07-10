@@ -43,21 +43,29 @@ func Carregar() {
 		Porta = 9000
 	}
 
-	StringConexaoBanco = fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_HOST"),
-		os.Getenv("POSTGRES_PORT"),
-		os.Getenv("POSTGRES_DB"),
-	)
-
 	SecretKey = []byte(os.Getenv("SECRET_KEY"))
+	if len(SecretKey) < 32 {
+		log.Fatal("SECRET_KEY deve ter pelo menos 32 caracteres")
+	}
 	GoogleBooksAPIKey = os.Getenv("GOOGLE_BOOKS_API_KEY")
 
 	APIPublicURL = os.Getenv("API_PUBLIC_URL")
 	if APIPublicURL == "" {
 		APIPublicURL = fmt.Sprintf("http://localhost:%d", Porta)
 	}
+
+	sslMode := os.Getenv("POSTGRES_SSLMODE")
+	if sslMode == "" {
+		sslMode = "disable"
+	}
+	StringConexaoBanco = fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_DB"),
+		sslMode,
+	)
 
 	dirConfigurado := os.Getenv("UPLOADS_DIR")
 	if dirConfigurado != "" {

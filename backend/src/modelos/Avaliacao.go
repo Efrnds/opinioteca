@@ -100,6 +100,9 @@ func (req *CriarAvaliacaoRequest) Preparar() error {
 	if req.Texto == "" && req.AnexoURL == "" {
 		return errors.New("Informe o texto da avaliação ou anexe uma imagem")
 	}
+	if erro := ValidarURLAnexo(req.AnexoURL); erro != nil {
+		return erro
+	}
 
 	return nil
 }
@@ -111,6 +114,9 @@ func (req *AtualizarAvaliacaoRequest) Preparar() error {
 	}
 	if req.Texto == "" {
 		return errors.New("O texto da avaliação é obrigatório!")
+	}
+	if textoContemLink(req.Texto) {
+		return errors.New("Links não são permitidos em avaliações")
 	}
 	return nil
 }

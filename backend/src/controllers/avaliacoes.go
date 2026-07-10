@@ -114,11 +114,15 @@ func BuscarFeed(w http.ResponseWriter, r *http.Request) {
 
 	tipo := strings.ToLower(r.URL.Query().Get("tipo"))
 	var feed []modelos.AvaliacaoFeed
+	var viewerID uint64
+	if usuarioID != nil {
+		viewerID = *usuarioID
+	}
 	// Busca limite+1 para saber se há próxima página sem OFFSET.
 	if tipo == "seguindo" && usuarioID != nil {
 		feed, erro = repoAvaliacoes.BuscarFeedSeguindo(*usuarioID, limite+1, cursorCriadoEm, cursorID)
 	} else {
-		feed, erro = repoAvaliacoes.BuscarFeed(limite+1, cursorCriadoEm, cursorID)
+		feed, erro = repoAvaliacoes.BuscarFeed(viewerID, limite+1, cursorCriadoEm, cursorID)
 	}
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -185,9 +189,20 @@ func CriarAvaliacao(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-	if req.TemplateID != nil && *req.TemplateID > 0 && !modelos.TemPlanoTop(usuario) {
-		respostas.Erro(w, http.StatusForbidden, errors.New("Templates de avaliação disponíveis no OpinioTop"))
-		return
+	if req.TemplateID != nil && *req.TemplateID > 0 {
+		template, erroTpl := repositorios.NovoRepositorioDeTemplates(db).BuscarPorID(*req.TemplateID)
+		if erroTpl == sql.ErrNoRows || !template.Ativo {
+			respostas.Erro(w, http.StatusBadRequest, errors.New("Template inválido ou inativo"))
+			return
+		}
+		if erroTpl != nil {
+			respostas.Erro(w, http.StatusInternalServerError, erroTpl)
+			return
+		}
+		if modelos.PlanoEfetivoID(usuario) < template.AssinaturaMinimaID {
+			respostas.Erro(w, http.StatusForbidden, errors.New("Seu plano não permite este template de avaliação"))
+			return
+		}
 	}
 
 	servicoLivros := servicos.NovoServicoLivros(db)
@@ -269,6 +284,17 @@ func BuscarAvaliacaoPorID(w http.ResponseWriter, r *http.Request) {
 	}
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	podeVer, erro := repositorios.PodeVerConteudoDoPerfil(db, viewerID, feed.Usuario.ID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if !podeVer {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este perfil é privado"))
 		return
 	}
 

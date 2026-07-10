@@ -17,10 +17,10 @@ type DenunciarModalProps = {
 };
 
 const selectClassName =
-    "w-full rounded-xl border-2 border-[#515151] bg-white px-4 py-2 font-gabarito-regular text-azul-900 outline-none focus:border-azul-600";
+    "w-full rounded-xl border-2 border-cinza-300 bg-white px-4 py-2 font-gabarito-regular text-azul-900 outline-none focus:border-azul-600";
 
 const textareaClassName =
-    "w-full resize-none rounded-xl border-2 border-[#515151] bg-white px-4 py-2 font-gabarito-regular text-azul-900 outline-none focus:border-azul-600";
+    "w-full resize-none rounded-xl border-2 border-cinza-300 bg-white px-4 py-2 font-gabarito-regular text-azul-900 outline-none focus:border-azul-600";
 
 export default function DenunciarModal({
     open,

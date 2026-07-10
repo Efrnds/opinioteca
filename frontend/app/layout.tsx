@@ -14,6 +14,9 @@ export const fetchCache = "force-no-store";
 export const metadata: Metadata = {
     title: "Opinioteca",
     description: "A rede social para amantes de livros.",
+    verification: {
+        google: "5JoCIfP0PZoi4sEKtDzMVAXChr8Dv4qXaTNdbSneLeE",
+    },
     icons: {
         icon: [{ url: "/assets/images/Vector.svg", type: "image/svg+xml" }],
         shortcut: "/assets/images/Vector.svg",

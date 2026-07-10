@@ -19,7 +19,7 @@ type AlterarNickModalProps = {
 };
 
 const inputClassName =
-    "w-full px-4 py-2 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
+    "w-full px-4 py-2 border-2 border-cinza-300 rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
 export default function AlterarNickModal({
     open,

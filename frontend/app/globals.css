@@ -49,6 +49,7 @@ html[data-tema="claro"] {
   --cinza-700: #808080;
   --cinza-600: #6b7280;
   --cinza-500: #9ca3af;
+  --cinza-400: #b0b7c3;
   --cinza-300: #d1d5db;
   --cinza-200: #e5e7eb;
   --cinza-100: #f3f4f6;
@@ -108,6 +109,7 @@ html[data-tema="escuro"] {
   --cinza-700: #9ca3af;
   --cinza-600: #8b95a5;
   --cinza-500: #7a8494;
+  --cinza-400: #5b6575;
   --cinza-300: #4b5563;
   --cinza-200: #374151;
   --cinza-100: #243044;
@@ -141,6 +143,7 @@ html[data-tema="leitor"] {
   --cinza-700: #7A6F60;
   --cinza-600: #8A7F70;
   --cinza-500: #9A8F80;
+  --cinza-400: #b8ae9e;
   --cinza-300: #d4cbbd;
   --cinza-200: #e8e0d4;
   --cinza-100: #f5efe6;
@@ -172,6 +175,7 @@ html[data-tema="daltonismo"] {
   --cinza-700: #5b6470;
   --cinza-600: #4f5865;
   --cinza-500: #7b8593;
+  --cinza-400: #a0a8b4;
   --cinza-300: #d1d5db;
   --cinza-200: #e5e7eb;
   --cinza-100: #f3f4f6;
@@ -195,6 +199,7 @@ html[data-tema="custom"] {
   --cinza-700: #808080;
   --cinza-600: #6b7280;
   --cinza-500: #9ca3af;
+  --cinza-400: #b0b7c3;
   --cinza-300: #d1d5db;
   --cinza-200: #e5e7eb;
   --cinza-100: #f3f4f6;
@@ -439,6 +444,7 @@ html[data-acess-reduce-motion="true"] *::after {
   --cinza-700: #808080 !important;
   --cinza-600: #6b7280 !important;
   --cinza-500: #9ca3af !important;
+  --cinza-400: #b0b7c3 !important;
   --cinza-300: #d1d5db !important;
   --cinza-200: #e5e7eb !important;
   --cinza-100: #f3f4f6 !important;
@@ -680,6 +686,7 @@ html[data-tema="custom"] [data-admin] textarea::placeholder {
   --color-cinza-700: var(--cinza-700);
   --color-cinza-600: var(--cinza-600);
   --color-cinza-500: var(--cinza-500);
+  --color-cinza-400: var(--cinza-400);
   --color-cinza-300: var(--cinza-300);
   --color-cinza-200: var(--cinza-200);
   --color-cinza-100: var(--cinza-100);

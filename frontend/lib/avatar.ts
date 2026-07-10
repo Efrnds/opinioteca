@@ -2,22 +2,28 @@ import { temPlanoPro as temPlanoProDeId } from "@/lib/plano";
 import type { PlanoStatus } from "@/types/plano";
 
 const ACESSIBILIDADE_STORAGE_KEY = "opinioteca-acessibilidade";
-const previewsIndisponiveis = new Set<string>();
 const stillClientCache = new Map<string, Promise<string | null>>();
 
-/** Detecta avatar animado (GIF ou WebP animado salvo como .gif/.webp). */
+/** Detecta avatar GIF (extensão .gif) — usado no gate OpinioPro. */
 export function ehAvatarGif(url?: string | null): boolean {
     if (!url) return false;
-    if (/\.gif(\?|#|$)/i.test(url)) return true;
-    // Uploads de avatar em .webp também podem ser animados (VP8X).
+    return /\.gif(\?|#|$)/i.test(url);
+}
+
+/**
+ * Sob reduzir movimento, também congela WebP de avatar (pode ser animado).
+ * WebP estático vira still via canvas sem prejuízo visual.
+ */
+export function ehAvatarAnimadoParaAcessibilidade(url?: string | null): boolean {
+    if (!url) return false;
+    if (ehAvatarGif(url)) return true;
     if (/\/uploads\/avatars\/[^/?#]+\.webp(\?|#|$)/i.test(url)) return true;
     try {
         const parsed = new URL(url, "http://local");
-        if (/\/uploads\/avatars\/[^/?#]+\.webp$/i.test(parsed.pathname)) return true;
+        return /\/uploads\/avatars\/[^/?#]+\.webp$/i.test(parsed.pathname);
     } catch {
-        // ignore
+        return false;
     }
-    return false;
 }
 
 function reduzirMovimentoAtivo(): boolean {
@@ -37,17 +43,16 @@ function reduzirMovimentoAtivo(): boolean {
     }
 }
 
-export function reducaoMovimentoAtivaAgora(): boolean {
-    return reduzirMovimentoAtivo();
-}
-
 export function gifBloqueadoPorReducaoMovimento(imageUrl?: string | null): boolean {
-    if (!ehAvatarGif(imageUrl)) return false;
+    if (!ehAvatarAnimadoParaAcessibilidade(imageUrl)) return false;
     return reduzirMovimentoAtivo();
 }
 
 export function avatarGifPreviewUrl(imageUrl?: string | null): string | undefined {
-    if (!ehAvatarGif(imageUrl) || !imageUrl) return undefined;
+    if (!imageUrl) return undefined;
+    if (!ehAvatarGif(imageUrl) && !/\/uploads\/avatars\/[^/?#]+\.webp(\?|#|$)/i.test(imageUrl)) {
+        return undefined;
+    }
     if (imageUrl.startsWith("/uploads/avatars/")) {
         return imageUrl.replace(/\.(gif|webp)(\?|#|$)/i, ".still.png$2");
     }
@@ -61,30 +66,17 @@ export function avatarGifPreviewUrl(imageUrl?: string | null): string | undefine
     }
 }
 
-export function previewAvatarEstaMarcadoComoIndisponivel(url?: string | null): boolean {
-    if (!url) return false;
-    return previewsIndisponiveis.has(url);
-}
-
-export function marcarPreviewAvatarIndisponivel(url?: string | null) {
-    if (!url) return;
-    previewsIndisponiveis.add(url);
-}
-
-/** Limpa cache de stills falhos (ex.: ao ligar/desligar reduzir movimento). */
+/** Limpa cache de stills (ex.: ao ligar/desligar reduzir movimento). */
 export function limparCachePreviewAvatar() {
-    previewsIndisponiveis.clear();
     stillClientCache.clear();
 }
 
 /**
- * Gera um PNG estático (1º frame) no browser a partir da URL do GIF.
- * Browsers tipicamente desenham o primeiro frame ao usar drawImage com GIF.
+ * Gera um PNG estático (1º frame) no browser a partir da URL do GIF/WebP.
  */
 export function gerarStillClient(url: string): Promise<string | null> {
     if (typeof window === "undefined") return Promise.resolve(null);
 
-    // Preferir caminho same-origin (/uploads/...) para o canvas não ficar tainted por CORS.
     let urlCarregar = url;
     try {
         const parsed = new URL(url, window.location.origin);
@@ -106,7 +98,6 @@ export function gerarStillClient(url: string): Promise<string | null> {
     const promise = new Promise<string | null>((resolve) => {
         const img = new window.Image();
         img.decoding = "async";
-        // crossOrigin só em URL absoluta cross-origin; same-origin (/uploads) quebra o canvas se o proxy não mandar CORS.
         const sameOrigin =
             urlCarregar.startsWith("/") ||
             urlCarregar.startsWith(window.location.origin) ||
@@ -148,9 +139,22 @@ export function gerarStillClient(url: string): Promise<string | null> {
 }
 
 /**
- * GIF de perfil é exclusivo do OpinioPro. A URL permanece no banco quando o plano
- * expira ou é revogado; na interface exibimos avatar estático (iniciais) em vez do
- * GIF animado, evitando imagem quebrada e reativando a animação ao reassinar Pro.
+ * GIF ou WebP de avatar — exclusivo OpinioPro na exibição.
+ */
+export function ehAvatarAnimadoPro(url?: string | null): boolean {
+    if (!url) return false;
+    if (ehAvatarGif(url)) return true;
+    if (/\/uploads\/avatars\/[^/?#]+\.webp(\?|#|$)/i.test(url)) return true;
+    try {
+        const parsed = new URL(url, "http://local");
+        return /\/uploads\/avatars\/[^/?#]+\.webp$/i.test(parsed.pathname);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * GIF de perfil / WebP animado de avatar é exclusivo do OpinioPro.
  */
 export function podeExibirAvatarGif(
     imageUrl?: string | null,
@@ -158,7 +162,7 @@ export function podeExibirAvatarGif(
     plano?: PlanoStatus,
     temPlanoPro?: boolean,
 ): boolean {
-    if (!ehAvatarGif(imageUrl)) return true;
+    if (!ehAvatarAnimadoPro(imageUrl)) return true;
     if (gifBloqueadoPorReducaoMovimento(imageUrl)) return false;
     if (temPlanoPro != null) return temPlanoPro;
     if (plano) return plano.temPlanoPro;

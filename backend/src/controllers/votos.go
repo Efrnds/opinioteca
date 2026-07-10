@@ -156,6 +156,21 @@ func VotarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	avaliacaoPriv, erroPriv := repositorios.NovoRepositorioDeAvaliacoes(db).BuscarPorID(avaliacaoID)
+	if erroPriv != nil {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Avaliação não encontrada"))
+		return
+	}
+	podeVer, erroPriv := repositorios.PodeVerConteudoDoPerfil(db, votanteID, avaliacaoPriv.UsuarioID)
+	if erroPriv != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erroPriv)
+		return
+	}
+	if !podeVer {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Conteúdo indisponível"))
+		return
+	}
+
 	servico := servicos.NovoServicoVotos(db)
 	voto, erro := servico.Votar(votanteID, avaliacaoID, req.TipoVoto)
 	if erro != nil {

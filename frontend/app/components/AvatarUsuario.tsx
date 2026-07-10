@@ -1,9 +1,11 @@
 "use client";
 
 import {
+    avatarGifPreviewUrl,
+    ehAvatarAnimadoParaAcessibilidade,
+    ehAvatarAnimadoPro,
     ehAvatarGif,
     gerarStillClient,
-    limparCachePreviewAvatar,
     podeExibirAvatarGif,
 } from "@/lib/avatar";
 import { mediaUrl } from "@/lib/media";
@@ -22,7 +24,6 @@ type AvatarUsuarioProps = {
     size?: number;
     className?: string;
     inicialClassName?: string;
-    mostrarIndicadorPro?: boolean;
 };
 
 function AvatarInicial({
@@ -31,14 +32,12 @@ function AvatarInicial({
     className,
     inicialClassName,
     title,
-    mostrarPro,
 }: {
     inicial: string;
     size: number;
     className: string;
     inicialClassName: string;
     title?: string;
-    mostrarPro?: boolean;
 }) {
     return (
         <div
@@ -47,11 +46,6 @@ function AvatarInicial({
             title={title}
         >
             <span className={inicialClassName}>{inicial}</span>
-            {mostrarPro ? (
-                <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-violet-600 px-1 py-px text-[8px] font-gabarito-bold text-white ring-1 ring-white">
-                    Pro
-                </span>
-            ) : null}
         </div>
     );
 }
@@ -66,33 +60,37 @@ export default function AvatarUsuario({
     size = 44,
     className = "",
     inicialClassName = "",
-    mostrarIndicadorPro = false,
 }: AvatarUsuarioProps) {
     const inicial = (nome?.charAt(0) || nick?.charAt(0) || "?").toUpperCase();
     const src = mediaUrl(image);
-    const urlGif = image || src;
-    const ehGif = ehAvatarGif(urlGif) || ehAvatarGif(src);
+    const urlOrigem = image || src;
+    const ehGif = ehAvatarGif(urlOrigem) || ehAvatarGif(src);
+    const ehAnimadoPro = ehAvatarAnimadoPro(urlOrigem) || ehAvatarAnimadoPro(src);
+    const ehAnimadoA11y =
+        ehAvatarAnimadoParaAcessibilidade(urlOrigem) || ehAvatarAnimadoParaAcessibilidade(src);
+    const previewSrc = mediaUrl(avatarGifPreviewUrl(urlOrigem) ?? avatarGifPreviewUrl(src));
     const reducaoMovimentoAtiva = useReducaoMovimentoPreferida();
 
     const [stillClient, setStillClient] = useState<string | null>(null);
+    const [previewServidorFalhou, setPreviewServidorFalhou] = useState(false);
 
-    const gifBloqueadoAcessibilidade = Boolean(src && ehGif && reducaoMovimentoAtiva);
+    const gifBloqueadoAcessibilidade = Boolean(src && ehAnimadoA11y && reducaoMovimentoAtiva);
     const gifBloqueadoPlano = Boolean(
         src &&
-            ehGif &&
+            ehAnimadoPro &&
             !gifBloqueadoAcessibilidade &&
-            !podeExibirAvatarGif(urlGif, assinaturaId, plano, temPlanoPro),
+            !podeExibirAvatarGif(urlOrigem, assinaturaId, plano, temPlanoPro),
     );
     const gifBloqueado = gifBloqueadoAcessibilidade || gifBloqueadoPlano;
 
     useEffect(() => {
-        if (!gifBloqueado || !src || !ehGif) {
+        if (!gifBloqueado || !src) {
             setStillClient(null);
+            setPreviewServidorFalhou(false);
             return;
         }
 
         let cancelado = false;
-        limparCachePreviewAvatar();
         void gerarStillClient(src).then((dataUrl) => {
             if (!cancelado && dataUrl) setStillClient(dataUrl);
         });
@@ -100,7 +98,7 @@ export default function AvatarUsuario({
         return () => {
             cancelado = true;
         };
-    }, [gifBloqueado, src, ehGif]);
+    }, [gifBloqueado, src]);
 
     if (!src) {
         return (
@@ -113,7 +111,6 @@ export default function AvatarUsuario({
         );
     }
 
-    // Regra dura: com reduzir movimento / plano, nunca montar o <Image> do GIF.
     if (gifBloqueado) {
         if (stillClient) {
             return (
@@ -123,6 +120,21 @@ export default function AvatarUsuario({
                     alt={nome || nick || "Avatar"}
                     width={size}
                     height={size}
+                    className={`shrink-0 rounded-full object-cover ${className}`}
+                    style={{ width: size, height: size }}
+                />
+            );
+        }
+
+        if (previewSrc && !previewServidorFalhou) {
+            return (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                    src={previewSrc}
+                    alt={nome || nick || "Avatar"}
+                    width={size}
+                    height={size}
+                    onError={() => setPreviewServidorFalhou(true)}
                     className={`shrink-0 rounded-full object-cover ${className}`}
                     style={{ width: size, height: size }}
                 />
@@ -140,7 +152,6 @@ export default function AvatarUsuario({
                         ? "GIF de perfil disponível no OpinioPro"
                         : "GIF desativado por reduzir movimento"
                 }
-                mostrarPro={gifBloqueadoPlano && mostrarIndicadorPro}
             />
         );
     }
@@ -151,7 +162,7 @@ export default function AvatarUsuario({
             alt={nome || nick || "Avatar"}
             width={size}
             height={size}
-            unoptimized={ehGif}
+            unoptimized={ehGif || ehAnimadoPro || ehAnimadoA11y}
             className={`shrink-0 rounded-full object-cover ${className}`}
             style={{ width: size, height: size }}
         />

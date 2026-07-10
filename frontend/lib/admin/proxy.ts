@@ -1,5 +1,8 @@
 import { auth } from "@/auth";
+import { proxyResposta } from "@/lib/api-proxy";
 import { NextResponse } from "next/server";
+
+export { proxyResposta };
 
 export async function requireAdminSession() {
     const session = await auth();
@@ -13,23 +16,6 @@ export async function requireAdminSession() {
     }
 
     return { session } as const;
-}
-
-export async function proxyResposta(res: Response) {
-    if (res.status === 204) {
-        return new NextResponse(null, { status: res.status });
-    }
-
-    const texto = await res.text();
-    let data: unknown;
-
-    try {
-        data = texto ? JSON.parse(texto) : null;
-    } catch {
-        return NextResponse.json({ erro: "Resposta inválida do servidor" }, { status: res.status || 502 });
-    }
-
-    return NextResponse.json(data, { status: res.status });
 }
 
 export function adminFetch(path: string, token: string, init?: RequestInit) {

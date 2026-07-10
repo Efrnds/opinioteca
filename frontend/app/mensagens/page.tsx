@@ -8,6 +8,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { mediaUrl } from "@/lib/media";
+import { enviarImagemAnexo } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 import { parseNovaMensagem, type WsConversaLidaPayload, type WsMensagemApagadaPayload, type WsMensagemAtualizadaPayload } from "@/lib/ws/types";
 import type { ConversaResumo, Mensagem, MensagemResumo } from "@/types/mensagem";
@@ -577,17 +578,7 @@ function MensagensConteudo() {
     async function enviarImagem(): Promise<string | undefined> {
         if (!arquivoImagem) return undefined;
 
-        const formData = new FormData();
-        formData.append("imagem", arquivoImagem);
-
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        const data = await res.json();
-
-        if (!res.ok || !data.url) {
-            throw new Error(data.erro || "Não foi possível enviar a imagem.");
-        }
-
-        return data.url as string;
+        return enviarImagemAnexo(arquivoImagem);
     }
 
     function limparImagem() {

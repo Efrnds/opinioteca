@@ -2,6 +2,7 @@ package auth
 
 import (
 	"backend/src/config"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -99,10 +100,40 @@ func ExtrairUsuarioIDDoToken(tokenString string) (uint64, error) {
 }
 
 func ExtrairTokenDaRequisicao(r *http.Request) string {
-	if token := extrairToken(r); token != "" {
-		return token
+	token, _ := ExtrairTokenWebSocket(r)
+	return token
+}
+
+// ExtrairTokenWebSocket lê Bearer, depois Sec-WebSocket-Protocol (jwt.<base64url>),
+// e por último ?token= (legado — evitar; vaza em logs).
+// O segundo retorno é o subprotocolo a ecoar no upgrade, se houver.
+func ExtrairTokenWebSocket(r *http.Request) (token string, protocolEcho string) {
+	if t := extrairToken(r); t != "" {
+		return t, ""
 	}
-	return r.URL.Query().Get("token")
+
+	for _, raw := range strings.Split(r.Header.Get("Sec-WebSocket-Protocol"), ",") {
+		p := strings.TrimSpace(raw)
+		if p == "" {
+			continue
+		}
+		if strings.HasPrefix(p, "jwt.") {
+			encoded := strings.TrimPrefix(p, "jwt.")
+			decoded, erro := base64.RawURLEncoding.DecodeString(encoded)
+			if erro != nil {
+				decoded, erro = base64.URLEncoding.DecodeString(encoded)
+			}
+			if erro == nil && len(decoded) > 0 {
+				return string(decoded), p
+			}
+		}
+	}
+
+	// Legado: query string (será removido quando o front só usar subprotocolo).
+	if q := strings.TrimSpace(r.URL.Query().Get("token")); q != "" {
+		return q, ""
+	}
+	return "", ""
 }
 
 func retornarChaveDeVerificacao(token *jwt.Token) (interface{}, error) {

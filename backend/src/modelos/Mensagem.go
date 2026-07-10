@@ -61,6 +61,12 @@ func (req *EnviarMensagemRequest) Preparar() error {
 	if req.Conteudo == "" && req.AnexoURL == "" {
 		return errors.New("Informe o texto ou um anexo")
 	}
+	if req.Conteudo != "" && textoContemLink(req.Conteudo) {
+		return errors.New("Links não são permitidos em mensagens")
+	}
+	if erro := ValidarURLAnexo(req.AnexoURL); erro != nil {
+		return erro
+	}
 	return nil
 }
 
@@ -68,6 +74,9 @@ func (req *EditarMensagemRequest) Preparar() error {
 	req.Conteudo = strings.TrimSpace(req.Conteudo)
 	if req.Conteudo == "" {
 		return errors.New("O conteúdo não pode ser vazio")
+	}
+	if textoContemLink(req.Conteudo) {
+		return errors.New("Links não são permitidos em mensagens")
 	}
 	return nil
 }

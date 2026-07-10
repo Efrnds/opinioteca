@@ -315,7 +315,11 @@ func BuscarAvaliacoesPorLivro(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repoAvaliacoes := repositorios.NovoRepositorioDeAvaliacoes(db)
-	feed, erro := repoAvaliacoes.BuscarFeedPorLivro(livroID)
+	var viewerID uint64
+	if uid := usuarioIDDoTokenOpcional(r); uid != nil {
+		viewerID = *uid
+	}
+	feed, erro := repoAvaliacoes.BuscarFeedPorLivro(livroID, viewerID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return

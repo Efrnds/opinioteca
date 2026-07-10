@@ -31,7 +31,7 @@ const DEBOUNCE_MS = 500;
 const MIN_CARACTERES_BUSCA = 2;
 
 const inputClassName =
-    "w-full px-4 py-2 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
+    "w-full px-4 py-2 border-2 border-cinza-300 rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
 function chaveLivro(livro: LivroBusca) {
     return `${livro.origem}-${livro.id ?? livro.google_volume_id}`;

@@ -27,7 +27,7 @@ type AuthModalProps = {
 };
 
 const inputClassName =
-    "w-full px-4 py-1 border-2 border-[#515151] rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
+    "w-full px-4 py-1 border-2 border-cinza-300 rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
 export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackUrl }: AuthModalProps) {
     const { startAuthTransition, endAuthTransition } = useAuthTransition();
@@ -221,8 +221,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
         startAuthTransition();
 
         try {
-            const imageUrl = await enviarImagem();
-
+            // Cadastro sem foto — upload exige sessão.
             const res = await fetch("/api/cadastro", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -231,7 +230,6 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                     nick,
                     email,
                     senha: password,
-                    ...(imageUrl ? { image: imageUrl } : {}),
                 }),
             });
 
@@ -258,11 +256,26 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 return;
             }
 
+            if (imagem) {
+                try {
+                    const imageUrl = await enviarImagem();
+                    if (imageUrl) {
+                        await fetch(`/api/usuarios/${encodeURIComponent(nick)}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ nome, nick, email, image: imageUrl }),
+                        });
+                    }
+                } catch {
+                    // Conta já criada — segue login mesmo se a foto falhar.
+                }
+            }
+
             await concluirLoginComSucesso();
         } catch (uploadErro) {
             setCarregando(false);
             endAuthTransition();
-            setErro(uploadErro instanceof Error ? uploadErro.message : "Erro ao enviar imagem.");
+            setErro(uploadErro instanceof Error ? uploadErro.message : "Erro ao criar conta.");
         }
     }
 
@@ -397,7 +410,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                             <input
                                                 id={inputImagemId}
                                                 type="file"
-                                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                                accept="image/jpeg,image/png,image/webp"
                                                 onChange={handleSelecionarImagem}
                                                 className="hidden"
                                             />

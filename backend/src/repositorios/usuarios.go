@@ -209,7 +209,7 @@ func (repositorio Usuarios) Criar(usuario modelos.Usuario) (uint64, error) {
 	return uint64(id), nil
 }
 
-// Buscar tras todos os usuários que correspondem ao nome ou nick fornecido, retornando uma lista de usuários e um erro, se houver.
+// Buscar traz todos os usuários que correspondem ao nome ou nick fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error) {
 	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick)
 

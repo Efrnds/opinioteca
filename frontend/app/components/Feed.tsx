@@ -211,7 +211,7 @@ export default function Feed() {
             valor={aba}
             onChange={trocarAba}
             opcoes={[
-                { valor: "forYou", rotulo: "For You" },
+                { valor: "forYou", rotulo: "Para você" },
                 { valor: "seguindo", rotulo: "Seguindo" },
             ]}
         />

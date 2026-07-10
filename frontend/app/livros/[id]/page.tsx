@@ -162,7 +162,7 @@ export default function LivroPage() {
                     <h1 className="truncate font-gabarito-bold text-xl text-azul-900">{livro.titulo}</h1>
                 </div>
 
-                <div className="flex justify-between rounded-xl bg-[#3f3f42] p-4">
+                <div className="flex justify-between rounded-xl bg-cinza-200 p-4">
                     <div className="flex gap-4">
                         {mediaUrl(livro.capa_url) ? (
                             <Image

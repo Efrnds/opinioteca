@@ -3,7 +3,7 @@ import { ShieldCheck } from "lucide-react";
 
 type BadgeRankProps = {
     rank?: number | null;
-    /** Se false, oculta quando rank é 0/ausente. Default: true. */
+    /** Se true (padrão), oculta quando rank é 0/ausente. */
     ocultarSeZero?: boolean;
     className?: string;
     compact?: boolean;
@@ -26,7 +26,7 @@ export default function BadgeRank({
                 compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]",
                 className,
             )}
-            title="Rank de confiabilidade: baseado nos votos das suas avaliações"
+            title="Rank de confiabilidade: baseado nos votos das avaliações"
         >
             <ShieldCheck className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} aria-hidden />
             <span>{valor}</span>
