@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Box from "./Box";
+import MomentumCarousel, { type MomentumCarouselApi } from "./MomentumCarousel";
 
 type UsuarioSugerido = {
     id: number;
@@ -19,29 +20,37 @@ type UsuarioSugerido = {
 
 type Variante = "pagina" | "lateral";
 
+const CARD_PAGINA = { width: 112, gap: 12 } as const;
+const CARD_LATERAL = { width: 44, gap: 6 } as const;
+
 function CapaLivro({
     livro,
     compact,
     mini,
+    carousel,
 }: {
     livro: LivroPublico;
     compact?: boolean;
     mini?: boolean;
+    carousel?: MomentumCarouselApi;
 }) {
     const capa = mediaUrl(livro.capa_url);
     return (
         <Link
             href={`/livros/${livro.id}`}
             title={livro.titulo}
+            onClick={carousel?.impedirCliqueSeArrastou}
             className={cn(
                 "group flex shrink-0 flex-col",
                 mini ? "w-11 gap-0" : compact ? "w-20 gap-1.5" : "w-28 gap-2",
+                carousel?.arrastando && "pointer-events-none",
             )}
         >
             <div
                 className={cn(
                     "relative w-full overflow-hidden bg-azul-200",
                     mini ? "aspect-[2/3] rounded-md" : "aspect-[2/3] rounded-lg",
+                    carousel?.arrastando && "pointer-events-none",
                 )}
             >
                 {capa ? (
@@ -50,12 +59,13 @@ function CapaLivro({
                         alt={livro.titulo}
                         fill
                         unoptimized
-                        className="object-cover transition group-hover:scale-105"
+                        draggable={false}
+                        className="pointer-events-none object-cover transition group-hover:scale-105"
                     />
                 ) : (
                     <div
                         className={cn(
-                            "flex h-full items-center justify-center p-1 text-center font-gabarito-medium text-azul-700",
+                            "pointer-events-none flex h-full items-center justify-center p-1 text-center font-gabarito-medium text-azul-700",
                             mini ? "text-[9px] leading-tight" : "p-2 text-xs",
                         )}
                     >
@@ -66,7 +76,7 @@ function CapaLivro({
             {!mini && (
                 <p
                     className={cn(
-                        "line-clamp-2 font-gabarito-medium text-azul-900",
+                        "pointer-events-none line-clamp-2 font-gabarito-medium text-azul-900",
                         compact ? "text-xs" : "text-sm",
                     )}
                 >
@@ -127,21 +137,24 @@ function SecaoLivros({
                     Nada por aqui ainda.
                 </p>
             ) : (
-                <div
-                    className={cn(
-                        "flex overflow-x-auto scrollbar-thin",
-                        lateral ? "gap-1.5 pb-0" : "gap-3 pb-1",
-                    )}
+                <MomentumCarousel
+                    itemCount={livros.length}
+                    itemWidth={lateral ? CARD_LATERAL.width : CARD_PAGINA.width}
+                    gap={lateral ? CARD_LATERAL.gap : CARD_PAGINA.gap}
+                    className={lateral ? undefined : "pb-1"}
                 >
-                    {livros.map((livro) => (
-                        <CapaLivro
-                            key={livro.id}
-                            livro={livro}
-                            compact={lateral}
-                            mini={lateral}
-                        />
-                    ))}
-                </div>
+                    {(carousel) =>
+                        livros.map((livro) => (
+                            <CapaLivro
+                                key={livro.id}
+                                livro={livro}
+                                compact={lateral}
+                                mini={lateral}
+                                carousel={carousel}
+                            />
+                        ))
+                    }
+                </MomentumCarousel>
             )}
         </Box>
     );

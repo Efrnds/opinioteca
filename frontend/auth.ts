@@ -1,11 +1,40 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import {
+    opiniotecaCookieNames,
+    opiniotecaCookieOptions,
+    useSecureAuthCookies,
+} from "@/lib/auth-cookies";
 import { mediaUrl } from "@/lib/media";
 
 /** Alinhado ao JWT do backend (6h). Sessões longas deixavam identidade “fantasma” em browsers compartilhados. */
 const SESSION_MAX_AGE_SEC = 60 * 60 * 6;
 
+const secureCookies = useSecureAuthCookies();
+const cookieNames = opiniotecaCookieNames(secureCookies);
+const cookieOpts = opiniotecaCookieOptions(secureCookies);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
+    /**
+     * Cookies host-only (sem `domain`) + nomes únicos da Opinioteca.
+     * Em produção: prefixo `__Host-` (Secure + Path=/ + sem Domain).
+     * Nunca reutilize AUTH_SECRET com calmera-os / outros apps em prismapp.
+     */
+    cookies: {
+        sessionToken: {
+            name: cookieNames.sessionToken,
+            options: cookieOpts,
+        },
+        callbackUrl: {
+            name: cookieNames.callbackUrl,
+            options: cookieOpts,
+        },
+        csrfToken: {
+            name: cookieNames.csrfToken,
+            options: cookieOpts,
+        },
+    },
+    useSecureCookies: secureCookies,
     providers: [
         CredentialsProvider({
             name: "Credentials",

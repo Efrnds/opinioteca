@@ -7,6 +7,10 @@ import { SCRIPT_TEMA_ANTES_PAINT } from "@/lib/tema";
 
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
 
+/** Evita cache de HTML/RSC com sessão embutida (session bleed via proxy/CDN). */
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export const metadata: Metadata = {
     title: "Opinioteca",
     description: "A rede social para amantes de livros.",

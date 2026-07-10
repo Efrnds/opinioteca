@@ -6,10 +6,9 @@ import type { TemaAparencia } from "@/types/configuracao";
 import { coresTextoSobreFundo, resolverTomDestaque50 } from "@/lib/tema";
 import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
-import { motion, useMotionValue, type PanInfo } from "framer-motion";
 import Image from "next/image";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useConfiguracoes } from "./ConfiguracoesProvider";
+import MomentumCarousel from "./MomentumCarousel";
 
 type EstanteCarouselProps = {
     livros: EstanteItem[];
@@ -22,10 +21,6 @@ type EstanteCarouselProps = {
 
 const CARD_WIDTH = 140;
 const CARD_GAP = 16;
-/** Qualquer deslocamento acima disso conta como arraste (não clique). */
-const DRAG_THRESHOLD_PX = 6;
-/** Mantém o bloqueio de clique após o drag acabar (ciclo de click/pointerup). */
-const SUPPRESS_CLICK_MS = 120;
 
 export default function EstanteCarousel({
     livros,
@@ -34,13 +29,6 @@ export default function EstanteCarousel({
     dica = "Arraste ou toque em um livro para registrar a leitura de hoje",
 }: EstanteCarouselProps) {
     const { config } = useConfiguracoes();
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [arrastando, setArrastando] = useState(false);
-    const [dragConstraints, setDragConstraints] = useState({ left: 0, right: 0 });
-    const x = useMotionValue(0);
-    /** Fica true do primeiro movimento até depois do ciclo de click. */
-    const bloquearCliqueRef = useRef(false);
-    const limparBloqueioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const coresEmpty = coresTextoSobreFundo(
         resolverTomDestaque50({
@@ -56,98 +44,6 @@ export default function EstanteCarousel({
     const lista = apenasAtivos
         ? livros.filter((item) => item.status !== "lido" && item.porcentagem_atual < 100)
         : livros;
-    const listaLength = lista.length;
-
-    const atualizarConstraints = useCallback(() => {
-        const container = containerRef.current;
-        if (!container || listaLength === 0) {
-            setDragConstraints({ left: 0, right: 0 });
-            return;
-        }
-        const totalWidth = listaLength * CARD_WIDTH + (listaLength - 1) * CARD_GAP;
-        const overflow = Math.max(0, totalWidth - container.clientWidth);
-        setDragConstraints({ left: -overflow, right: 0 });
-
-        // Mantém o strip dentro dos limites se a lista encolher.
-        const atual = x.get();
-        if (atual < -overflow) {
-            x.set(-overflow);
-        } else if (atual > 0) {
-            x.set(0);
-        }
-    }, [listaLength, x]);
-
-    useLayoutEffect(() => {
-        atualizarConstraints();
-    }, [atualizarConstraints]);
-
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const observer = new ResizeObserver(() => atualizarConstraints());
-        observer.observe(container);
-        return () => observer.disconnect();
-    }, [atualizarConstraints]);
-
-    useEffect(() => {
-        return () => {
-            if (limparBloqueioTimerRef.current) {
-                clearTimeout(limparBloqueioTimerRef.current);
-            }
-        };
-    }, []);
-
-    function agendarLiberacaoClique() {
-        if (limparBloqueioTimerRef.current) {
-            clearTimeout(limparBloqueioTimerRef.current);
-        }
-        limparBloqueioTimerRef.current = setTimeout(() => {
-            bloquearCliqueRef.current = false;
-            limparBloqueioTimerRef.current = null;
-        }, SUPPRESS_CLICK_MS);
-    }
-
-    function marcarArraste(info: PanInfo) {
-        if (
-            Math.abs(info.offset.x) > DRAG_THRESHOLD_PX ||
-            Math.abs(info.offset.y) > DRAG_THRESHOLD_PX ||
-            Math.abs(info.velocity.x) > 200
-        ) {
-            bloquearCliqueRef.current = true;
-            setArrastando(true);
-        }
-    }
-
-    function handleDragStart() {
-        if (limparBloqueioTimerRef.current) {
-            clearTimeout(limparBloqueioTimerRef.current);
-            limparBloqueioTimerRef.current = null;
-        }
-        bloquearCliqueRef.current = false;
-        setArrastando(false);
-    }
-
-    function handleDrag(_: unknown, info: PanInfo) {
-        marcarArraste(info);
-    }
-
-    function handleDragEnd(_: unknown, info: PanInfo) {
-        marcarArraste(info);
-        setArrastando(false);
-
-        // Mantém o bloqueio até depois do click sintético pós-drag.
-        if (bloquearCliqueRef.current) {
-            agendarLiberacaoClique();
-        }
-    }
-
-    function handleSelecionar(item: EstanteItem) {
-        if (bloquearCliqueRef.current || arrastando) {
-            return;
-        }
-        onSelecionar(item);
-    }
 
     if (lista.length === 0) {
         return (
@@ -164,29 +60,18 @@ export default function EstanteCarousel({
 
     return (
         <div className="flex flex-col gap-3">
-            <div ref={containerRef} className="relative overflow-hidden px-1">
-                <motion.div
-                    className="flex cursor-grab touch-pan-y active:cursor-grabbing"
-                    style={{ x, gap: CARD_GAP }}
-                    drag="x"
-                    dragConstraints={dragConstraints}
-                    dragElastic={0.08}
-                    dragMomentum
-                    dragTransition={{
-                        power: 0.55,
-                        timeConstant: 280,
-                        bounceStiffness: 280,
-                        bounceDamping: 36,
-                    }}
-                    onDragStart={handleDragStart}
-                    onDrag={handleDrag}
-                    onDragEnd={handleDragEnd}
-                >
-                    {lista.map((item) => (
+            <MomentumCarousel
+                itemCount={lista.length}
+                itemWidth={CARD_WIDTH}
+                gap={CARD_GAP}
+                className="px-1"
+            >
+                {({ arrastando, protegerClique }) =>
+                    lista.map((item) => (
                         <button
                             key={item.livro.id}
                             type="button"
-                            onClick={() => handleSelecionar(item)}
+                            onClick={protegerClique(() => onSelecionar(item))}
                             className={cn(
                                 "group flex w-[140px] shrink-0 flex-col gap-2 rounded-2xl bg-background p-2 text-left transition hover:shadow-md",
                                 arrastando && "pointer-events-none",
@@ -231,9 +116,9 @@ export default function EstanteCarousel({
                                 {ROTULOS_STATUS_ESTANTE[item.status]}
                             </span>
                         </button>
-                    ))}
-                </motion.div>
-            </div>
+                    ))
+                }
+            </MomentumCarousel>
 
             {dica ? (
                 <p className="text-center font-gabarito-regular text-xs text-cinza-700">{dica}</p>

@@ -20,6 +20,23 @@ Esta é a documentação oficial do backend do TCC Opinioteca, nele você pode e
 ### Parar banco e recriar o schema do zero (Apaga os dados atuais!)
 `docker compose down -v && docker compose up -d`
 
+### Session bleed / “já logado como outra pessoa” (Nginx Proxy Manager)
+
+Sintoma crítico: alguém que **nunca** abriu a Opinioteca entra e já está autenticado como outro usuário; ou após login cai na conta errada.
+
+**Causa #1 (mais provável):** no Proxy Host do NPM, **Cache Assets = ON**. Isso pode cachear HTML/RSC, `/api/auth/session` e até respostas com `Set-Cookie`, servindo a sessão de A para B.
+
+Checklist NPM (`opinioteca.prismapp.com.br`):
+1. **Cache Assets: OFF** (desligar por completo neste host)
+2. Purge/clear cache do host
+3. Force SSL: ON
+4. Custom location `/ws` → backend Go com Upgrade (ver abaixo)
+5. Confirmar que **não** há cache em `/api/auth/*`
+
+**Causa #2:** `AUTH_SECRET` compartilhado com calmera-os (ou outro app) **e** cookie com `Domain=.prismapp.com.br`. O front agora usa cookies host-only `__Host-opinioteca.*` — ainda assim **gere um `AUTH_SECRET` exclusivo** para a Opinioteca e redeploy.
+
+O middleware/Next envia `Cache-Control: private, no-store` e valida identidade contra o backend em `/api/auth/validate-identity`.
+
 ### WebSocket em produção (`wss://.../ws` falha no browser)
 
 O front (autenticado) conecta em `wss://SEU_DOMINIO/ws?token=JWT`. Isso **não é login** — o JWT já existe; o WS só serve notificações/mensagens em tempo real. Se o WS cair, o app continua via REST (badges carregam no load; não atualizam ao vivo).

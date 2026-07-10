@@ -711,6 +711,17 @@ html[data-tema="custom"] [data-admin] textarea::placeholder {
   }
 }
 
+/*
+ * Sticky side columns (lg+): clear the sticky header, then leave a gap.
+ * Header @ lg: md:p-4 (2rem) + search (border-4 + p-2 + h-6 = 4.5rem) + border-b-2 (0.125rem).
+ * Gap matches the lg column gutter (gap-4 / 1rem).
+ */
+:root {
+  --layout-header-height: 6.625rem;
+  --layout-sticky-gap: 1rem;
+  --layout-sticky-top: calc(var(--layout-header-height) + var(--layout-sticky-gap));
+}
+
 /* Short viewports: slightly denser page rhythm without nested scroll hell */
 @media (max-height: 900px) {
   .layout-sidebar {

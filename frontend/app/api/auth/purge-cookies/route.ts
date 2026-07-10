@@ -1,24 +1,12 @@
+import { AUTH_COOKIE_BASES } from "@/lib/auth-cookies";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const BASES = [
-    "authjs.session-token",
-    "__Secure-authjs.session-token",
-    "authjs.callback-url",
-    "__Secure-authjs.callback-url",
-    "authjs.csrf-token",
-    "__Host-authjs.csrf-token",
-    "next-auth.session-token",
-    "__Secure-next-auth.session-token",
-    "next-auth.callback-url",
-    "__Secure-next-auth.callback-url",
-    "next-auth.csrf-token",
-    "__Host-next-auth.csrf-token",
-];
+export const dynamic = "force-dynamic";
 
 function nomesParaExpirar(existentes: string[]) {
     const nomes = new Set<string>();
-    for (const base of BASES) {
+    for (const base of AUTH_COOKIE_BASES) {
         nomes.add(base);
         for (let i = 0; i < 10; i++) {
             nomes.add(`${base}.${i}`);
@@ -26,9 +14,10 @@ function nomesParaExpirar(existentes: string[]) {
     }
     for (const name of existentes) {
         if (
+            name.includes("opinioteca") ||
             name.includes("authjs") ||
             name.includes("next-auth") ||
-            BASES.some((b) => name === b || name.startsWith(`${b}.`))
+            AUTH_COOKIE_BASES.some((b) => name === b || name.startsWith(`${b}.`))
         ) {
             nomes.add(name);
         }
@@ -42,9 +31,12 @@ export async function POST() {
     const existentes = jar.getAll().map((c) => c.name);
     const nomes = nomesParaExpirar(existentes);
     const res = NextResponse.json({ ok: true });
+    res.headers.set("Cache-Control", "private, no-store, no-cache, max-age=0, must-revalidate");
 
     for (const name of nomes) {
         const secure = name.startsWith("__Secure-") || name.startsWith("__Host-");
+        // Sem `domain` → host-only (não pode limpar cookie com Domain=.prismapp se existir;
+        // nesse caso o ops deve apagar manualmente / rotacionar secret).
         res.cookies.set(name, "", {
             httpOnly: true,
             path: "/",

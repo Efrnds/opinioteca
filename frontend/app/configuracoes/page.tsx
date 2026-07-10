@@ -1252,7 +1252,7 @@ function ConfiguracoesConteudo() {
 
     return (
         <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-4 xl:gap-6 2xl:gap-8">
-            <aside className="w-full shrink-0 lg:sticky lg:top-16 lg:w-56 xl:w-64 2xl:w-72">
+            <aside className="w-full shrink-0 lg:sticky lg:top-[var(--layout-sticky-top)] lg:max-h-[calc(100dvh-var(--layout-sticky-top))] lg:w-56 xl:w-64 2xl:w-72">
                 <Box className="flex flex-col gap-1.5 !p-3 sm:!p-3.5">
                     <h1 className="px-3 py-2.5 font-gabarito-bold text-lg text-azul-900 sm:text-xl">
                         Configurações

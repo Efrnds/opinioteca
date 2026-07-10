@@ -25,9 +25,9 @@ export default function Main({ children }: { children: React.ReactNode }) {
     const mostrarAvisoAssinatura = !isMensagens && !isAdmin && !isConfiguracoes;
     const { modoZen } = usePlano();
 
-    // Fixed viewport height + overflow on the aside → one scrollbar; children can flex-fill
+    // Sticky below header + gap (--layout-sticky-top); viewport height matches that offset
     const sidebarClass =
-        "layout-sidebar sticky top-16 hidden h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] shrink-0 flex-col overflow-y-auto overscroll-contain py-3 lg:flex lg:w-56 xl:w-64 xl:py-4 2xl:w-72";
+        "layout-sidebar sticky top-[var(--layout-sticky-top)] hidden h-[calc(100dvh-var(--layout-sticky-top))] max-h-[calc(100dvh-var(--layout-sticky-top))] shrink-0 flex-col overflow-y-auto overscroll-contain py-3 lg:flex lg:w-56 xl:w-64 xl:py-4 2xl:w-72";
 
     return (
         <main
