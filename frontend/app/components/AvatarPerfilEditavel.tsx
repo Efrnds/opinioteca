@@ -15,6 +15,7 @@ type AvatarPerfilEditavelProps = {
     nick: string;
     email: string;
     image?: string;
+    banner?: string;
     onAtualizado: (image?: string) => void;
 };
 
@@ -27,6 +28,7 @@ export default function AvatarPerfilEditavel({
     nick,
     email,
     image,
+    banner,
     onAtualizado,
 }: AvatarPerfilEditavelProps) {
     const { update } = useSession();
@@ -38,8 +40,8 @@ export default function AvatarPerfilEditavel({
     const [ctaGifAberto, setCtaGifAberto] = useState(false);
 
     const inicial = nome?.charAt(0).toUpperCase() || nick.charAt(0).toUpperCase();
-    const exibirGif = image && podeExibirAvatarGif(image, undefined, undefined, temPro);
-    const avatarEhGif = image && ehAvatarGif(image);
+    const avatarEhGif = Boolean(image && ehAvatarGif(image));
+    const exibirImagem = Boolean(image && podeExibirAvatarGif(image, undefined, undefined, temPro));
 
     async function handleArquivo(arquivo: File) {
         if (arquivoEhGif(arquivo) && !temPro) {
@@ -60,7 +62,7 @@ export default function AvatarPerfilEditavel({
             const res = await fetch(`/api/usuarios/${encodeURIComponent(nick)}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nome, nick, email, image: novaUrl }),
+                body: JSON.stringify({ nome, nick, email, image: novaUrl, banner }),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
@@ -89,13 +91,13 @@ export default function AvatarPerfilEditavel({
                 className="group relative h-24 w-24 shrink-0 cursor-pointer"
                 title="Alterar foto de perfil"
             >
-                {exibirGif ? (
+                {exibirImagem ? (
                     <Image
                         src={mediaUrl(image)!}
                         alt={nome}
                         width={96}
                         height={96}
-                        unoptimized={!!avatarEhGif}
+                        unoptimized={avatarEhGif}
                         className="h-24 w-24 rounded-full border-4 border-white object-cover"
                     />
                 ) : (
@@ -113,7 +115,7 @@ export default function AvatarPerfilEditavel({
                 {!temPro && (
                     <span
                         className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-white ring-2 ring-white"
-                        title="GIF no perfil — OpinioPro"
+                        title="GIF no perfil (OpinioPro)"
                         onClick={(e) => {
                             e.preventDefault();
                             setCtaGifAberto(true);

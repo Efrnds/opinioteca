@@ -8,9 +8,14 @@ import { useWebSocket } from "./WebSocketProvider";
 import PostCard from "./PostCard";
 import SeletorPilula from "./SeletorPilula";
 
-const LIMITE = 10;
+const LIMITE = 20;
 
 type AbaFeed = "forYou" | "seguindo";
+
+type FeedPaginaResposta = {
+    itens: AvaliacaoFeed[];
+    next_cursor: string | null;
+};
 
 type AvaliacaoAtualizadaWS = {
     avaliacao_id: number;
@@ -40,12 +45,13 @@ export default function Feed() {
     const [posts, setPosts] = useState<AvaliacaoFeed[]>([]);
     const [carregando, setCarregando] = useState(true);
     const [carregandoMais, setCarregandoMais] = useState(false);
-    const [temMais, setTemMais] = useState(true);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
     const [erro, setErro] = useState("");
     const carregandoRef = useRef(false);
     const abaRef = useRef<AbaFeed>("forYou");
+    const nextCursorRef = useRef<string | null>(null);
 
-    const carregarFeed = useCallback(async (offset: number, append: boolean, tipoAba: AbaFeed = abaRef.current) => {
+    const carregarFeed = useCallback(async (cursor: string | null, append: boolean, tipoAba: AbaFeed = abaRef.current) => {
         if (carregandoRef.current) return;
         carregandoRef.current = true;
 
@@ -53,9 +59,16 @@ export default function Feed() {
         else setCarregando(true);
 
         const tipo = tipoAba === "seguindo" ? "seguindo" : "foryou";
+        const params = new URLSearchParams({
+            limite: String(LIMITE),
+            tipo,
+        });
+        if (cursor) {
+            params.set("cursor", cursor);
+        }
 
         try {
-            const res = await fetch(`/api/avaliacoes?limite=${LIMITE}&offset=${offset}&tipo=${tipo}`);
+            const res = await fetch(`/api/avaliacoes?${params.toString()}`);
             const data = await res.json();
 
             if (!res.ok) {
@@ -63,14 +76,18 @@ export default function Feed() {
                 return;
             }
 
-            if (!Array.isArray(data)) {
+            if (!data || !Array.isArray(data.itens)) {
                 setErro("Formato inesperado do feed. Verifique se o backend está atualizado.");
                 return;
             }
 
-            const normalizados = (data as AvaliacaoFeed[]).map(normalizarPostFeed);
+            const pagina = data as FeedPaginaResposta;
+            const normalizados = pagina.itens.map(normalizarPostFeed);
+            const cursorProximo = pagina.next_cursor ?? null;
+
             setPosts((atual) => (append ? [...atual, ...normalizados] : normalizados));
-            setTemMais(data.length === LIMITE);
+            nextCursorRef.current = cursorProximo;
+            setNextCursor(cursorProximo);
             setErro("");
         } catch {
             setErro("Não foi possível carregar o feed.");
@@ -87,21 +104,24 @@ export default function Feed() {
             abaRef.current = novaAba;
             setAba(novaAba);
             setPosts([]);
-            setTemMais(true);
-            carregarFeed(0, false, novaAba);
+            nextCursorRef.current = null;
+            setNextCursor(null);
+            carregarFeed(null, false, novaAba);
         },
         [carregarFeed],
     );
 
     useEffect(() => {
         setPosts([]);
-        setTemMais(true);
+        nextCursorRef.current = null;
+        setNextCursor(null);
         setErro("");
-        carregarFeed(0, false);
+        carregarFeed(null, false);
 
         function onRefresh() {
-            setTemMais(true);
-            carregarFeed(0, false);
+            nextCursorRef.current = null;
+            setNextCursor(null);
+            carregarFeed(null, false);
         }
 
         window.addEventListener("feed:refresh", onRefresh);
@@ -167,13 +187,13 @@ export default function Feed() {
     }, []);
 
     useEffect(() => {
-        if (!temMais || carregando || carregandoMais || posts.length === 0) return;
+        if (!nextCursor || carregando || carregandoMais || posts.length === 0) return;
 
         const observador = new IntersectionObserver(
             (entradas) => {
                 const [entrada] = entradas;
-                if (entrada.isIntersecting) {
-                    carregarFeed(posts.length, true);
+                if (entrada.isIntersecting && nextCursorRef.current) {
+                    carregarFeed(nextCursorRef.current, true);
                 }
             },
             { rootMargin: "120px" },
@@ -183,7 +203,7 @@ export default function Feed() {
         if (alvo) observador.observe(alvo);
 
         return () => observador.disconnect();
-    }, [posts.length, temMais, carregando, carregandoMais, carregarFeed]);
+    }, [posts.length, nextCursor, carregando, carregandoMais, carregarFeed]);
 
     const abas = (
         <SeletorPilula
@@ -248,8 +268,13 @@ export default function Feed() {
                 />
             ))}
             <div id="feed-lazy-sentinel" className="h-8" />
-            {carregandoMais && <div className="h-24 animate-pulse rounded-2xl bg-white/70" />}
-            {!temMais && posts.length > 0 && (
+            {carregandoMais && (
+                <div className="flex flex-col gap-2">
+                    <p className="text-center font-gabarito-regular text-sm text-cinza-700">Carregando...</p>
+                    <div className="h-24 animate-pulse rounded-2xl bg-white/70" />
+                </div>
+            )}
+            {!nextCursor && posts.length > 0 && (
                 <p className="py-2 text-center font-gabarito-regular text-sm text-cinza-700">Você chegou ao fim do feed.</p>
             )}
         </div>

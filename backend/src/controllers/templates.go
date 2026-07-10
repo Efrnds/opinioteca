@@ -40,6 +40,8 @@ func ListarTemplatesResenha(w http.ResponseWriter, r *http.Request) {
 
 // AdminListarTemplates lista todos os templates (admin).
 func AdminListarTemplates(w http.ResponseWriter, r *http.Request) {
+	pagina, limite, offset := paginacaoAdmin(r)
+
 	db, erro := banco.Conectar()
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -48,7 +50,7 @@ func AdminListarTemplates(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeTemplates(db)
-	templates, erro := repositorio.ListarAdmin()
+	templates, total, erro := repositorio.ListarAdminPaginado(limite, offset)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
@@ -56,7 +58,12 @@ func AdminListarTemplates(w http.ResponseWriter, r *http.Request) {
 	if templates == nil {
 		templates = []modelos.Template{}
 	}
-	respostas.JSON(w, http.StatusOK, templates)
+	respostas.JSON(w, http.StatusOK, modelos.RespostaPaginada{
+		Itens:  templates,
+		Total:  total,
+		Pagina: pagina,
+		Limite: limite,
+	})
 }
 
 // AdminBuscarTemplatePorID retorna um template pelo ID (admin).

@@ -4,6 +4,13 @@ import {
     CONFIG_PADRAO,
     type ConfiguracaoUsuario,
 } from "@/types/configuracao";
+import {
+    aplicarTemaNoDocumento,
+    ehPathnameAdmin,
+    limparTemaNoDocumento,
+    preferenciaPadrao,
+    salvarPreferenciaTema,
+} from "@/lib/tema";
 import { useSession } from "next-auth/react";
 import {
     createContext,
@@ -24,6 +31,30 @@ type ConfiguracoesContextValue = {
 
 const ConfiguracoesContext = createContext<ConfiguracoesContextValue | null>(null);
 
+function preferenciaDeConfig(config: ConfiguracaoUsuario) {
+    return {
+        tema: config.tema ?? "claro",
+        corDestaque: config.corDestaque ?? "azul",
+        corFundoTexto: config.corFundoTexto ?? null,
+        corSuperficie: config.corSuperficie ?? null,
+        corTexto: config.corTexto ?? null,
+        corHover: config.corHover ?? null,
+    };
+}
+
+function podeAplicarTemaNoDocumento() {
+    if (typeof window === "undefined") return false;
+    return !ehPathnameAdmin(window.location.pathname);
+}
+
+function sincronizarTema(config: ConfiguracaoUsuario, aplicarNoDocumento: boolean) {
+    const pref = preferenciaDeConfig(config);
+    salvarPreferenciaTema(pref);
+    if (aplicarNoDocumento) {
+        aplicarTemaNoDocumento(pref);
+    }
+}
+
 export function ConfiguracoesProvider({ children }: { children: ReactNode }) {
     const { data: session, status } = useSession();
     const nick = session?.user?.nick;
@@ -39,7 +70,10 @@ export function ConfiguracoesProvider({ children }: { children: ReactNode }) {
             const res = await fetch(`/api/usuarios/${encodeURIComponent(nick)}/configuracoes`);
             if (res.ok) {
                 const data = (await res.json()) as ConfiguracaoUsuario;
-                setConfig({ ...CONFIG_PADRAO, ...data });
+                const merged = { ...CONFIG_PADRAO, ...data };
+                setConfig(merged);
+                // Checa pathname no momento da resposta (evita sobrescrever o admin após navegação).
+                sincronizarTema(merged, podeAplicarTemaNoDocumento());
             }
         } finally {
             setCarregando(false);
@@ -52,6 +86,10 @@ export function ConfiguracoesProvider({ children }: { children: ReactNode }) {
         }
         if (status === "unauthenticated") {
             setConfig(CONFIG_PADRAO);
+            if (podeAplicarTemaNoDocumento()) {
+                limparTemaNoDocumento();
+            }
+            salvarPreferenciaTema(preferenciaPadrao());
         }
     }, [status, nick, recarregar]);
 
@@ -62,6 +100,7 @@ export function ConfiguracoesProvider({ children }: { children: ReactNode }) {
             }
             const proximo = { ...config, ...parcial };
             setConfig(proximo);
+            sincronizarTema(proximo, podeAplicarTemaNoDocumento());
             const res = await fetch(`/api/usuarios/${encodeURIComponent(nick)}/configuracoes`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -72,7 +111,9 @@ export function ConfiguracoesProvider({ children }: { children: ReactNode }) {
                 return null;
             }
             const data = (await res.json()) as ConfiguracaoUsuario;
-            setConfig({ ...CONFIG_PADRAO, ...data });
+            const merged = { ...CONFIG_PADRAO, ...data };
+            setConfig(merged);
+            sincronizarTema(merged, podeAplicarTemaNoDocumento());
             return data;
         },
         [nick, config, recarregar],

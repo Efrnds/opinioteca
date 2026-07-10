@@ -7,8 +7,17 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
     }
 
-    const todas = req.nextUrl.searchParams.get("todas") === "true";
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/notificacoes${todas ? "?todas=true" : ""}`;
+    const params = new URLSearchParams();
+    if (req.nextUrl.searchParams.get("todas") === "true") {
+        params.set("todas", "true");
+    }
+    const limite = req.nextUrl.searchParams.get("limite");
+    const offset = req.nextUrl.searchParams.get("offset");
+    if (limite) params.set("limite", limite);
+    if (offset) params.set("offset", offset);
+
+    const query = params.toString();
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/notificacoes${query ? `?${query}` : ""}`;
 
     const res = await fetch(url, {
         headers: { Authorization: `Bearer ${session.accessToken}` },

@@ -12,7 +12,7 @@ export const TEMPLATES_RESENHA: TemplateResenha[] = [
         descricao: "Para quando o livro mexeu com você de verdade",
         texto: `Este livro me pegou de um jeito que eu não esperava.
 
-Ainda estou processando [o final / aquela cena / o arco do personagem principal] — e acho que isso já diz muito sobre a força da narrativa.
+Ainda estou processando [o final / aquela cena / o arco do personagem principal], e acho que isso já diz muito sobre a força da narrativa.
 
 O que mais me marcou foi [momento ou tema, sem spoilers]. Fiquei com a sensação de [emoção] por dias.
 
@@ -72,7 +72,7 @@ Para quem não conhece o autor: comece por este ou por [alternativa]? [sua opini
 [Uma ou duas frases sobre o enredo inicial.]
 
 ▸ O que funcionou
-[Estilo, atmosfera, personagens — sem revelar viradas.]
+[Estilo, atmosfera, personagens, sem revelar viradas.]
 
 ▸ Para quem é
 Leitores que buscam [experiência] e toleram [tom/ritmo].

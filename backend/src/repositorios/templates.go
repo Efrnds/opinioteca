@@ -52,9 +52,31 @@ const selectTemplatesBase = `
 
 // ListarAdmin retorna todos os templates para o painel admin.
 func (repositorio Templates) ListarAdmin() ([]modelos.Template, error) {
-	linhas, erro := repositorio.db.Query(selectTemplatesBase + ` ORDER BY t.ordem, t.id`)
+	templates, _, erro := repositorio.ListarAdminPaginado(100000, 0)
+	return templates, erro
+}
+
+// ListarAdminPaginado retorna templates paginados para o painel admin.
+func (repositorio Templates) ListarAdminPaginado(limite, offset int) ([]modelos.Template, int, error) {
+	if limite <= 0 {
+		limite = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var total int
+	if erro := repositorio.db.QueryRow(`SELECT COUNT(*) FROM templates`).Scan(&total); erro != nil {
+		return nil, 0, erro
+	}
+
+	linhas, erro := repositorio.db.Query(
+		selectTemplatesBase+` ORDER BY t.ordem, t.id LIMIT $1 OFFSET $2`,
+		limite,
+		offset,
+	)
 	if erro != nil {
-		return nil, erro
+		return nil, 0, erro
 	}
 	defer linhas.Close()
 
@@ -62,11 +84,11 @@ func (repositorio Templates) ListarAdmin() ([]modelos.Template, error) {
 	for linhas.Next() {
 		template, erro := repositorio.scanLinha(linhas.Scan)
 		if erro != nil {
-			return nil, erro
+			return nil, 0, erro
 		}
 		templates = append(templates, template)
 	}
-	return templates, nil
+	return templates, total, nil
 }
 
 // ListarAtivos retorna templates ativos para uso na resenha.

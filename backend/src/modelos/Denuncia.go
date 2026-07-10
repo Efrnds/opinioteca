@@ -55,6 +55,9 @@ type DenunciaListItem struct {
 type DenunciaListagemResposta struct {
 	Itens     []DenunciaListItem `json:"itens"`
 	Pendentes int                `json:"pendentes"`
+	Total     int                `json:"total"`
+	Pagina    int                `json:"pagina"`
+	Limite    int                `json:"limite"`
 }
 
 type DenunciaDetalhe struct {

@@ -9,7 +9,7 @@ export default function AuthLoadingScreen() {
                     width={80}
                     height={65}
                     alt="Opinioteca"
-                    className="animate-pulse"
+                    className="logo-opinioteca animate-pulse"
                     priority
                 />
                 <p className="font-gabarito-bold text-lg text-azul-900">Carregando...</p>

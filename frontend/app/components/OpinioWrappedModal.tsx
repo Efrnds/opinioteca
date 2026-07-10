@@ -12,9 +12,14 @@ import {
 } from "@/lib/wrapped-share";
 import {
     WRAPPED_SHARE_GRADIENT_TAILWIND,
+    WRAPPED_SHARE_TEMAS_LIST,
+    WRAPPED_SHARE_TEMA_PADRAO,
+    type WrappedShareTema,
+    type WrappedShareTemaId,
     anoDoPeriodo,
     formatarMes,
     formatarPeriodo,
+    getWrappedShareTema,
 } from "@/lib/wrapped-visuals";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -236,24 +241,91 @@ function GenreBar({ nome, total, max, index }: { nome: string; total: number; ma
     );
 }
 
-function PreviewStoriesCard({ dados, nick }: { dados: OpinioWrapped; nick: string }) {
+function PreviewStoriesCard({
+    dados,
+    nick,
+    tema,
+}: {
+    dados: OpinioWrapped;
+    nick: string;
+    tema: WrappedShareTema;
+}) {
     const paginas = (dados.paginas_lidas ?? 0).toLocaleString("pt-BR");
     return (
         <div className="mx-auto w-[148px] shrink-0 rounded-[28px] border border-white/18 bg-white/10 p-2 shadow-2xl backdrop-blur-md">
-            <div className={`relative aspect-[9/16] overflow-hidden rounded-[22px] bg-gradient-to-br ${WRAPPED_SHARE_GRADIENT_TAILWIND} p-3 text-white`}>
-                <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/20 blur-xl" />
-                <p className="relative text-[6px] uppercase tracking-[0.3em] text-white/75">OpinioWrapped</p>
-                <p className="relative mt-6 text-center text-[18px] font-gabarito-bold leading-none">{paginas}</p>
-                <p className="relative text-center text-[6px] text-white/70">páginas</p>
+            <div
+                className="relative flex aspect-[9/16] flex-col overflow-hidden rounded-[22px] p-3"
+                style={{ background: tema.gradientCss, color: tema.previewText }}
+            >
+                <div
+                    className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full"
+                    style={{ background: tema.orb2 }}
+                />
+                <p className="relative text-[6px] uppercase tracking-[0.3em]" style={{ color: tema.previewMuted }}>
+                    OpinioWrapped
+                </p>
+                <p className="relative mt-6 text-center text-[18px] font-gabarito-bold leading-none" style={{ color: tema.accent }}>
+                    {paginas}
+                </p>
+                <p className="relative text-center text-[6px]" style={{ color: tema.previewMuted }}>
+                    páginas
+                </p>
                 <div className="relative mt-auto space-y-1 pt-8">
-                    <div className="rounded-lg bg-white/14 px-2 py-1 text-center text-[8px] font-gabarito-bold">
+                    <div
+                        className="rounded-lg px-2 py-1 text-center text-[8px] font-gabarito-bold"
+                        style={{ background: tema.previewChip, color: tema.previewText }}
+                    >
                         {dados.livros_finalizados ?? 0} livros
                     </div>
-                    <div className="rounded-lg bg-white/14 px-2 py-1 text-center text-[7px] font-gabarito-bold">
+                    <div
+                        className="rounded-lg px-2 py-1 text-center text-[7px] font-gabarito-bold"
+                        style={{ background: tema.previewChip, color: tema.previewText }}
+                    >
                         {dados.genero_favorito ?? dados.generos_favoritos?.[0]?.nome ?? "Leituras"}
                     </div>
                 </div>
-                <p className="relative mt-2 text-center text-[6px] text-white/65">@{nick}</p>
+                <p className="relative mt-2 text-center text-[6px]" style={{ color: tema.previewMuted }}>
+                    @{nick}
+                </p>
+            </div>
+        </div>
+    );
+}
+
+function TemaSwatchPicker({
+    selecionado,
+    onChange,
+}: {
+    selecionado: WrappedShareTemaId;
+    onChange: (id: WrappedShareTemaId) => void;
+}) {
+    return (
+        <div className="space-y-2">
+            <p className="text-center text-[10px] uppercase tracking-[0.24em] text-white/55">Cores</p>
+            <div className="flex items-center justify-center gap-2.5" role="radiogroup" aria-label="Cores do card">
+                {WRAPPED_SHARE_TEMAS_LIST.map((tema) => {
+                    const ativo = tema.id === selecionado;
+                    return (
+                        <button
+                            key={tema.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={ativo}
+                            aria-label={tema.label}
+                            title={tema.label}
+                            onClick={() => onChange(tema.id)}
+                            className={`relative h-9 w-9 shrink-0 rounded-full transition ${
+                                ativo ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-black/40" : "hover:scale-105"
+                            }`}
+                            style={{
+                                background: tema.swatchSecondary
+                                    ? `linear-gradient(135deg, ${tema.swatch} 50%, ${tema.swatchSecondary} 50%)`
+                                    : tema.swatch,
+                                border: tema.id === "mono" ? "1px solid rgba(255,255,255,0.35)" : undefined,
+                            }}
+                        />
+                    );
+                })}
             </div>
         </div>
     );
@@ -262,7 +334,7 @@ function PreviewStoriesCard({ dados, nick }: { dados: OpinioWrapped; nick: strin
 function montarSlides(w: OpinioWrapped, nick: string): SlideDef[] {
     const paginasTotais = (w.paginas_lidas ?? 0).toLocaleString("pt-BR");
     const generoTop = w.genero_favorito ?? w.generos_favoritos?.[0]?.nome ?? "Variado";
-    const livroTop = w.livro_destaque_detalhe?.titulo ?? w.livro_destaque ?? "—";
+    const livroTop = w.livro_destaque_detalhe?.titulo ?? w.livro_destaque ?? "-";
     const autorTop = w.livro_destaque_detalhe?.autor;
     const generos = (w.generos_favoritos ?? []).slice(0, 3);
     const maxGenero = Math.max(...generos.map((g) => g.total), 1);
@@ -420,7 +492,9 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
     const [ctaAberto, setCtaAberto] = useState(false);
     const [gerandoImagem, setGerandoImagem] = useState(false);
     const [suportaShareNativo] = useState(() => (typeof window !== "undefined" ? podeCompartilharArquivo() : false));
+    const [temaShare, setTemaShare] = useState<WrappedShareTemaId>(WRAPPED_SHARE_TEMA_PADRAO);
     const cardRef = useRef<HTMLDivElement>(null);
+    const temaAtual = getWrappedShareTema(temaShare);
 
     const carregar = useCallback(async () => {
         if (!nick || !open) return;
@@ -461,14 +535,14 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
         }
         setGerandoImagem(true);
         try {
-            return await gerarImagemWrapped(cardRef.current);
+            return await gerarImagemWrapped(cardRef.current, temaShare);
         } catch {
             toast.error("Não foi possível gerar a imagem.");
             return null;
         } finally {
             setGerandoImagem(false);
         }
-    }, []);
+    }, [temaShare]);
 
     const compartilharInstagram = useCallback(async () => {
         if (!dados || !nick) return;
@@ -498,7 +572,7 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
 
     return (
         <>
-            {dados?.disponivel ? <WrappedShareCard ref={cardRef} dados={dados} nick={nick} /> : null}
+            {dados?.disponivel ? <WrappedShareCard ref={cardRef} dados={dados} nick={nick} tema={temaShare} /> : null}
 
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md" role="dialog">
                 <div className="relative mx-auto flex h-full w-full max-w-md flex-col overflow-hidden bg-[#060816] shadow-2xl">
@@ -565,8 +639,10 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
                                                     <p className="text-sm text-white/75">{atual.descricao}</p>
                                                 </div>
                                                 <div className="flex justify-center">
-                                                    <PreviewStoriesCard dados={dados} nick={nick} />
+                                                    <PreviewStoriesCard dados={dados} nick={nick} tema={temaAtual} />
                                                 </div>
+
+                                                <TemaSwatchPicker selecionado={temaShare} onChange={setTemaShare} />
 
                                                 <button
                                                     type="button"

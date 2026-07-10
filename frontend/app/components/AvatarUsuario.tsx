@@ -32,7 +32,9 @@ export default function AvatarUsuario({
 }: AvatarUsuarioProps) {
     const inicial = (nome?.charAt(0) || nick?.charAt(0) || "?").toUpperCase();
     const src = mediaUrl(image);
-    const gifBloqueado = src && !podeExibirAvatarGif(image, assinaturaId, plano, temPlanoPro);
+    const urlGif = image || src;
+    const ehGif = ehAvatarGif(urlGif) || ehAvatarGif(src);
+    const gifBloqueado = Boolean(src && ehGif && !podeExibirAvatarGif(urlGif, assinaturaId, plano, temPlanoPro));
 
     if (!src || gifBloqueado) {
         return (
@@ -57,7 +59,7 @@ export default function AvatarUsuario({
             alt={nome || nick || "Avatar"}
             width={size}
             height={size}
-            unoptimized={ehAvatarGif(src)}
+            unoptimized={ehGif}
             className={`shrink-0 rounded-full object-cover ${className}`}
             style={{ width: size, height: size }}
         />

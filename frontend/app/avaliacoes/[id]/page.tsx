@@ -2,15 +2,15 @@
 
 import type { AvaliacaoFeed } from "@/types/avaliacao";
 import { normalizarPostFeed } from "@/lib/avaliacao";
-import { ChevronLeft, Loader2 } from "lucide-react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import Box from "../../components/Box";
 import PostCard from "../../components/PostCard";
 
 export default function AvaliacaoPage() {
     const params = useParams();
+    const router = useRouter();
     const id = typeof params.id === "string" ? params.id : "";
 
     const [post, setPost] = useState<AvaliacaoFeed | null>(null);
@@ -56,8 +56,39 @@ export default function AvaliacaoPage() {
         void carregar();
     }, [carregar]);
 
-    const voltarHref = post?.livro?.id ? `/livros/${post.livro.id}` : "/home";
-    const voltarRotulo = post?.livro?.titulo ? "Voltar ao livro" : "Voltar";
+    const voltarFallback = post?.livro?.id ? `/livros/${post.livro.id}` : "/home";
+
+    const handleVoltar = useCallback(() => {
+        if (typeof window !== "undefined" && window.history.length > 1) {
+            router.back();
+            return;
+        }
+
+        if (typeof document !== "undefined" && document.referrer) {
+            try {
+                const ref = new URL(document.referrer);
+                if (ref.origin === window.location.origin) {
+                    router.push(`${ref.pathname}${ref.search}${ref.hash}`);
+                    return;
+                }
+            } catch {
+                // referrer inválido: cai no fallback
+            }
+        }
+
+        router.push(voltarFallback);
+    }, [router, voltarFallback]);
+
+    const botaoVoltar = (
+        <button
+            type="button"
+            onClick={handleVoltar}
+            className="inline-flex items-center gap-1 font-gabarito-bold text-xl text-azul-900 transition hover:text-azul-600"
+        >
+            <ChevronLeft className="h-6 w-6" />
+            Voltar
+        </button>
+    );
 
     if (carregando) {
         return (
@@ -71,13 +102,7 @@ export default function AvaliacaoPage() {
     if (naoEncontrado) {
         return (
             <Box className="flex flex-col gap-4 text-center">
-                <Link
-                    href="/home"
-                    className="inline-flex items-center gap-1 self-start font-gabarito-bold text-xl text-azul-900 transition hover:text-azul-600"
-                >
-                    <ChevronLeft className="h-6 w-6" />
-                    Voltar
-                </Link>
+                <div className="self-start">{botaoVoltar}</div>
                 <p className="font-gabarito-bold text-2xl text-azul-900">Resenha não encontrada</p>
                 <p className="font-gabarito-regular text-sm text-cinza-700">
                     Esta avaliação pode ter sido removida ou não está mais disponível.
@@ -89,13 +114,7 @@ export default function AvaliacaoPage() {
     if (erro || !post) {
         return (
             <Box className="flex flex-col gap-4">
-                <Link
-                    href="/home"
-                    className="inline-flex items-center gap-1 font-gabarito-bold text-xl text-azul-900 transition hover:text-azul-600"
-                >
-                    <ChevronLeft className="h-6 w-6" />
-                    Voltar
-                </Link>
+                {botaoVoltar}
                 <p className="font-gabarito-bold text-lg text-red-600">{erro || "Não foi possível carregar a resenha."}</p>
                 <button
                     type="button"
@@ -110,13 +129,7 @@ export default function AvaliacaoPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <Link
-                href={voltarHref}
-                className="inline-flex items-center gap-1 font-gabarito-bold text-xl text-azul-900 transition hover:text-azul-600"
-            >
-                <ChevronLeft className="h-6 w-6" />
-                {voltarRotulo}
-            </Link>
+            {botaoVoltar}
 
             <PostCard
                 post={post}

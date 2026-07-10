@@ -4,7 +4,7 @@ import { mediaUrl } from "@/lib/media";
 import { itemAtivo, itensMenu } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { LogOut, MoreHorizontal, Plus } from "lucide-react";
+import { LogOut, MoreHorizontal } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -44,11 +44,11 @@ export default function MenuEsquerdo() {
     }, [menuContaAberto]);
 
     return (
-        <section className="flex h-full min-h-0 w-full flex-col gap-3">
-            <Box className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden !p-4">
-                <h1 className="shrink-0 font-gabarito-bold text-2xl text-azul-900 xl:text-3xl">Menu</h1>
+        <section className="flex w-full flex-col gap-3">
+            <Box className="flex flex-col gap-3 !p-3 xl:gap-4 xl:!p-4">
+                <h1 className="font-gabarito-bold text-xl text-azul-900 xl:text-2xl">Menu</h1>
 
-                <nav className="flex min-h-0 flex-1 flex-col items-start gap-3 overflow-y-auto overscroll-contain pr-1 scrollbar-thin xl:gap-4">
+                <nav className="flex flex-col items-start gap-2.5 xl:gap-3">
                     {itensMenu.map(({ href, rotulo, icone: Icone }) => {
                         const ativo = itemAtivo(pathname, href);
                         return (
@@ -56,13 +56,13 @@ export default function MenuEsquerdo() {
                                 key={href}
                                 href={href}
                                 className={cn(
-                                    "flex w-full shrink-0 items-center gap-2 rounded-xl transition-colors",
+                                    "flex w-full items-center gap-2 rounded-xl transition-colors",
                                     ativo ? "text-azul-600" : "text-azul-900 hover:text-azul-600",
                                 )}
                                 aria-current={ativo ? "page" : undefined}
                             >
                                 <span className="relative shrink-0">
-                                    <Icone className="h-6 w-6" strokeWidth={ativo ? 2.5 : 2} />
+                                    <Icone className="h-5 w-5 xl:h-6 xl:w-6" strokeWidth={ativo ? 2.5 : 2} />
                                     {href === "/notificacoes" && contagemNaoLidas > 0 && (
                                         <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
                                             {contagemNaoLidas > 9 ? "9+" : contagemNaoLidas}
@@ -74,7 +74,7 @@ export default function MenuEsquerdo() {
                                         </span>
                                     )}
                                 </span>
-                                <span className="font-gabarito-bold text-lg xl:text-xl">{rotulo}</span>
+                                <span className="truncate font-gabarito-bold text-base xl:text-lg">{rotulo}</span>
                             </Link>
                         );
                     })}
@@ -84,16 +84,15 @@ export default function MenuEsquerdo() {
                     type="button"
                     onClick={() => setModalAberto(true)}
                     aria-label="Nova Resenha"
-                    className="flex aspect-square w-10 shrink-0 items-center justify-center rounded-full bg-azul-600 text-white transition hover:bg-azul-700 lg:aspect-auto lg:w-full lg:py-2"
+                    className="flex w-full shrink-0 items-center justify-center rounded-full bg-azul-600 py-2 text-azul-600-foreground transition hover:bg-azul-700"
                 >
-                    <Plus className="h-6 w-6 lg:hidden" />
-                    <span className="hidden font-gabarito-bold text-lg xl:text-xl lg:inline">Nova Resenha</span>
+                    <span className="font-gabarito-bold text-base xl:text-lg">Nova Resenha</span>
                 </button>
             </Box>
 
             <NovaAvaliacaoModal open={modalAberto} onClose={() => setModalAberto(false)} />
 
-            <Box ref={contaRef} className="relative flex w-full shrink-0 items-center justify-between gap-2 p-3 xl:p-4">
+            <Box ref={contaRef} className="relative flex w-full items-center justify-between gap-2 !p-2.5 xl:!p-3">
                 <Link href="/perfil" className="flex min-w-0 items-center gap-2">
                     {session?.user?.image ? (
                         <Image
@@ -101,14 +100,14 @@ export default function MenuEsquerdo() {
                             alt="Avatar"
                             width={49}
                             height={49}
-                            className="aspect-square h-11 w-11 shrink-0 rounded-full object-cover xl:h-12 xl:w-12"
+                            className="aspect-square h-10 w-10 shrink-0 rounded-full object-cover xl:h-11 xl:w-11"
                         />
                     ) : (
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-200 font-gabarito-bold text-xl text-azul-900 xl:h-12 xl:w-12 xl:text-2xl">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 font-gabarito-bold text-lg text-azul-900 xl:h-11 xl:w-11 xl:text-xl">
                             {nick.charAt(0).toUpperCase()}
                         </div>
                     )}
-                    <span className="truncate font-gabarito-bold text-lg text-azul-900 xl:text-xl">{nick}</span>
+                    <span className="truncate font-gabarito-bold text-base text-azul-900 xl:text-lg">{nick}</span>
                 </Link>
 
                 <button

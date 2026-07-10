@@ -8,6 +8,7 @@ export type PerfilCacheUsuario = {
     nome: string;
     nick: string;
     image?: string;
+    banner?: string;
     email?: string;
     assinaturaId?: number;
     plano?: PlanoStatus;
@@ -59,7 +60,7 @@ export function setLivroCache(livroID: number, livro: LivroPublico) {
     cacheLivroPorID.set(livroID, livro);
 }
 
-/** Limpa caches de perfil ao trocar de usuário — evita vazamento entre sessões. */
+/** Limpa caches de perfil ao trocar de usuário; evita vazamento entre sessões. */
 export function clearPerfilCache() {
     cachePerfilPorNick.clear();
     cacheLivroPorID.clear();

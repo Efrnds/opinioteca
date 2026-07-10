@@ -40,6 +40,10 @@ func BuscarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !modelos.TemPlanoPro(usuarioToken) {
+		config = modelos.SanitizarAparenciaSemPro(config)
+	}
+
 	respostas.JSON(w, http.StatusOK, config)
 }
 
@@ -84,7 +88,8 @@ func AtualizarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	atual.UsuarioID = usuarioToken.ID
-	if erro = atual.Preparar(); erro != nil {
+	permiteCustomPro := modelos.TemPlanoPro(usuarioToken)
+	if erro = atual.Preparar(permiteCustomPro); erro != nil {
 		respostas.Erro(w, http.StatusBadRequest, erro)
 		return
 	}
@@ -98,6 +103,10 @@ func AtualizarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
+	}
+
+	if !permiteCustomPro {
+		atualizado = modelos.SanitizarAparenciaSemPro(atualizado)
 	}
 
 	respostas.JSON(w, http.StatusOK, atualizado)

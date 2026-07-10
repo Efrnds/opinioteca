@@ -13,7 +13,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     }
 
     return (
-        <div className="flex min-h-dvh flex-col">
+        <div className="flex min-h-dvh min-w-0 flex-col overflow-x-clip">
             <Header />
             <Main>{children}</Main>
         </div>

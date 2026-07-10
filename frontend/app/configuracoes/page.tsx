@@ -4,6 +4,7 @@ import {
     OPCOES_PRIVACIDADE,
     type ConfiguracaoUsuario,
     type NivelPrivacidade,
+    type TemaAparencia,
     type VisibilidadePerfil,
 } from "@/types/configuracao";
 import { Switch } from "@/components/ui/switch";
@@ -12,15 +13,31 @@ import {
     ChevronRight,
     HeartCrack,
     KeyRound,
+    Lock,
     type LucideIcon,
     User,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, type ReactNode, Suspense, useEffect, useState } from "react";
+import { FormEvent, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { mediaUrl } from "@/lib/media";
+import {
+    CORES_DESTAQUE,
+    coresTextoSobreFundo,
+    derivarDestaqueParaTexto,
+    derivarTextoSobreDestaque,
+    ehHexCor,
+    ehPresetCor,
+    ehTemaCustom,
+    OPCOES_TEMA,
+    aplicarTemaNoDocumento,
+    resolverFundoContrasteDestaque,
+    resolverHexDestaque,
+    resolverTomDestaque50,
+} from "@/lib/tema";
+import { cn } from "@/lib/utils";
 import Box from "../components/Box";
 import { useConfiguracoes } from "../components/ConfiguracoesProvider";
 import MetaLeituraCard from "../components/MetaLeituraCard";
@@ -63,9 +80,9 @@ const selectClass =
     "w-full rounded-full border-2 border-cinza-400 bg-white px-4 py-2 font-gabarito-regular text-sm outline-none focus:border-azul-600";
 
 function formatarDataConta(iso?: string) {
-    if (!iso) return "—";
+    if (!iso) return "-";
     const data = new Date(iso);
-    if (Number.isNaN(data.getTime())) return "—";
+    if (Number.isNaN(data.getTime())) return "-";
     return data.toLocaleDateString("pt-BR", {
         day: "numeric",
         month: "long",
@@ -76,11 +93,11 @@ function formatarDataConta(iso?: string) {
 function rotuloStatusConta(status?: string) {
     if (status === "ativo") return "Ativa";
     if (status === "inativo") return "Desativada";
-    return status?.trim() ? status : "—";
+    return status?.trim() ? status : "-";
 }
 
 function rotuloPlano(assinaturaId?: number) {
-    if (assinaturaId == null) return "—";
+    if (assinaturaId == null) return "-";
     return PLANO_POR_ASSINATURA[assinaturaId] ?? `Plano #${assinaturaId}`;
 }
 function ToggleLinha({
@@ -416,9 +433,9 @@ function ContaSecao() {
                         <div className="divide-y divide-cinza-200">
                             <ContaInfoLinha
                                 label="Nome de usuário"
-                                valor={nickExibido ? `@${nickExibido}` : "—"}
+                                valor={nickExibido ? `@${nickExibido}` : "-"}
                             />
-                            <ContaInfoLinha label="Nome" valor={nomeExibido || "—"} />
+                            <ContaInfoLinha label="Nome" valor={nomeExibido || "-"} />
                             <ContaInfoLinha
                                 label="E-mail"
                                 valor={emailExibido || undefined}
@@ -624,12 +641,93 @@ function PreferenciasSecao() {
     const { modoZen, temPlanoPro, alternarModoZen } = usePlano();
     const [ctaZenAberto, setCtaZenAberto] = useState(false);
     const [ctaWrappedAberto, setCtaWrappedAberto] = useState(false);
+    const [ctaTemaAberto, setCtaTemaAberto] = useState(false);
     const [wrappedAberto, setWrappedAberto] = useState(false);
+    const corDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const temaAtual = (config.tema ?? "claro") as TemaAparencia;
+    const customAtivo = ehTemaCustom(temaAtual);
+    const hexAtual = resolverHexDestaque(config.corDestaque, temaAtual);
+    const hexPicker =
+        ehHexCor(config.corDestaque) ? config.corDestaque : hexAtual;
+    const [hexLocal, setHexLocal] = useState(hexPicker);
+    const presetAtivo = ehPresetCor(config.corDestaque) ? config.corDestaque : null;
+    const coresCardTemaAtivo = coresTextoSobreFundo(
+        resolverTomDestaque50({
+            tema: temaAtual,
+            corDestaque: config.corDestaque ?? "azul",
+            corFundoTexto: config.corFundoTexto ?? null,
+            corSuperficie: config.corSuperficie ?? null,
+            corTexto: config.corTexto ?? null,
+            corHover: config.corHover ?? null,
+        }),
+    );
+    const prefPreview = {
+        tema: temaAtual,
+        corDestaque: config.corDestaque ?? "azul",
+        corFundoTexto: config.corFundoTexto ?? null,
+        corSuperficie: config.corSuperficie ?? null,
+        corTexto: config.corTexto ?? null,
+        corHover: config.corHover ?? null,
+    };
+    const onAccentPreview = derivarTextoSobreDestaque(hexAtual);
+    const textoDestaquePreview = derivarDestaqueParaTexto(
+        hexAtual,
+        resolverFundoContrasteDestaque(prefPreview),
+    );
+    const fundoPreview = (config.corFundoTexto && ehHexCor(config.corFundoTexto)
+        ? config.corFundoTexto
+        : "#E8EAED"
+    ).toUpperCase();
+    const superficiePreview = (config.corSuperficie && ehHexCor(config.corSuperficie)
+        ? config.corSuperficie
+        : "#FFFFFF"
+    ).toUpperCase();
+    const hoverPreview = (config.corHover && ehHexCor(config.corHover)
+        ? config.corHover
+        : "#E8EFFF"
+    ).toUpperCase();
+
+    useEffect(() => {
+        setHexLocal(hexPicker);
+    }, [hexPicker]);
+
+    function prefCom(parcial: Partial<ConfiguracaoUsuario>) {
+        return {
+            tema: (parcial.tema ?? config.tema ?? "claro") as TemaAparencia,
+            corDestaque: parcial.corDestaque ?? config.corDestaque ?? "azul",
+            corFundoTexto:
+                parcial.corFundoTexto !== undefined ? parcial.corFundoTexto : (config.corFundoTexto ?? null),
+            corSuperficie:
+                parcial.corSuperficie !== undefined ? parcial.corSuperficie : (config.corSuperficie ?? null),
+            corTexto: parcial.corTexto !== undefined ? parcial.corTexto : (config.corTexto ?? null),
+            corHover: parcial.corHover !== undefined ? parcial.corHover : (config.corHover ?? null),
+        };
+    }
+
+    /** Edição do pack custom ativa o tema Personalizado (Pro) e limpa cor de texto manual. */
+    function comTemaCustomSePro(parcial: Partial<ConfiguracaoUsuario>): Partial<ConfiguracaoUsuario> {
+        if (!temPlanoPro) return parcial;
+        if (parcial.tema !== undefined) return parcial;
+        return { ...parcial, tema: "custom", corTexto: null };
+    }
 
     async function atualizar(parcial: Partial<ConfiguracaoUsuario>) {
+        aplicarTemaNoDocumento(prefCom(parcial));
         const ok = await salvar(parcial);
         if (ok) toast.success("Preferência salva.");
         else toast.error("Não foi possível salvar.");
+    }
+
+    function salvarCorDebounced(parcial: Partial<ConfiguracaoUsuario>) {
+        const payload = comTemaCustomSePro(parcial);
+        aplicarTemaNoDocumento(prefCom(payload));
+        if (corDebounceRef.current) clearTimeout(corDebounceRef.current);
+        corDebounceRef.current = setTimeout(async () => {
+            const ok = await salvar(payload);
+            if (ok) toast.success("Preferência salva.");
+            else toast.error("Não foi possível salvar.");
+        }, 250);
     }
 
     async function toggleZen(checked: boolean) {
@@ -645,8 +743,329 @@ function PreferenciasSecao() {
         }
     }
 
+    function exigirPro() {
+        setCtaTemaAberto(true);
+    }
+
+    function selecionarTema(id: TemaAparencia) {
+        if (id === "custom" && !temPlanoPro) {
+            exigirPro();
+            return;
+        }
+        void atualizar({ tema: id });
+    }
+
     return (
         <div className="flex flex-col gap-6">
+            <section className="flex flex-col gap-4">
+                <div>
+                    <h3 className="font-gabarito-bold text-lg text-azul-900">Aparência</h3>
+                    <p className="mt-0.5 font-gabarito-regular text-sm text-cinza-700">
+                        Tema e cor de destaque da interface.
+                    </p>
+                </div>
+
+                <div>
+                    <p className="mb-2 font-gabarito-medium text-sm text-azul-900">Tema</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                        {OPCOES_TEMA.map((opcao) => {
+                            const ativo = config.tema === opcao.id;
+                            const bloqueado = !!opcao.pro && !temPlanoPro;
+                            return (
+                                <button
+                                    key={opcao.id}
+                                    type="button"
+                                    onClick={() => selecionarTema(opcao.id)}
+                                    className={cn(
+                                        "rounded-xl border px-3 py-3 text-left transition",
+                                        ativo
+                                            ? "border-azul-600 bg-azul-50 ring-2 ring-azul-600/30"
+                                            : "border-cinza-200 hover:border-azul-400",
+                                        bloqueado && "opacity-70",
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            "flex items-center gap-1.5 font-gabarito-bold text-sm",
+                                            !ativo && "text-texto",
+                                        )}
+                                        style={ativo ? { color: coresCardTemaAtivo.titulo } : undefined}
+                                    >
+                                        {opcao.label}
+                                        {opcao.pro ? (
+                                            <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                        ) : null}
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            "mt-0.5 block font-gabarito-regular text-xs",
+                                            !ativo && "text-muted-foreground",
+                                        )}
+                                        style={ativo ? { color: coresCardTemaAtivo.subtitulo } : undefined}
+                                    >
+                                        {opcao.descricao}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div>
+                    <p className="mb-2 font-gabarito-medium text-sm text-azul-900">Cor de destaque</p>
+                    <p className="mb-2 font-gabarito-regular text-xs text-cinza-700">
+                        Presets valem em qualquer tema.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {CORES_DESTAQUE.map((cor) => {
+                            const ativo = presetAtivo === cor.id;
+                            return (
+                                <button
+                                    key={cor.id}
+                                    type="button"
+                                    title={cor.label}
+                                    aria-label={cor.label}
+                                    aria-pressed={ativo}
+                                    onClick={() => void atualizar({ corDestaque: cor.id })}
+                                    className={cn(
+                                        "h-9 w-9 rounded-full border-2 transition",
+                                        ativo ? "border-azul-900 scale-110" : "border-transparent hover:scale-105",
+                                    )}
+                                    style={{ backgroundColor: cor.hex }}
+                                />
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div
+                    className={cn(
+                        "rounded-xl border p-3",
+                        customAtivo ? "border-azul-600 ring-1 ring-azul-600/20" : "border-cinza-200",
+                    )}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <div>
+                            <p className="font-gabarito-medium text-sm text-azul-900">Cores personalizadas</p>
+                            <p className="font-gabarito-regular text-xs text-cinza-700">
+                                {customAtivo
+                                    ? "Ativas no tema Personalizado."
+                                    : "Salvas sempre; só entram em vigor no tema Personalizado."}
+                            </p>
+                            <p className="mt-0.5 font-gabarito-regular text-xs text-cinza-700">
+                                Texto da interface e texto sobre o destaque ajustados automaticamente ao contraste.
+                            </p>
+                        </div>
+                        {!temPlanoPro ? (
+                            <button
+                                type="button"
+                                onClick={exigirPro}
+                                className="flex items-center gap-1.5 rounded-full border border-cinza-200 px-3 py-1.5 font-gabarito-medium text-xs text-cinza-700"
+                            >
+                                <Lock className="h-3.5 w-3.5" />
+                                OpinioPro
+                            </button>
+                        ) : null}
+                    </div>
+                    <div
+                        className={cn("mt-3 flex items-center gap-3", !temPlanoPro && "opacity-50")}
+                        onClick={!temPlanoPro ? exigirPro : undefined}
+                        onKeyDown={undefined}
+                        role={!temPlanoPro ? "button" : undefined}
+                    >
+                        <input
+                            type="color"
+                            value={(ehHexCor(hexLocal) ? hexLocal : hexPicker).toLowerCase()}
+                            disabled={!temPlanoPro}
+                            onChange={(e) => {
+                                if (!temPlanoPro) return;
+                                const hex = e.target.value.toUpperCase();
+                                setHexLocal(hex);
+                                salvarCorDebounced({ corDestaque: hex });
+                            }}
+                            className="h-10 w-14 cursor-pointer rounded border border-cinza-200 bg-transparent disabled:cursor-not-allowed"
+                            aria-label="Escolher cor de destaque personalizada"
+                        />
+                        <input
+                            type="text"
+                            value={hexLocal}
+                            disabled={!temPlanoPro}
+                            maxLength={7}
+                            onChange={(e) => {
+                                if (!temPlanoPro) return;
+                                let v = e.target.value.trim();
+                                if (v && !v.startsWith("#")) v = `#${v}`;
+                                setHexLocal(v.toUpperCase());
+                                if (ehHexCor(v)) {
+                                    void atualizar(comTemaCustomSePro({ corDestaque: v.toUpperCase() }));
+                                }
+                            }}
+                            placeholder="#0048FF"
+                            className="w-28 rounded-lg border border-cinza-200 bg-superficie px-2 py-1.5 font-gabarito-regular text-sm text-azul-900 disabled:cursor-not-allowed"
+                        />
+                        <span className="font-gabarito-regular text-xs text-cinza-700">Destaque (hex)</span>
+                    </div>
+
+                    <div className={cn("mt-4 grid gap-3 sm:grid-cols-2", !temPlanoPro && "opacity-50")}>
+                        <label className="flex flex-col gap-1.5">
+                            <span className="font-gabarito-medium text-xs text-azul-900">
+                                Fundo do texto
+                            </span>
+                            <div
+                                className="flex items-center gap-2"
+                                onClick={!temPlanoPro ? exigirPro : undefined}
+                                role={!temPlanoPro ? "button" : undefined}
+                            >
+                                <input
+                                    type="color"
+                                    value={(config.corFundoTexto ?? "#E8EAED").toLowerCase()}
+                                    disabled={!temPlanoPro}
+                                    onChange={(e) => {
+                                        if (!temPlanoPro) return;
+                                        salvarCorDebounced({ corFundoTexto: e.target.value.toUpperCase() });
+                                    }}
+                                    className="h-9 w-12 cursor-pointer rounded border border-cinza-200 disabled:cursor-not-allowed"
+                                    aria-label="Cor de fundo do texto"
+                                />
+                                {temPlanoPro && config.corFundoTexto ? (
+                                    <button
+                                        type="button"
+                                        className="font-gabarito-regular text-xs text-azul-600 underline"
+                                        onClick={() => void atualizar(comTemaCustomSePro({ corFundoTexto: null }))}
+                                    >
+                                        Restaurar
+                                    </button>
+                                ) : null}
+                            </div>
+                        </label>
+                        <label className="flex flex-col gap-1.5">
+                            <span className="font-gabarito-medium text-xs text-azul-900">
+                                Superfície de leitura
+                            </span>
+                            <div
+                                className="flex items-center gap-2"
+                                onClick={!temPlanoPro ? exigirPro : undefined}
+                                role={!temPlanoPro ? "button" : undefined}
+                            >
+                                <input
+                                    type="color"
+                                    value={(config.corSuperficie ?? "#FFFFFF").toLowerCase()}
+                                    disabled={!temPlanoPro}
+                                    onChange={(e) => {
+                                        if (!temPlanoPro) return;
+                                        salvarCorDebounced({ corSuperficie: e.target.value.toUpperCase() });
+                                    }}
+                                    className="h-9 w-12 cursor-pointer rounded border border-cinza-200 disabled:cursor-not-allowed"
+                                    aria-label="Cor da superfície de leitura"
+                                />
+                                {temPlanoPro && config.corSuperficie ? (
+                                    <button
+                                        type="button"
+                                        className="font-gabarito-regular text-xs text-azul-600 underline"
+                                        onClick={() => void atualizar(comTemaCustomSePro({ corSuperficie: null }))}
+                                    >
+                                        Restaurar
+                                    </button>
+                                ) : null}
+                            </div>
+                        </label>
+                        <label className="flex flex-col gap-1.5">
+                            <span className="font-gabarito-medium text-xs text-azul-900">
+                                Cor de hover
+                            </span>
+                            <div
+                                className="flex items-center gap-2"
+                                onClick={!temPlanoPro ? exigirPro : undefined}
+                                role={!temPlanoPro ? "button" : undefined}
+                            >
+                                <input
+                                    type="color"
+                                    value={(config.corHover ?? "#E8EFFF").toLowerCase()}
+                                    disabled={!temPlanoPro}
+                                    onChange={(e) => {
+                                        if (!temPlanoPro) return;
+                                        salvarCorDebounced({ corHover: e.target.value.toUpperCase() });
+                                    }}
+                                    className="h-9 w-12 cursor-pointer rounded border border-cinza-200 disabled:cursor-not-allowed"
+                                    aria-label="Cor de hover"
+                                />
+                                {temPlanoPro && config.corHover ? (
+                                    <button
+                                        type="button"
+                                        className="font-gabarito-regular text-xs text-azul-600 underline"
+                                        onClick={() => void atualizar(comTemaCustomSePro({ corHover: null }))}
+                                    >
+                                        Restaurar
+                                    </button>
+                                ) : null}
+                            </div>
+                        </label>
+                    </div>
+
+                    <div
+                        className={cn(
+                            "mt-3 grid gap-2 sm:grid-cols-3",
+                            !temPlanoPro && "opacity-50",
+                        )}
+                    >
+                        <div
+                            className="rounded-lg border border-cinza-200 px-3 py-2"
+                            style={{ backgroundColor: fundoPreview }}
+                        >
+                            <p className="font-gabarito-regular text-[10px] text-cinza-700">
+                                Fundo do texto
+                            </p>
+                            <p
+                                className="mt-1 font-gabarito-bold text-sm"
+                                style={{ color: textoDestaquePreview }}
+                            >
+                                Texto aqui
+                            </p>
+                        </div>
+                        <div
+                            className="rounded-lg border border-cinza-200 px-3 py-2"
+                            style={{ backgroundColor: superficiePreview }}
+                        >
+                            <p className="font-gabarito-regular text-[10px] text-cinza-700">
+                                Superfície de leitura
+                            </p>
+                            <p
+                                className="mt-1 font-gabarito-bold text-sm"
+                                style={{ color: textoDestaquePreview }}
+                            >
+                                Texto aqui
+                            </p>
+                        </div>
+                        <div
+                            className="rounded-lg border border-cinza-200 px-3 py-2"
+                            style={{ backgroundColor: hoverPreview }}
+                        >
+                            <p className="font-gabarito-regular text-[10px] text-cinza-700">
+                                Cor de hover
+                            </p>
+                            <p
+                                className="mt-1 font-gabarito-bold text-sm"
+                                style={{ color: textoDestaquePreview }}
+                            >
+                                Texto aqui
+                            </p>
+                        </div>
+                        <div
+                            className="rounded-lg px-3 py-2 sm:col-span-3"
+                            style={{
+                                backgroundColor: hexAtual,
+                                color: onAccentPreview,
+                            }}
+                        >
+                            <p className="font-gabarito-regular text-[10px] opacity-80">
+                                Botão / nav ativa
+                            </p>
+                            <p className="mt-1 font-gabarito-bold text-sm">Texto aqui</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <div className="divide-y divide-cinza-200">
                 <ToggleLinha
                     label="Ocultar spoilers por padrão"
@@ -673,7 +1092,7 @@ function PreferenciasSecao() {
             <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-azul-50 p-4">
                 <p className="font-gabarito-bold text-base text-azul-900">OpinioWrapped</p>
                 <p className="mt-1 font-gabarito-regular text-sm text-cinza-700">
-                    Seu ano em leitura — estatísticas dos últimos 12 meses.
+                    Seu ano em leitura: estatísticas dos últimos 12 meses.
                 </p>
                 <button
                     type="button"
@@ -692,6 +1111,7 @@ function PreferenciasSecao() {
 
             <PlanoUpgradeModal open={ctaZenAberto} onClose={() => setCtaZenAberto(false)} recurso="modoZen" />
             <PlanoUpgradeModal open={ctaWrappedAberto} onClose={() => setCtaWrappedAberto(false)} recurso="opinioWrapped" />
+            <PlanoUpgradeModal open={ctaTemaAberto} onClose={() => setCtaTemaAberto(false)} recurso="temasCustom" />
             <OpinioWrappedModal open={wrappedAberto} onClose={() => setWrappedAberto(false)} />
         </div>
     );
@@ -790,19 +1210,19 @@ function ConfiguracoesConteudo() {
     }
 
     return (
-        <div className="flex w-full min-w-0 flex-col gap-6 lg:flex-row lg:items-start">
-            <aside className="w-full shrink-0 lg:sticky lg:top-[4.5rem] lg:w-52 xl:w-56">
-                <Box className="flex flex-col gap-1 p-2">
-                    <h1 className="px-3 py-2 font-gabarito-bold text-xl text-azul-900">Configurações</h1>
-                    <nav className="flex gap-1 overflow-x-auto lg:flex-col">
+        <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+            <aside className="w-full shrink-0 lg:sticky lg:top-16 lg:w-48 xl:w-56">
+                <Box className="flex flex-col gap-1 !p-2">
+                    <h1 className="px-3 py-2 font-gabarito-bold text-lg text-azul-900 sm:text-xl">Configurações</h1>
+                    <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 scrollbar-thin lg:flex-col lg:overflow-visible lg:pb-0">
                         {SECOES.map((s) => (
                             <button
                                 key={s.id}
                                 type="button"
                                 onClick={() => irPara(s.id)}
-                                className={`shrink-0 rounded-xl px-4 py-2.5 text-left font-gabarito-medium text-sm transition ${
+                                className={`shrink-0 rounded-xl px-3 py-2 text-left font-gabarito-medium text-sm transition sm:px-4 sm:py-2.5 ${
                                     secao === s.id
-                                        ? "bg-azul-600 text-white"
+                                        ? "bg-azul-600 text-azul-600-foreground"
                                         : "text-azul-800 hover:bg-azul-100"
                                 }`}
                             >
@@ -813,7 +1233,7 @@ function ConfiguracoesConteudo() {
                 </Box>
             </aside>
 
-            <Box className="min-w-0 flex-1 p-5">
+            <Box className="min-w-0 flex-1 !p-4 sm:!p-5">
                 {secao !== "conta" ? (
                     <h2 className="mb-4 font-gabarito-bold text-2xl text-azul-900">
                         {SECOES.find((s) => s.id === secao)?.rotulo}

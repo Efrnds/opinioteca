@@ -51,6 +51,18 @@ func (repositorio Denuncias) Criar(denuncia modelos.Denuncia) (modelos.Denuncia,
 }
 
 func (repositorio Denuncias) Listar(status, tipo string) ([]modelos.DenunciaListItem, error) {
+	itens, _, erro := repositorio.ListarPaginado(status, tipo, 100000, 0)
+	return itens, erro
+}
+
+func (repositorio Denuncias) ListarPaginado(status, tipo string, limite, offset int) ([]modelos.DenunciaListItem, int, error) {
+	if limite <= 0 {
+		limite = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
 	var condicoes []string
 	var args []interface{}
 	argIndex := 1
@@ -66,19 +78,26 @@ func (repositorio Denuncias) Listar(status, tipo string) ([]modelos.DenunciaList
 		argIndex++
 	}
 
+	where := ""
+	if len(condicoes) > 0 {
+		where = " WHERE " + strings.Join(condicoes, " AND ")
+	}
+
+	var total int
+	if erro := repositorio.db.QueryRow("SELECT COUNT(*) FROM denuncias d"+where, args...).Scan(&total); erro != nil {
+		return nil, 0, erro
+	}
+
 	query := `SELECT d.id, d.tipo_entidade, d.referencia_id, d.motivo, d.status, d.criadoEm,
 	                 u.nick, u.nome
 	          FROM denuncias d
-	          INNER JOIN usuarios u ON u.id = d.denunciante_id`
-
-	if len(condicoes) > 0 {
-		query += " WHERE " + strings.Join(condicoes, " AND ")
-	}
-	query += " ORDER BY d.criadoEm DESC"
+	          INNER JOIN usuarios u ON u.id = d.denunciante_id` + where +
+		fmt.Sprintf(" ORDER BY d.criadoEm DESC LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+	args = append(args, limite, offset)
 
 	linhas, erro := repositorio.db.Query(query, args...)
 	if erro != nil {
-		return nil, erro
+		return nil, 0, erro
 	}
 	defer linhas.Close()
 
@@ -95,11 +114,11 @@ func (repositorio Denuncias) Listar(status, tipo string) ([]modelos.DenunciaList
 			&item.DenuncianteNick,
 			&item.DenuncianteNome,
 		); erro != nil {
-			return nil, erro
+			return nil, 0, erro
 		}
 		itens = append(itens, item)
 	}
-	return itens, nil
+	return itens, total, nil
 }
 
 func (repositorio Denuncias) ContarPendentes() (int, error) {

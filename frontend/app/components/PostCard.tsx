@@ -1,13 +1,21 @@
 "use client";
 
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
+import type { TemaAparencia } from "@/types/configuracao";
 import { avaliacaoTemSpoiler, urlAvaliacao } from "@/lib/avaliacao";
+import {
+    coresTextoSobreFundo,
+    fundoEhClaro,
+    resolverFundoContrasteDestaque,
+    resolverTomDestaque50,
+    type PreferenciaTema,
+} from "@/lib/tema";
 import { usePlano } from "./PlanoProvider";
 import { ArrowBigDown, ArrowBigUp, Flag, Loader2, MessageCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Box from "./Box";
 import { useAuthGate } from "./AuthGateProvider";
 import ComentarioComposer, { ComentarioMidia } from "./ComentarioComposer";
@@ -125,6 +133,29 @@ export default function PostCard({
     const livro = post?.livro ?? { id: 0, titulo: "Livro não informado", autor: "Autor não informado", capa_url: undefined };
     const textoPost = post?.texto ?? "";
     const notaPost = Number.isFinite(post?.nota) ? post.nota : 0;
+
+    const prefLivro: PreferenciaTema = {
+        tema: (config.tema ?? "claro") as TemaAparencia,
+        corDestaque: config.corDestaque ?? "azul",
+        corFundoTexto: config.corFundoTexto ?? null,
+        corSuperficie: config.corSuperficie ?? null,
+        corTexto: config.corTexto ?? null,
+        corHover: config.corHover ?? null,
+    };
+    const hoverLivroBg = resolverTomDestaque50(prefLivro);
+    const coresHoverLivro = coresTextoSobreFundo(hoverLivroBg);
+    const fundoPagina = resolverFundoContrasteDestaque(prefLivro);
+    // Estrelas: fundo da página quando contraste; senão título de alto contraste.
+    const estrelaHover =
+        fundoEhClaro(hoverLivroBg) === fundoEhClaro(fundoPagina)
+            ? coresHoverLivro.titulo
+            : fundoPagina;
+    const estiloHoverLivro = {
+        "--livro-hover-bg": hoverLivroBg,
+        "--livro-hover-titulo": coresHoverLivro.titulo,
+        "--livro-hover-subtitulo": coresHoverLivro.subtitulo,
+        "--livro-hover-estrela": estrelaHover,
+    } as CSSProperties;
 
     const [votos, setVotos] = useState(post?.votos ?? { upvotes: 0, downvotes: 0, score: 0 });
     const [meuVoto, setMeuVoto] = useState(post.meu_voto);
@@ -633,7 +664,8 @@ export default function PostCard({
 
             <Link
                 href={`/livros/${livro.id}`}
-                className="flex gap-3 rounded-2xl bg-background p-3 transition hover:bg-[#ececef]"
+                className="group flex gap-3 rounded-2xl bg-background p-3 transition hover:bg-[var(--livro-hover-bg)]"
+                style={estiloHoverLivro}
             >
                 {livro.capa_url ? (
                     <Image
@@ -650,9 +682,13 @@ export default function PostCard({
                     </div>
                 )}
                 <div className="min-w-0">
-                    <p className="truncate font-gabarito-bold text-base text-azul-900">{livro.titulo}</p>
-                    <p className="truncate font-gabarito-regular text-sm text-cinza-700">{livro.autor}</p>
-                    <p className="mt-1 font-gabarito-bold text-azul-600">
+                    <p className="truncate font-gabarito-bold text-base text-azul-900 transition-colors group-hover:text-[color:var(--livro-hover-titulo)]">
+                        {livro.titulo}
+                    </p>
+                    <p className="truncate font-gabarito-regular text-sm text-cinza-700 transition-colors group-hover:text-[color:var(--livro-hover-subtitulo)]">
+                        {livro.autor}
+                    </p>
+                    <p className="mt-1 font-gabarito-bold text-azul-600 transition-colors group-hover:text-[color:var(--livro-hover-estrela)]">
                         {"★".repeat(notaLocal)}
                         {"☆".repeat(Math.max(0, 5 - notaLocal))}
                     </p>

@@ -1,5 +1,7 @@
 export type NivelPrivacidade = "todos" | "seguidores" | "ninguem";
 export type VisibilidadePerfil = "publico" | "privado";
+export type TemaAparencia = "claro" | "escuro" | "leitor" | "custom";
+export type CorDestaquePreset = "azul" | "verde" | "rosa" | "roxo" | "laranja" | "amarelo";
 
 export type ConfiguracaoUsuario = {
     usuarioId?: number;
@@ -13,6 +15,12 @@ export type ConfiguracaoUsuario = {
     streakVisivelPara: NivelPrivacidade;
     historicoVisivelPara: NivelPrivacidade;
     visibilidadePerfil: VisibilidadePerfil;
+    tema: TemaAparencia;
+    corDestaque: string;
+    corFundoTexto: string | null;
+    corSuperficie: string | null;
+    corTexto: string | null;
+    corHover: string | null;
     atualizadoEm?: string;
 };
 
@@ -27,6 +35,12 @@ export const CONFIG_PADRAO: ConfiguracaoUsuario = {
     streakVisivelPara: "todos",
     historicoVisivelPara: "todos",
     visibilidadePerfil: "publico",
+    tema: "claro",
+    corDestaque: "azul",
+    corFundoTexto: null,
+    corSuperficie: null,
+    corTexto: null,
+    corHover: null,
 };
 
 export const OPCOES_PRIVACIDADE: { value: NivelPrivacidade; label: string }[] = [

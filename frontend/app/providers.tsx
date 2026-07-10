@@ -19,14 +19,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 <AuthGateProvider>
                     <ConfiguracoesProvider>
                         <PlanoProvider>
-                            <AuthenticatedLayout>
                             <WebSocketProvider>
-                                <SessaoExpiradaProvider>
-                                    {children}
-                                    <Toaster position="top-right" richColors closeButton />
-                                </SessaoExpiradaProvider>
+                                <AuthenticatedLayout>
+                                    <SessaoExpiradaProvider>
+                                        {children}
+                                        <Toaster position="top-right" richColors closeButton />
+                                    </SessaoExpiradaProvider>
+                                </AuthenticatedLayout>
                             </WebSocketProvider>
-                        </AuthenticatedLayout>
                         </PlanoProvider>
                     </ConfiguracoesProvider>
                 </AuthGateProvider>

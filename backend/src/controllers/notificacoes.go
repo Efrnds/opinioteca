@@ -41,6 +41,20 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func paginacaoNotificacoes(r *http.Request) (limite, offset int) {
+	if valor := r.URL.Query().Get("limite"); valor != "" {
+		if parsed, erro := strconv.Atoi(valor); erro == nil && parsed > 0 {
+			limite = parsed
+		}
+	}
+	if valor := r.URL.Query().Get("offset"); valor != "" {
+		if parsed, erro := strconv.Atoi(valor); erro == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+	return limite, offset
+}
+
 func BuscarNotificacoesNaoLidas(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {
@@ -56,12 +70,13 @@ func BuscarNotificacoesNaoLidas(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repo := repositorios.NovoRepositorioDeNotificacoes(db)
+	limite, offset := paginacaoNotificacoes(r)
 
 	var notificacoes []modelos.Notificacao
 	if r.URL.Query().Get("todas") == "true" {
-		notificacoes, erro = repo.BuscarTodas(usuarioID)
+		notificacoes, erro = repo.BuscarTodas(usuarioID, limite, offset)
 	} else {
-		notificacoes, erro = repo.BuscarNaoLidas(usuarioID)
+		notificacoes, erro = repo.BuscarNaoLidas(usuarioID, limite, offset)
 	}
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -100,6 +115,29 @@ func MarcarNotificacaoComoLida(w http.ResponseWriter, r *http.Request) {
 			respostas.Erro(w, http.StatusNotFound, errors.New("Notificação não encontrada"))
 			return
 		}
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.NoContent(w)
+}
+
+func MarcarTodasNotificacoesComoLidas(w http.ResponseWriter, r *http.Request) {
+	usuarioID, erro := auth.ExtrairUsuarioID(r)
+	if erro != nil {
+		respostas.Erro(w, http.StatusUnauthorized, erro)
+		return
+	}
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repo := repositorios.NovoRepositorioDeNotificacoes(db)
+	if erro = repo.MarcarTodasComoLidas(usuarioID); erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}

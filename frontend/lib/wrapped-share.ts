@@ -2,7 +2,8 @@ import { toPng } from "html-to-image";
 import { toast } from "sonner";
 
 import type { OpinioWrapped } from "@/types/wrapped";
-import { WRAPPED_SHARE_BG_COLOR, WRAPPED_SHARE_GRADIENT_CSS } from "@/lib/wrapped-visuals";
+import { WRAPPED_SHARE_BG_COLOR, WRAPPED_SHARE_GRADIENT_CSS, getWrappedShareTema } from "@/lib/wrapped-visuals";
+import type { WrappedShareTemaId } from "@/lib/wrapped-visuals";
 
 export const WRAPPED_CARD_WIDTH = 1080;
 export const WRAPPED_CARD_HEIGHT = 1920;
@@ -24,7 +25,7 @@ export function textoCompartilharWrapped(dados: OpinioWrapped, nick: string): st
     const url = urlPerfilWrapped(nick);
 
     const partes = [
-        `Meu OpinioWrapped 📚 — ${paginas} páginas e ${livros} livro${livros === 1 ? "" : "s"} finalizado${livros === 1 ? "" : "s"} nos últimos 12 meses!`,
+        `Meu OpinioWrapped 📚: ${paginas} páginas e ${livros} livro${livros === 1 ? "" : "s"} finalizado${livros === 1 ? "" : "s"} nos últimos 12 meses!`,
     ];
 
     if (sequencia > 0) {
@@ -84,53 +85,40 @@ async function aguardarRender(): Promise<void> {
     });
 }
 
-export async function gerarImagemWrapped(elemento: HTMLElement): Promise<string> {
+export async function gerarImagemWrapped(
+    elemento: HTMLElement,
+    temaId?: WrappedShareTemaId,
+): Promise<string> {
     await aguardarRender();
 
-    const estilo = elemento.style;
-    const anterior = {
-        opacity: estilo.opacity,
-        visibility: estilo.visibility,
-        zIndex: estilo.zIndex,
-        left: estilo.left,
-        top: estilo.top,
-        pointerEvents: estilo.pointerEvents,
-    };
+    const bgColor = temaId ? getWrappedShareTema(temaId).bgColor : WRAPPED_SHARE_BG_COLOR;
 
-    // Element must be painted in the viewport — off-screen or opacity:0 yields a blank canvas.
-    estilo.opacity = "1";
-    estilo.visibility = "visible";
-    estilo.zIndex = "-1";
-    estilo.left = "0";
-    estilo.top = "0";
-    estilo.pointerEvents = "none";
+    // Do not mutate the live card (that caused a full-size flash). The source stays
+    // scale(0.01) in-viewport so it still paints; style overrides apply only to the clone.
+    const dataUrl = await toPng(elemento, {
+        width: WRAPPED_CARD_WIDTH,
+        height: WRAPPED_CARD_HEIGHT,
+        pixelRatio: 1,
+        cacheBust: true,
+        backgroundColor: bgColor,
+        style: {
+            transform: "none",
+            transformOrigin: "top left",
+            opacity: "1",
+            visibility: "visible",
+            left: "0",
+            top: "0",
+            margin: "0",
+            zIndex: "-1",
+            pointerEvents: "none",
+        },
+    });
 
-    try {
-        const dataUrl = await toPng(elemento, {
-            width: WRAPPED_CARD_WIDTH,
-            height: WRAPPED_CARD_HEIGHT,
-            pixelRatio: 1,
-            cacheBust: true,
-            backgroundColor: WRAPPED_SHARE_BG_COLOR,
-            style: {
-                transform: "none",
-                margin: "0",
-            },
-        });
-
-        if (!dataUrl || dataUrl.length < 5000) {
-            throw new Error("Imagem gerada vazia");
-        }
-
-        return dataUrl;
-    } finally {
-        estilo.opacity = anterior.opacity;
-        estilo.visibility = anterior.visibility;
-        estilo.zIndex = anterior.zIndex;
-        estilo.left = anterior.left;
-        estilo.top = anterior.top;
-        estilo.pointerEvents = anterior.pointerEvents;
+    if (!dataUrl || dataUrl.length < 5000) {
+        throw new Error("Imagem gerada vazia");
     }
+
+    return dataUrl;
 }
 
 export async function baixarImagemWrapped(dataUrl: string, nome = "opiniowrapped.png"): Promise<void> {

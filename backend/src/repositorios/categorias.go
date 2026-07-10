@@ -31,11 +31,33 @@ func (repositorio Categorias) Criar(categoria modelos.Categoria) (uint64, error)
 
 // Buscar é a função responsável por buscar todas as categorias no banco de dados.
 func (repositorio Categorias) Buscar() ([]modelos.Categoria, error) {
+	categorias, _, erro := repositorio.BuscarPaginado(100000, 0)
+	return categorias, erro
+}
+
+// BuscarPaginado lista categorias ativas com paginação.
+func (repositorio Categorias) BuscarPaginado(limite, offset int) ([]modelos.Categoria, int, error) {
+	if limite <= 0 {
+		limite = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var total int
+	if erro := repositorio.db.QueryRow(
+		"SELECT COUNT(*) FROM categorias WHERE ativo = true",
+	).Scan(&total); erro != nil {
+		return nil, 0, erro
+	}
+
 	linhas, erro := repositorio.db.Query(
-		"SELECT id, nome_categoria, ativo, criadoEm FROM categorias WHERE ativo = true",
+		"SELECT id, nome_categoria, ativo, criadoEm FROM categorias WHERE ativo = true ORDER BY nome_categoria LIMIT $1 OFFSET $2",
+		limite,
+		offset,
 	)
 	if erro != nil {
-		return nil, erro
+		return nil, 0, erro
 	}
 	defer linhas.Close()
 
@@ -48,11 +70,11 @@ func (repositorio Categorias) Buscar() ([]modelos.Categoria, error) {
 			&categoria.Ativo,
 			&categoria.CriadoEm,
 		); erro != nil {
-			return nil, erro
+			return nil, 0, erro
 		}
 		categorias = append(categorias, categoria)
 	}
-	return categorias, nil
+	return categorias, total, nil
 }
 
 // BuscarPorID é a função responsável por buscar uma categoria específica no banco de dados.

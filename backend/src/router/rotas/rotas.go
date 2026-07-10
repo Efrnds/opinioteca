@@ -21,6 +21,7 @@ func Configurar(r *mux.Router) *mux.Router {
 	rotas = append(rotas, rotasUsuarios...)
 	rotas = append(rotas, rotaLogin)
 	rotas = append(rotas, rotaUploadAvatar)
+	rotas = append(rotas, rotaUploadBanner)
 	rotas = append(rotas, rotasCategorias...)
 	rotas = append(rotas, rotasLivros...)
 	rotas = append(rotas, rotasAvaliacoes...)

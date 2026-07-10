@@ -11,3 +11,10 @@ var rotaUploadAvatar = Rota{
 	Funcao:             controllers.UploadAvatar,
 	RequerAutenticacao: true,
 }
+
+var rotaUploadBanner = Rota{
+	URI:                "/upload/banner",
+	Metodo:             http.MethodPost,
+	Funcao:             controllers.UploadBanner,
+	RequerAutenticacao: true,
+}

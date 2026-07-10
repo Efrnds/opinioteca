@@ -18,6 +18,9 @@ var (
 
 	schemaAssinaturaExpiraOnce sync.Once
 	schemaTemAssinaturaExpira   bool
+
+	schemaBannerOnce sync.Once
+	schemaTemBanner  bool
 )
 
 // schemaTemInativadoEm detecta se a migration 20260708 já rodou (coluna inativado_em).
@@ -54,6 +57,22 @@ func schemaTemAssinaturaExpiraEm(db *sql.DB) bool {
 	return schemaTemAssinaturaExpira
 }
 
+func schemaTemBannerUrl(db *sql.DB) bool {
+	schemaBannerOnce.Do(func() {
+		var existe bool
+		erro := db.QueryRow(`
+			SELECT EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_schema = current_schema()
+				  AND table_name = 'usuarios'
+				  AND column_name = 'banner_url'
+			)`).Scan(&existe)
+		schemaTemBanner = erro == nil && existe
+	})
+	return schemaTemBanner
+}
+
 func colunasUsuario(db *sql.DB) string {
 	cols := colunasUsuarioBase
 	if schemaTemAssinaturaExpiraEm(db) {
@@ -61,6 +80,9 @@ func colunasUsuario(db *sql.DB) string {
 	}
 	if schemaTemInativadoEm(db) {
 		cols += ", inativado_em"
+	}
+	if schemaTemBannerUrl(db) {
+		cols += ", banner_url"
 	}
 	return cols
 }
@@ -84,13 +106,18 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	}
 	comAssinaturaExpira := schemaTemAssinaturaExpiraEm(db)
 	comInativado := schemaTemInativadoEm(db)
+	comBanner := schemaTemBannerUrl(db)
 	var assinaturaExpira sql.NullTime
 	var inativadoEm sql.NullTime
+	var banner sql.NullString
 	if comAssinaturaExpira {
 		destinos = append(destinos, &assinaturaExpira)
 	}
 	if comInativado {
 		destinos = append(destinos, &inativadoEm)
+	}
+	if comBanner {
+		destinos = append(destinos, &banner)
 	}
 	if erro := linhas.Scan(destinos...); erro != nil {
 		return erro
@@ -105,6 +132,9 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	if comInativado && inativadoEm.Valid && modelos.TempoJSONSeguro(inativadoEm.Time) {
 		t := inativadoEm.Time
 		usuario.InativadoEm = &t
+	}
+	if comBanner && banner.Valid {
+		usuario.Banner = banner.String
 	}
 	return nil
 }
@@ -174,13 +204,106 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 	return usuarios, nil
 }
 
+// FiltrosAdminUsuarios controla busca e paginação da listagem admin.
+type FiltrosAdminUsuarios struct {
+	Query            string
+	AssinaturaFiltro string
+	Limite           int
+	Offset           int
+}
+
+func (repositorio Usuarios) clausulaAssinaturaFiltro(filtro string) string {
+	if filtro == "" {
+		return ""
+	}
+
+	comExpira := schemaTemAssinaturaExpiraEm(repositorio.db)
+	pago := "assinatura_id IN (2, 3)"
+	ativoPago := pago
+	if comExpira {
+		ativoPago = pago + " AND (assinatura_expira_em IS NULL OR assinatura_expira_em > NOW())"
+	}
+
+	switch filtro {
+	case "ativas":
+		return " AND " + ativoPago
+	case "opiniotop":
+		if comExpira {
+			return " AND assinatura_id = 2 AND (assinatura_expira_em IS NULL OR assinatura_expira_em > NOW())"
+		}
+		return " AND assinatura_id = 2"
+	case "opiniopro":
+		if comExpira {
+			return " AND assinatura_id = 3 AND (assinatura_expira_em IS NULL OR assinatura_expira_em > NOW())"
+		}
+		return " AND assinatura_id = 3"
+	case "expirando":
+		if !comExpira {
+			return " AND FALSE"
+		}
+		return " AND assinatura_id IN (2, 3) AND assinatura_expira_em IS NOT NULL AND assinatura_expira_em > NOW() AND assinatura_expira_em <= NOW() + INTERVAL '30 days'"
+	case "expiradas":
+		if !comExpira {
+			return " AND FALSE"
+		}
+		return " AND assinatura_id IN (2, 3) AND assinatura_expira_em IS NOT NULL AND assinatura_expira_em <= NOW()"
+	case "todas":
+		return " AND " + pago
+	default:
+		return ""
+	}
+}
+
+func (repositorio Usuarios) whereAdminUsuarios(filtros FiltrosAdminUsuarios) (string, []interface{}) {
+	where := " WHERE 1=1"
+	args := make([]interface{}, 0)
+
+	if termo := strings.TrimSpace(filtros.Query); termo != "" {
+		padrao := "%" + termo + "%"
+		where += fmt.Sprintf(" AND (nome ILIKE $%d OR nick ILIKE $%d OR email ILIKE $%d)", len(args)+1, len(args)+1, len(args)+1)
+		args = append(args, padrao)
+	}
+
+	where += repositorio.clausulaAssinaturaFiltro(filtros.AssinaturaFiltro)
+	return where, args
+}
+
 // BuscarTodos retorna todos os usuários (ativos e inativos) para o painel admin.
 func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
-	linhas, erro := repositorio.db.Query(
-		fmt.Sprintf("SELECT %s FROM usuarios ORDER BY id", colunasUsuario(repositorio.db)),
+	usuarios, _, erro := repositorio.BuscarAdmin(FiltrosAdminUsuarios{Limite: 100000, Offset: 0})
+	return usuarios, erro
+}
+
+// BuscarAdmin lista usuários com filtros e paginação para o painel admin.
+func (repositorio Usuarios) BuscarAdmin(filtros FiltrosAdminUsuarios) ([]modelos.Usuario, int, error) {
+	limite := filtros.Limite
+	if limite <= 0 {
+		limite = 20
+	}
+	offset := filtros.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	where, args := repositorio.whereAdminUsuarios(filtros)
+
+	var total int
+	if erro := repositorio.db.QueryRow("SELECT COUNT(*) FROM usuarios"+where, args...).Scan(&total); erro != nil {
+		return nil, 0, erro
+	}
+
+	query := fmt.Sprintf(
+		"SELECT %s FROM usuarios%s ORDER BY id LIMIT $%d OFFSET $%d",
+		colunasUsuario(repositorio.db),
+		where,
+		len(args)+1,
+		len(args)+2,
 	)
+	args = append(args, limite, offset)
+
+	linhas, erro := repositorio.db.Query(query, args...)
 	if erro != nil {
-		return nil, erro
+		return nil, 0, erro
 	}
 	defer linhas.Close()
 
@@ -188,12 +311,43 @@ func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 	for linhas.Next() {
 		var usuario modelos.Usuario
 		if erro = scanUsuario(linhas, &usuario, repositorio.db); erro != nil {
-			return nil, erro
+			return nil, 0, erro
 		}
 		usuarios = append(usuarios, usuario)
 	}
 
-	return usuarios, nil
+	return usuarios, total, nil
+}
+
+// ContarStatsAssinaturas retorna contadores do painel de assinaturas.
+func (repositorio Usuarios) ContarStatsAssinaturas() (modelos.AssinaturaStatsAdmin, error) {
+	var stats modelos.AssinaturaStatsAdmin
+	if !schemaTemAssinaturaExpiraEm(repositorio.db) {
+		erro := repositorio.db.QueryRow(`
+			SELECT
+				COUNT(*) FILTER (WHERE assinatura_id = 2),
+				COUNT(*) FILTER (WHERE assinatura_id = 3),
+				0,
+				COUNT(*) FILTER (WHERE assinatura_id IN (2, 3))
+			FROM usuarios
+		`).Scan(&stats.Top, &stats.Pro, &stats.Expirando, &stats.TotalAtivas)
+		return stats, erro
+	}
+
+	erro := repositorio.db.QueryRow(`
+		SELECT
+			COUNT(*) FILTER (WHERE assinatura_id = 2 AND (assinatura_expira_em IS NULL OR assinatura_expira_em > NOW())),
+			COUNT(*) FILTER (WHERE assinatura_id = 3 AND (assinatura_expira_em IS NULL OR assinatura_expira_em > NOW())),
+			COUNT(*) FILTER (
+				WHERE assinatura_id IN (2, 3)
+				  AND assinatura_expira_em IS NOT NULL
+				  AND assinatura_expira_em > NOW()
+				  AND assinatura_expira_em <= NOW() + INTERVAL '30 days'
+			),
+			COUNT(*) FILTER (WHERE assinatura_id IN (2, 3) AND (assinatura_expira_em IS NULL OR assinatura_expira_em > NOW()))
+		FROM usuarios
+	`).Scan(&stats.Top, &stats.Pro, &stats.Expirando, &stats.TotalAtivas)
+	return stats, erro
 }
 
 // BuscarPorID trás um usuário específico do banco de dados, com base no ID fornecido, retornando o usuário e um erro, se houver.
@@ -276,21 +430,20 @@ func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario
 
 // Atualizar é a função responsável por atualizar um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
 func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario) error {
-	statement, erro := repositorio.db.Prepare(
-		"UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, '') WHERE id = $5",
-	)
+	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, '') WHERE id = $5"
+	args := []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuarioID}
+	if schemaTemBannerUrl(repositorio.db) {
+		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = NULLIF($5, '') WHERE id = $6"
+		args = []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Banner, usuarioID}
+	}
+
+	statement, erro := repositorio.db.Prepare(query)
 	if erro != nil {
 		return erro
 	}
 	defer statement.Close()
 
-	if _, erro = statement.Exec(
-		usuario.Nome,
-		usuario.Nick,
-		usuario.Email,
-		usuario.Image,
-		usuarioID,
-	); erro != nil {
+	if _, erro = statement.Exec(args...); erro != nil {
 		return erro
 	}
 
@@ -299,23 +452,20 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 
 // AtualizarAdmin atualiza perfil, status e flag de admin (painel administrativo).
 func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usuario) error {
-	statement, erro := repositorio.db.Prepare(
-		"UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), status = $5, is_admin = $6 WHERE id = $7",
-	)
+	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), status = $5, is_admin = $6 WHERE id = $7"
+	args := []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Status, usuario.IsAdmin, usuarioID}
+	if schemaTemBannerUrl(repositorio.db) {
+		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = NULLIF($5, ''), status = $6, is_admin = $7 WHERE id = $8"
+		args = []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Banner, usuario.Status, usuario.IsAdmin, usuarioID}
+	}
+
+	statement, erro := repositorio.db.Prepare(query)
 	if erro != nil {
 		return erro
 	}
 	defer statement.Close()
 
-	if _, erro = statement.Exec(
-		usuario.Nome,
-		usuario.Nick,
-		usuario.Email,
-		usuario.Image,
-		usuario.Status,
-		usuario.IsAdmin,
-		usuarioID,
-	); erro != nil {
+	if _, erro = statement.Exec(args...); erro != nil {
 		return erro
 	}
 

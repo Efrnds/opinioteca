@@ -25,6 +25,7 @@ func denunciaIDDaURL(r *http.Request) (uint64, error) {
 func AdminListarDenuncias(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	tipo := r.URL.Query().Get("tipo")
+	pagina, limite, offset := paginacaoAdmin(r)
 
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -34,7 +35,7 @@ func AdminListarDenuncias(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repo := repositorios.NovoRepositorioDeDenuncias(db)
-	itens, erro := repo.Listar(status, tipo)
+	itens, total, erro := repo.ListarPaginado(status, tipo, limite, offset)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
@@ -56,6 +57,9 @@ func AdminListarDenuncias(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, modelos.DenunciaListagemResposta{
 		Itens:     itens,
 		Pendentes: pendentes,
+		Total:     total,
+		Pagina:    pagina,
+		Limite:    limite,
 	})
 }
 

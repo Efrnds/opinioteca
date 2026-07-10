@@ -1,15 +1,17 @@
 "use client";
 
 import Box from "@/app/components/Box";
-import AdminPageHeader from "@/app/components/admin/AdminPageHeader";
+import AdminPageHeader, { AdminNovoButton } from "@/app/components/admin/AdminPageHeader";
+import AdminPaginacao from "@/app/components/admin/AdminPaginacao";
 import AdminTable from "@/app/components/admin/AdminTable";
 import AssinaturaFormModal from "@/app/components/admin/AssinaturaFormModal";
+import { ADMIN_PAGE_SIZE, paramsPaginacao, parseListaPaginada } from "@/lib/admin/paginacao";
 import type { UsuarioAdmin } from "@/types/admin";
 import { PLANO_BADGE, formatarExpiracao, planoVitalicio, type CodigoPlano } from "@/types/plano";
 import { Loader2, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 
 const DIAS_EXPIRANDO = 30;
 
@@ -24,12 +26,15 @@ const FILTRO_PLANO_OPCOES = [
 
 type FiltroPlano = (typeof FILTRO_PLANO_OPCOES)[number]["value"];
 
+type AssinaturaStats = {
+    top: number;
+    pro: number;
+    expirando: number;
+    totalAtivas: number;
+};
+
 function isPlanoPago(codigo?: string) {
     return codigo === "opiniotop" || codigo === "opiniopro";
-}
-
-function temAssinaturaPagaRegistrada(u: UsuarioAdmin) {
-    return u.assinaturaId === 2 || u.assinaturaId === 3;
 }
 
 function diasAteExpiracao(iso?: string | null) {
@@ -96,104 +101,116 @@ function AdminAssinaturasConteudo() {
     const nickInicial = searchParams.get("nick") ?? "";
 
     const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
+    const [pagina, setPagina] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [limite, setLimite] = useState(ADMIN_PAGE_SIZE);
+    const [stats, setStats] = useState<AssinaturaStats>({
+        top: 0,
+        pro: 0,
+        expirando: 0,
+        totalAtivas: 0,
+    });
     const [carregando, setCarregando] = useState(true);
     const [busca, setBusca] = useState(nickInicial);
+    const [buscaDebounced, setBuscaDebounced] = useState(nickInicial);
     const [filtroPlano, setFiltroPlano] = useState<FiltroPlano>("ativas");
+    const [sugestoesBusca, setSugestoesBusca] = useState<UsuarioAdmin[]>([]);
     const [modalAberto, setModalAberto] = useState(false);
     const [usuarioSelecionado, setUsuarioSelecionado] = useState<UsuarioAdmin | null>(null);
+    const [nickResolvido, setNickResolvido] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setBuscaDebounced(busca);
+            setPagina(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [busca]);
 
     const carregar = useCallback(async () => {
         setCarregando(true);
         try {
-            const res = await fetch("/api/admin/usuarios");
+            const params = paramsPaginacao(pagina);
+            params.set("assinatura", filtroPlano);
+            params.set("stats", "assinaturas");
+            if (buscaDebounced.trim()) params.set("q", buscaDebounced.trim());
+
+            const res = await fetch(`/api/admin/usuarios?${params}`);
             if (res.ok) {
-                const data = await res.json();
-                setUsuarios(Array.isArray(data) ? data : []);
+                const raw = await res.json();
+                const data = parseListaPaginada<UsuarioAdmin>(raw);
+                setUsuarios(data.itens);
+                setTotal(data.total);
+                setLimite(data.limite);
+                if (raw?.stats) {
+                    setStats({
+                        top: raw.stats.top ?? 0,
+                        pro: raw.stats.pro ?? 0,
+                        expirando: raw.stats.expirando ?? 0,
+                        totalAtivas: raw.stats.totalAtivas ?? 0,
+                    });
+                }
             }
         } finally {
             setCarregando(false);
         }
-    }, []);
+    }, [buscaDebounced, filtroPlano, pagina]);
 
     useEffect(() => {
         carregar();
     }, [carregar]);
 
     useEffect(() => {
-        if (!nickInicial || carregando || usuarios.length === 0) return;
-        const usuario = usuarios.find((u) => u.nick.toLowerCase() === nickInicial.toLowerCase());
-        if (usuario) {
-            setUsuarioSelecionado(usuario);
-            setModalAberto(true);
+        if (!nickInicial || nickResolvido) return;
+        let cancelado = false;
+
+        (async () => {
+            const params = paramsPaginacao(1, 5);
+            params.set("q", nickInicial);
+            const res = await fetch(`/api/admin/usuarios?${params}`);
+            if (!res.ok || cancelado) return;
+            const data = parseListaPaginada<UsuarioAdmin>(await res.json());
+            const usuario = data.itens.find(
+                (u) => u.nick.toLowerCase() === nickInicial.toLowerCase(),
+            );
+            if (usuario && !cancelado) {
+                setUsuarioSelecionado(usuario);
+                setModalAberto(true);
+            }
+            if (!cancelado) setNickResolvido(true);
+        })();
+
+        return () => {
+            cancelado = true;
+        };
+    }, [nickInicial, nickResolvido]);
+
+    useEffect(() => {
+        const termo = busca.trim();
+        if (termo.length < 2) {
+            setSugestoesBusca([]);
+            return;
         }
-    }, [nickInicial, carregando, usuarios]);
 
-    const assinaturasPagas = useMemo(
-        () => usuarios.filter((u) => temAssinaturaPagaRegistrada(u)),
-        [usuarios],
-    );
+        const timer = setTimeout(async () => {
+            const params = paramsPaginacao(1, 5);
+            params.set("q", termo);
+            const res = await fetch(`/api/admin/usuarios?${params}`);
+            if (!res.ok) return;
+            const data = parseListaPaginada<UsuarioAdmin>(await res.json());
+            setSugestoesBusca(data.itens);
+        }, 250);
 
-    const stats = useMemo(() => {
-        const ativas = assinaturasPagas.filter((u) => isPlanoPago(u.plano?.codigo));
-        const top = ativas.filter((u) => u.plano?.codigo === "opiniotop").length;
-        const pro = ativas.filter((u) => u.plano?.codigo === "opiniopro").length;
-        const expirando = ativas.filter((u) => {
-            const dias = diasAteExpiracao(u.assinaturaExpiraEm);
-            return dias !== null && dias >= 0 && dias <= DIAS_EXPIRANDO;
-        }).length;
-        return { top, pro, expirando, totalAtivas: ativas.length };
-    }, [assinaturasPagas]);
-
-    const filtrados = useMemo(() => {
-        const termo = busca.trim().toLowerCase();
-
-        return assinaturasPagas.filter((u) => {
-            if (termo) {
-                const match =
-                    u.nick.toLowerCase().includes(termo) ||
-                    u.nome.toLowerCase().includes(termo) ||
-                    u.email.toLowerCase().includes(termo);
-                if (!match) return false;
-            }
-
-            const codigo = u.plano?.codigo ?? "gratuito";
-            const ativa = isPlanoPago(codigo);
-            const dias = diasAteExpiracao(u.assinaturaExpiraEm);
-            const expirando = dias !== null && dias >= 0 && dias <= DIAS_EXPIRANDO;
-
-            switch (filtroPlano) {
-                case "ativas":
-                    return ativa;
-                case "opiniotop":
-                    return codigo === "opiniotop";
-                case "opiniopro":
-                    return codigo === "opiniopro";
-                case "expirando":
-                    return ativa && expirando;
-                case "expiradas":
-                    return !ativa;
-                case "todas":
-                    return true;
-                default:
-                    return ativa;
-            }
-        });
-    }, [assinaturasPagas, busca, filtroPlano]);
-
-    const sugestoesBusca = useMemo(() => {
-        const termo = busca.trim().toLowerCase();
-        if (!termo || termo.length < 2) return [];
-        return usuarios
-            .filter(
-                (u) =>
-                    u.nick.toLowerCase().includes(termo) ||
-                    u.nome.toLowerCase().includes(termo),
-            )
-            .slice(0, 5);
-    }, [usuarios, busca]);
+        return () => clearTimeout(timer);
+    }, [busca]);
 
     function abrirGerenciar(usuario: UsuarioAdmin) {
         setUsuarioSelecionado(usuario);
+        setModalAberto(true);
+    }
+
+    function abrirNova() {
+        setUsuarioSelecionado(null);
         setModalAberto(true);
     }
 
@@ -202,9 +219,25 @@ function AdminAssinaturasConteudo() {
         abrirGerenciar(usuario);
     }
 
+    function fecharModal() {
+        setModalAberto(false);
+        setUsuarioSelecionado(null);
+        if (nickInicial) {
+            router.replace("/admin/assinaturas");
+        }
+    }
+
+    function alterarFiltro(valor: FiltroPlano) {
+        setFiltroPlano(valor);
+        setPagina(1);
+    }
+
     return (
         <>
-            <AdminPageHeader titulo="Assinaturas" />
+            <AdminPageHeader
+                titulo="Assinaturas"
+                acao={<AdminNovoButton label="Nova assinatura" onClick={abrirNova} />}
+            />
 
             <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <StatCard rotulo="OpinioTop ativos" valor={stats.top} />
@@ -254,7 +287,7 @@ function AdminAssinaturasConteudo() {
 
                     <select
                         value={filtroPlano}
-                        onChange={(e) => setFiltroPlano(e.target.value as FiltroPlano)}
+                        onChange={(e) => alterarFiltro(e.target.value as FiltroPlano)}
                         className="rounded-xl border border-cinza-200 bg-white px-3 py-2.5 font-gabarito-regular text-sm text-azul-900 outline-none focus:border-azul-600"
                     >
                         {FILTRO_PLANO_OPCOES.map((op) => (
@@ -276,93 +309,102 @@ function AdminAssinaturasConteudo() {
                         <Loader2 className="h-8 w-8 animate-spin text-azul-600" />
                     </div>
                 ) : (
-                    <AdminTable
-                        data={filtrados}
-                        keyExtractor={(u) => u.id}
-                        emptyMessage="Nenhuma assinatura encontrada com os filtros atuais."
-                        columns={[
-                            {
-                                key: "usuario",
-                                header: "Usuário",
-                                render: (u) => (
-                                    <div>
-                                        <p className="font-gabarito-medium text-azul-900">{u.nome}</p>
-                                        <p className="text-xs text-cinza-600">@{u.nick}</p>
-                                    </div>
-                                ),
-                            },
-                            {
-                                key: "plano",
-                                header: "Plano",
-                                render: (u) => (
-                                    <PlanoBadge codigo={u.plano?.codigo ?? "gratuito"} />
-                                ),
-                            },
-                            {
-                                key: "status",
-                                header: "Status",
-                                render: (u) => {
-                                    const ativa = isPlanoPago(u.plano?.codigo);
-                                    const vitalicia = planoVitalicio(u.plano);
-                                    const dias = diasAteExpiracao(u.assinaturaExpiraEm);
-                                    if (!ativa) {
-                                        return (
-                                            <span className="font-gabarito-medium text-sm text-red-500">
-                                                Expirada
-                                            </span>
-                                        );
-                                    }
-                                    if (vitalicia) {
-                                        return <VitaliciaBadge />;
-                                    }
-                                    if (dias !== null && dias >= 0 && dias <= DIAS_EXPIRANDO) {
-                                        return (
-                                            <span className="font-gabarito-medium text-sm text-amber-700">
-                                                Expira em {dias} dia{dias !== 1 ? "s" : ""}
-                                            </span>
-                                        );
-                                    }
-                                    return (
-                                        <span className="font-gabarito-medium text-sm text-emerald-600">
-                                            Ativa
-                                        </span>
-                                    );
-                                },
-                            },
-                            {
-                                key: "expira",
-                                header: "Expira em",
-                                render: (u) =>
-                                    planoVitalicio(u.plano) ? (
-                                        <VitaliciaBadge />
-                                    ) : u.assinaturaExpiraEm ? (
-                                        formatarExpiracao(u.assinaturaExpiraEm)
-                                    ) : (
-                                        "Sem data"
+                    <>
+                        <AdminTable
+                            data={usuarios}
+                            keyExtractor={(u) => u.id}
+                            emptyMessage="Nenhuma assinatura encontrada com os filtros atuais."
+                            columns={[
+                                {
+                                    key: "usuario",
+                                    header: "Usuário",
+                                    render: (u) => (
+                                        <div>
+                                            <p className="font-gabarito-medium text-azul-900">{u.nome}</p>
+                                            <p className="text-xs text-cinza-600">@{u.nick}</p>
+                                        </div>
                                     ),
-                            },
-                            {
-                                key: "email",
-                                header: "E-mail",
-                                render: (u) => (
-                                    <span className="text-cinza-700">{u.email}</span>
-                                ),
-                            },
-                            {
-                                key: "acao",
-                                header: "Ação",
-                                render: (u) => (
-                                    <button
-                                        type="button"
-                                        onClick={() => abrirGerenciar(u)}
-                                        className="font-gabarito-medium text-sm text-azul-600 hover:underline"
-                                    >
-                                        Gerenciar
-                                    </button>
-                                ),
-                            },
-                        ]}
-                    />
+                                },
+                                {
+                                    key: "plano",
+                                    header: "Plano",
+                                    render: (u) => (
+                                        <PlanoBadge codigo={u.plano?.codigo ?? "gratuito"} />
+                                    ),
+                                },
+                                {
+                                    key: "status",
+                                    header: "Status",
+                                    render: (u) => {
+                                        const ativa = isPlanoPago(u.plano?.codigo);
+                                        const vitalicia = planoVitalicio(u.plano);
+                                        const dias = diasAteExpiracao(u.assinaturaExpiraEm);
+                                        if (!ativa) {
+                                            return (
+                                                <span className="font-gabarito-medium text-sm text-red-500">
+                                                    Expirada
+                                                </span>
+                                            );
+                                        }
+                                        if (vitalicia) {
+                                            return <VitaliciaBadge />;
+                                        }
+                                        if (dias !== null && dias >= 0 && dias <= DIAS_EXPIRANDO) {
+                                            return (
+                                                <span className="font-gabarito-medium text-sm text-amber-700">
+                                                    Expira em {dias} dia{dias !== 1 ? "s" : ""}
+                                                </span>
+                                            );
+                                        }
+                                        return (
+                                            <span className="font-gabarito-medium text-sm text-emerald-600">
+                                                Ativa
+                                            </span>
+                                        );
+                                    },
+                                },
+                                {
+                                    key: "expira",
+                                    header: "Expira em",
+                                    render: (u) =>
+                                        planoVitalicio(u.plano) ? (
+                                            <VitaliciaBadge />
+                                        ) : u.assinaturaExpiraEm ? (
+                                            formatarExpiracao(u.assinaturaExpiraEm)
+                                        ) : (
+                                            "Sem data"
+                                        ),
+                                },
+                                {
+                                    key: "email",
+                                    header: "E-mail",
+                                    render: (u) => (
+                                        <span className="text-cinza-700">{u.email}</span>
+                                    ),
+                                },
+                                {
+                                    key: "acao",
+                                    header: "Ação",
+                                    render: (u) => (
+                                        <button
+                                            type="button"
+                                            onClick={() => abrirGerenciar(u)}
+                                            className="font-gabarito-medium text-sm text-azul-600 hover:underline"
+                                        >
+                                            Gerenciar
+                                        </button>
+                                    ),
+                                },
+                            ]}
+                        />
+                        <AdminPaginacao
+                            pagina={pagina}
+                            limite={limite}
+                            total={total}
+                            onChange={setPagina}
+                            disabled={carregando}
+                        />
+                    </>
                 )}
             </Box>
 
@@ -377,12 +419,7 @@ function AdminAssinaturasConteudo() {
             <AssinaturaFormModal
                 open={modalAberto}
                 usuario={usuarioSelecionado}
-                onClose={() => {
-                    setModalAberto(false);
-                    if (nickInicial) {
-                        router.replace("/admin/assinaturas");
-                    }
-                }}
+                onClose={fecharModal}
                 onSalvo={carregar}
             />
         </>

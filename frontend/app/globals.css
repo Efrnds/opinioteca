@@ -33,15 +33,26 @@
   src: url(/assets/fonts/inria/InriaSerif-Regular.ttf);
 }
 
-:root {
+:root,
+html[data-tema="claro"] {
   --azul-900: #1B2432;
   --azul-800: #000E33;
   --azul-700: #001d66;
   --azul-600: #0048FF;
+  --azul-600-foreground: #FFFFFF;
+  --cor-destaque-texto: #0048FF;
   --azul-500: #3C73FF;
   --azul-400: #336dff;
   --azul-200: #99B6FF;
+  --azul-100: #c5d6ff;
+  --azul-50: #e8efff;
   --cinza-700: #808080;
+  --cinza-600: #6b7280;
+  --cinza-500: #9ca3af;
+  --cinza-300: #d1d5db;
+  --cinza-200: #e5e7eb;
+  --cinza-100: #f3f4f6;
+  --logo-fill: #1B2432;
   --font-gabarito-black: Gabarito-Black;
   --font-gabarito-bold: Gabarito-Bold;
   --font-gabarito-medium: Gabarito-Medium;
@@ -49,7 +60,10 @@
   --font-gabarito-regular: Gabarito-Regular;
   --font-inria-regular: Inria-Regular;
   --background: #E8EAED;
+  --superficie: #ffffff;
+  --fundo-texto: #ffffff;
   --foreground: #171717;
+  --texto: #171717;
   --card: #E8EAED;
   --card-foreground: #171717;
   --popover: #E8EAED;
@@ -82,17 +96,498 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Escuro: fundos escuros, texto claro; accent (--azul-600 etc.) continua via JS.
+   html[data-tema] tem especificidade maior que :root sozinho. */
+html[data-tema="escuro"] {
+  --azul-900: #E8EAED;
+  --azul-800: #c5cdd8;
+  --cinza-700: #9ca3af;
+  --cinza-600: #8b95a5;
+  --cinza-500: #7a8494;
+  --cinza-300: #4b5563;
+  --cinza-200: #374151;
+  --cinza-100: #243044;
+  --background: #0f1419;
+  --superficie: #1a2332;
+  --fundo-texto: #1a2332;
+  --foreground: #E8EAED;
+  --texto: #E8EAED;
+  --card: #1a2332;
+  --card-foreground: #E8EAED;
+  --popover: #1a2332;
+  --popover-foreground: #E8EAED;
+  --muted: #243044;
+  --muted-foreground: #9ca3af;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 12%);
+  --sidebar: #1a2332;
+  --sidebar-foreground: #E8EAED;
+  --sidebar-accent: #243044;
+  --sidebar-accent-foreground: #E8EAED;
+  --sidebar-border: rgb(255 255 255 / 10%);
+  /* Off-white do tema claro: logo e chrome que precisam de contraste no escuro */
+  --logo-fill: #E8EAED;
+  color-scheme: dark;
+}
+
+/* Modo leitor: papel creme, contraste suave para leitura longa */
+html[data-tema="leitor"] {
+  --azul-900: #2C2416;
+  --azul-800: #3D3224;
+  --cinza-700: #7A6F60;
+  --cinza-600: #8A7F70;
+  --cinza-500: #9A8F80;
+  --cinza-300: #d4cbbd;
+  --cinza-200: #e8e0d4;
+  --cinza-100: #f5efe6;
+  --background: #EDE6D9;
+  --superficie: #FFFBF5;
+  --fundo-texto: #FFFBF5;
+  --foreground: #2C2416;
+  --texto: #2C2416;
+  --card: #FFFBF5;
+  --card-foreground: #2C2416;
+  --popover: #FFFBF5;
+  --popover-foreground: #2C2416;
+  --muted: #f5efe6;
+  --muted-foreground: #7A6F60;
+  --border: #e0d6c8;
+  --input: #e0d6c8;
+  --sidebar: #FFFBF5;
+  --sidebar-foreground: #2C2416;
+  --sidebar-accent: #f5efe6;
+  --sidebar-accent-foreground: #2C2416;
+  --sidebar-border: #e0d6c8;
+  --logo-fill: #1B2432;
+}
+
+/* Personalizado: base clara; overrides via JS (--background, --superficie, etc.). */
+html[data-tema="custom"] {
+  --azul-900: #1B2432;
+  --azul-800: #000E33;
+  --cinza-700: #808080;
+  --cinza-600: #6b7280;
+  --cinza-500: #9ca3af;
+  --cinza-300: #d1d5db;
+  --cinza-200: #e5e7eb;
+  --cinza-100: #f3f4f6;
+  --logo-fill: #1B2432;
+  --background: #E8EAED;
+  --superficie: #ffffff;
+  --fundo-texto: #ffffff;
+  --foreground: #171717;
+  --texto: #171717;
+  --card: #E8EAED;
+  --card-foreground: #171717;
+  --popover: #E8EAED;
+  --popover-foreground: #171717;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #171717;
+}
+
+/*
+ * Muitos componentes usam bg-white / text-black / border-gray-* hardcoded.
+ * Remapeia superfícies e texto sob temas não-claros sem reescrever cada TSX.
+ * Não altera --color-white globalmente; texto sobre accent usa --azul-600-foreground.
+ */
+
+/*
+ * Contraste do accent:
+ * - bg-azul-600 (+ text-white legado) → --azul-600-foreground (escuro se accent claro)
+ * - text/fill-azul-600 → --cor-destaque-texto (escurecido se falha contraste no fundo)
+ * Remapeia --color-white no escopo do botão para cobrir text-white aninhado.
+ */
+.bg-azul-600,
+.hover\:bg-azul-600:hover,
+.active\:bg-azul-600:active {
+  color: var(--azul-600-foreground);
+  --color-white: var(--azul-600-foreground);
+}
+
+.text-azul-600,
+.hover\:text-azul-600:hover,
+.focus\:text-azul-600:focus,
+.active\:text-azul-600:active {
+  color: var(--cor-destaque-texto);
+}
+
+.fill-azul-600 {
+  fill: var(--cor-destaque-texto);
+}
+
+html[data-tema="escuro"] .bg-white,
+html[data-tema="leitor"] .bg-white,
+html[data-tema="custom"] .bg-white {
+  background-color: var(--superficie);
+}
+
+html[data-tema="escuro"] .bg-white\/70,
+html[data-tema="leitor"] .bg-white\/70,
+html[data-tema="custom"] .bg-white\/70 {
+  background-color: color-mix(in oklab, var(--superficie) 70%, transparent);
+}
+
+html[data-tema="escuro"] .bg-white\/80,
+html[data-tema="leitor"] .bg-white\/80,
+html[data-tema="custom"] .bg-white\/80 {
+  background-color: color-mix(in oklab, var(--superficie) 80%, transparent);
+}
+
+html[data-tema="escuro"] .bg-white\/40,
+html[data-tema="leitor"] .bg-white\/40,
+html[data-tema="custom"] .bg-white\/40 {
+  background-color: color-mix(in oklab, var(--superficie) 40%, transparent);
+}
+
+html[data-tema="escuro"] .bg-white\/60,
+html[data-tema="leitor"] .bg-white\/60,
+html[data-tema="custom"] .bg-white\/60 {
+  background-color: color-mix(in oklab, var(--superficie) 60%, transparent);
+}
+
+/*
+ * Hovers no escuro: superfície um pouco mais clara (muted), nunca flash branco
+ * nem hover:bg-background (mais escuro que o card).
+ */
+html[data-tema="escuro"] .hover\:bg-white:hover,
+html[data-tema="escuro"] .hover\:bg-white\/60:hover,
+html[data-tema="escuro"] .hover\:bg-background:hover,
+html[data-tema="escuro"] .hover\:bg-background\/60:hover,
+html[data-tema="escuro"] .active\:bg-background:active,
+html[data-tema="escuro"] .hover\:bg-azul-50:hover,
+html[data-tema="escuro"] .hover\:bg-azul-50\/40:hover,
+html[data-tema="escuro"] .hover\:bg-azul-50\/60:hover,
+html[data-tema="escuro"] .hover\:bg-azul-50\/80:hover,
+html[data-tema="escuro"] .hover\:bg-azul-100:hover,
+html[data-tema="escuro"] .hover\:bg-cinza-100:hover,
+html[data-tema="escuro"] .bg-gray-50,
+html[data-tema="escuro"] .hover\:bg-gray-50:hover,
+html[data-tema="escuro"] .bg-gray-100,
+html[data-tema="escuro"] .bg-gray-200,
+html[data-tema="escuro"] .hover\:bg-gray-300:hover,
+html[data-tema="escuro"] .bg-cinza-100,
+html[data-tema="escuro"] .bg-cinza-100\/80 {
+  background-color: var(--muted);
+}
+
+html[data-tema="escuro"] .text-black,
+html[data-tema="leitor"] .text-black,
+html[data-tema="custom"] .text-black {
+  color: var(--foreground);
+}
+
+html[data-tema="escuro"] .border-gray-200,
+html[data-tema="escuro"] .border-gray-300,
+html[data-tema="escuro"] .border-cinza-100,
+html[data-tema="leitor"] .border-gray-200,
+html[data-tema="leitor"] .border-gray-300,
+html[data-tema="leitor"] .border-cinza-100 {
+  border-color: var(--cinza-200);
+}
+
+/* Logo SVG (fill escuro hardcoded): no tema escuro usa o off-white do claro (#E8EAED). */
+html[data-tema="escuro"] .logo-opinioteca {
+  filter: brightness(0) invert(0.92);
+}
+
+html[data-tema="escuro"] .ring-black\/5,
+html[data-tema="escuro"] .ring-black\/10 {
+  --tw-ring-color: rgb(255 255 255 / 12%);
+}
+
+html[data-tema="escuro"] .ring-offset-1 {
+  --tw-ring-offset-color: var(--superficie);
+}
+
+html[data-tema="escuro"] input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html[data-tema="escuro"] textarea,
+html[data-tema="escuro"] select,
+html[data-tema="leitor"] input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html[data-tema="leitor"] textarea,
+html[data-tema="leitor"] select,
+html[data-tema="custom"] input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html[data-tema="custom"] textarea,
+html[data-tema="custom"] select {
+  background-color: var(--superficie);
+  color: var(--foreground);
+  border-color: var(--cinza-200);
+}
+
+html[data-tema="escuro"] input::placeholder,
+html[data-tema="escuro"] textarea::placeholder,
+html[data-tema="leitor"] input::placeholder,
+html[data-tema="leitor"] textarea::placeholder,
+html[data-tema="custom"] input::placeholder,
+html[data-tema="custom"] textarea::placeholder {
+  color: var(--cinza-700);
+}
+
+/*
+ * Painel admin: chrome fixo (claro + azul Opinoteca), independente do tema do usuário.
+ * Variáveis no [data-admin] sobrescrevem herança de html[data-tema] / inline styles.
+ * Regras abaixo desfazem remaps de escuro/leitor/custom que não usam só tokens.
+ * Complementa forcarTemaClaroAdmin() no documentElement (AdminShell).
+ */
+[data-admin] {
+  color-scheme: light !important;
+  --azul-900: #1B2432 !important;
+  --azul-800: #000E33 !important;
+  --azul-700: #001d66 !important;
+  --azul-600: #0048FF !important;
+  --azul-600-foreground: #FFFFFF !important;
+  --cor-destaque-texto: #0048FF !important;
+  --azul-500: #3C73FF !important;
+  --azul-400: #336dff !important;
+  --azul-200: #99B6FF !important;
+  --azul-100: #c5d6ff !important;
+  --azul-50: #e8efff !important;
+  --cinza-700: #808080 !important;
+  --cinza-600: #6b7280 !important;
+  --cinza-500: #9ca3af !important;
+  --cinza-300: #d1d5db !important;
+  --cinza-200: #e5e7eb !important;
+  --cinza-100: #f3f4f6 !important;
+  --logo-fill: #1B2432 !important;
+  --background: #E8EAED !important;
+  --superficie: #ffffff !important;
+  --fundo-texto: #ffffff !important;
+  --foreground: #171717 !important;
+  --texto: #171717 !important;
+  --card: #E8EAED !important;
+  --card-foreground: #171717 !important;
+  --popover: #E8EAED !important;
+  --popover-foreground: #171717 !important;
+  --primary: oklch(0.205 0 0) !important;
+  --primary-foreground: oklch(0.985 0 0) !important;
+  --secondary: oklch(0.97 0 0) !important;
+  --secondary-foreground: oklch(0.205 0 0) !important;
+  --muted: oklch(0.97 0 0) !important;
+  --muted-foreground: oklch(0.556 0 0) !important;
+  --accent: oklch(0.97 0 0) !important;
+  --accent-foreground: oklch(0.205 0 0) !important;
+  --border: oklch(0.922 0 0) !important;
+  --input: oklch(0.922 0 0) !important;
+  --ring: oklch(0.708 0 0) !important;
+  --sidebar: oklch(0.985 0 0) !important;
+  --sidebar-foreground: oklch(0.145 0 0) !important;
+  --sidebar-primary: oklch(0.205 0 0) !important;
+  --sidebar-primary-foreground: oklch(0.985 0 0) !important;
+  --sidebar-accent: oklch(0.97 0 0) !important;
+  --sidebar-accent-foreground: oklch(0.205 0 0) !important;
+  --sidebar-border: oklch(0.922 0 0) !important;
+  --sidebar-ring: oklch(0.708 0 0) !important;
+  background-color: #E8EAED !important;
+}
+
+[data-admin] .bg-background {
+  background-color: #E8EAED !important;
+}
+
+[data-admin] .bg-superficie,
+[data-admin] .bg-white {
+  background-color: #ffffff !important;
+}
+
+[data-admin] .text-azul-900,
+[data-admin] .text-foreground,
+[data-admin] .text-texto {
+  color: #1B2432 !important;
+}
+
+[data-admin] .bg-azul-900 {
+  background-color: #1B2432 !important;
+}
+
+[data-admin] .bg-azul-600,
+[data-admin] .hover\:bg-azul-600:hover,
+[data-admin] .active\:bg-azul-600:active {
+  background-color: #0048FF !important;
+  color: #ffffff !important;
+  --color-white: #ffffff !important;
+}
+
+[data-admin] .text-azul-600,
+[data-admin] .hover\:text-azul-600:hover {
+  color: #0048FF !important;
+}
+
+html[data-tema="escuro"] [data-admin] .bg-white,
+html[data-tema="leitor"] [data-admin] .bg-white,
+html[data-tema="custom"] [data-admin] .bg-white {
+  background-color: #ffffff !important;
+}
+
+html[data-tema="escuro"] [data-admin] .bg-white\/70,
+html[data-tema="leitor"] [data-admin] .bg-white\/70,
+html[data-tema="custom"] [data-admin] .bg-white\/70 {
+  background-color: rgb(255 255 255 / 70%) !important;
+}
+
+html[data-tema="escuro"] [data-admin] .bg-white\/80,
+html[data-tema="leitor"] [data-admin] .bg-white\/80,
+html[data-tema="custom"] [data-admin] .bg-white\/80 {
+  background-color: rgb(255 255 255 / 80%) !important;
+}
+
+html[data-tema="escuro"] [data-admin] .bg-white\/40,
+html[data-tema="leitor"] [data-admin] .bg-white\/40,
+html[data-tema="custom"] [data-admin] .bg-white\/40 {
+  background-color: rgb(255 255 255 / 40%) !important;
+}
+
+html[data-tema="escuro"] [data-admin] .bg-white\/60,
+html[data-tema="leitor"] [data-admin] .bg-white\/60,
+html[data-tema="custom"] [data-admin] .bg-white\/60 {
+  background-color: rgb(255 255 255 / 60%) !important;
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-white:hover {
+  background-color: #ffffff;
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-white\/60:hover {
+  background-color: rgb(255 255 255 / 60%);
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-background:hover,
+html[data-tema="escuro"] [data-admin] .active\:bg-background:active {
+  background-color: var(--background);
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-background\/60:hover {
+  background-color: color-mix(in oklab, var(--background) 60%, transparent);
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-azul-50:hover {
+  background-color: var(--azul-50);
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-azul-50\/40:hover {
+  background-color: color-mix(in oklab, var(--azul-50) 40%, transparent);
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-azul-50\/60:hover {
+  background-color: color-mix(in oklab, var(--azul-50) 60%, transparent);
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-azul-50\/80:hover {
+  background-color: color-mix(in oklab, var(--azul-50) 80%, transparent);
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-azul-100:hover {
+  background-color: var(--azul-100);
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-cinza-100:hover,
+html[data-tema="escuro"] [data-admin] .bg-cinza-100 {
+  background-color: var(--cinza-100);
+}
+
+html[data-tema="escuro"] [data-admin] .bg-cinza-100\/80 {
+  background-color: color-mix(in oklab, var(--cinza-100) 80%, transparent);
+}
+
+html[data-tema="escuro"] [data-admin] .bg-gray-50,
+html[data-tema="escuro"] [data-admin] .hover\:bg-gray-50:hover {
+  background-color: #f9fafb;
+}
+
+html[data-tema="escuro"] [data-admin] .bg-gray-100 {
+  background-color: #f3f4f6;
+}
+
+html[data-tema="escuro"] [data-admin] .bg-gray-200 {
+  background-color: #e5e7eb;
+}
+
+html[data-tema="escuro"] [data-admin] .hover\:bg-gray-300:hover {
+  background-color: #d1d5db;
+}
+
+html[data-tema="escuro"] [data-admin] .text-black,
+html[data-tema="leitor"] [data-admin] .text-black,
+html[data-tema="custom"] [data-admin] .text-black {
+  color: #000000 !important;
+}
+
+html[data-tema="escuro"] [data-admin] .border-gray-200,
+html[data-tema="leitor"] [data-admin] .border-gray-200 {
+  border-color: #e5e7eb;
+}
+
+html[data-tema="escuro"] [data-admin] .border-gray-300,
+html[data-tema="leitor"] [data-admin] .border-gray-300 {
+  border-color: #d1d5db;
+}
+
+html[data-tema="escuro"] [data-admin] .border-cinza-100,
+html[data-tema="leitor"] [data-admin] .border-cinza-100 {
+  border-color: var(--cinza-100);
+}
+
+html[data-tema="escuro"] [data-admin] .logo-opinioteca {
+  filter: none;
+}
+
+html[data-tema="escuro"] [data-admin] .ring-black\/5 {
+  --tw-ring-color: rgb(0 0 0 / 5%);
+}
+
+html[data-tema="escuro"] [data-admin] .ring-black\/10 {
+  --tw-ring-color: rgb(0 0 0 / 10%);
+}
+
+html[data-tema="escuro"] [data-admin] .ring-offset-1 {
+  --tw-ring-offset-color: #ffffff;
+}
+
+html[data-tema="escuro"] [data-admin] input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html[data-tema="escuro"] [data-admin] textarea,
+html[data-tema="escuro"] [data-admin] select,
+html[data-tema="leitor"] [data-admin] input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html[data-tema="leitor"] [data-admin] textarea,
+html[data-tema="leitor"] [data-admin] select,
+html[data-tema="custom"] [data-admin] input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html[data-tema="custom"] [data-admin] textarea,
+html[data-tema="custom"] [data-admin] select {
+  background-color: #ffffff;
+  color: #171717;
+  border-color: var(--cinza-200);
+}
+
+html[data-tema="escuro"] [data-admin] input::placeholder,
+html[data-tema="escuro"] [data-admin] textarea::placeholder,
+html[data-tema="leitor"] [data-admin] input::placeholder,
+html[data-tema="leitor"] [data-admin] textarea::placeholder,
+html[data-tema="custom"] [data-admin] input::placeholder,
+html[data-tema="custom"] [data-admin] textarea::placeholder {
+  color: var(--cinza-700);
+}
+
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-texto: var(--texto);
+  --color-superficie: var(--superficie);
+  --color-fundo-texto: var(--fundo-texto);
   --color-azul-900: var(--azul-900);
   --color-azul-800: var(--azul-800);
   --color-azul-700: var(--azul-700);
   --color-azul-600: var(--azul-600);
+  --color-azul-600-foreground: var(--azul-600-foreground);
+  --color-destaque-texto: var(--cor-destaque-texto);
   --color-azul-500: var(--azul-500);
   --color-azul-400: var(--azul-400);
   --color-azul-200: var(--azul-200);
+  --color-azul-100: var(--azul-100);
+  --color-azul-50: var(--azul-50);
   --color-cinza-700: var(--cinza-700);
+  --color-cinza-600: var(--cinza-600);
+  --color-cinza-500: var(--cinza-500);
+  --color-cinza-300: var(--cinza-300);
+  --color-cinza-200: var(--cinza-200);
+  --color-cinza-100: var(--cinza-100);
   --font-gabarito-black: var(--font-gabarito-black);
   --font-gabarito-bold: var(--font-gabarito-bold);
   --font-gabarito-medium: var(--font-gabarito-medium);
@@ -182,9 +677,44 @@
   }
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   html,
   body {
     overflow-x: clip;
+    overscroll-behavior-x: none;
+  }
+
+  /*
+   * iOS Safari zooms focused inputs when computed font-size < 16px.
+   * Force 16px on small screens regardless of Tailwind text-sm utilities.
+   */
+  @media (max-width: 1023px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Mitigate double-tap zoom without disabling scrolling / pinch via viewport alone */
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  label,
+  summary {
+    touch-action: manipulation;
+  }
+}
+
+/* Short viewports: slightly denser page rhythm without nested scroll hell */
+@media (max-height: 900px) {
+  .layout-sidebar {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 }

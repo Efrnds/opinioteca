@@ -31,7 +31,7 @@ const RECURSOS: Record<RecursoPlano, { titulo: string; descricao: string; plano:
     },
     modoZen: {
         titulo: "Modo Zen",
-        descricao: "Leia com menos distrações — esconda streak, descobertas e atalhos sociais.",
+        descricao: "Leia com menos distrações: esconda streak, descobertas e atalhos sociais.",
         plano: "opiniopro",
     },
     metaLeitura: {
@@ -47,6 +47,11 @@ const RECURSOS: Record<RecursoPlano, { titulo: string; descricao: string; plano:
     opinioWrapped: {
         titulo: "OpinioWrapped",
         descricao: "Seu ano em leitura: páginas, livros, gêneros favoritos e sequências.",
+        plano: "opiniopro",
+    },
+    temasCustom: {
+        titulo: "Tema personalizado",
+        descricao: "Crie seu visual com cores de destaque, fundo, superfície, texto e hover.",
         plano: "opiniopro",
     },
 };
@@ -87,8 +92,7 @@ export default function PlanoUpgradeModal({ open, onClose, recurso }: PlanoUpgra
                                 Disponível no{" "}
                                 <span className={`font-gabarito-bold ${info.plano === "opiniopro" ? "text-violet-700" : "text-azul-700"}`}>
                                     {info.plano === "opiniopro" ? "OpinioPro" : "OpinioTop"}
-                                </span>{" "}
-                                — a partir de{" "}
+                                </span>, a partir de{" "}
                                 <span className="font-gabarito-bold">
                                     R$ {preco.mensal.toFixed(2).replace(".", ",")}/mês
                                 </span>

@@ -48,14 +48,28 @@ func (repositorio Notificacoes) Criar(notificacao modelos.Notificacao) (modelos.
 	return notificacao, nil
 }
 
-func (repositorio Notificacoes) BuscarNaoLidas(usuarioID uint64) ([]modelos.Notificacao, error) {
+func normalizarPaginacaoNotificacoes(limite, offset, padraoLimite int) (int, int) {
+	if limite <= 0 {
+		limite = padraoLimite
+	}
+	if limite > 100 {
+		limite = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return limite, offset
+}
+
+func (repositorio Notificacoes) BuscarNaoLidas(usuarioID uint64, limite, offset int) ([]modelos.Notificacao, error) {
+	limite, offset = normalizarPaginacaoNotificacoes(limite, offset, 50)
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, usuario_id, tipo_notificacao, titulo, conteudo, referencia_id, lida, criadoEm
 		 FROM notificacoes
 		 WHERE usuario_id = $1 AND lida = FALSE AND tipo_notificacao <> 'mensagem'
 		 ORDER BY criadoEm DESC
-		 LIMIT 50`,
-		usuarioID,
+		 LIMIT $2 OFFSET $3`,
+		usuarioID, limite, offset,
 	)
 	if erro != nil {
 		return nil, erro
@@ -65,14 +79,15 @@ func (repositorio Notificacoes) BuscarNaoLidas(usuarioID uint64) ([]modelos.Noti
 	return scanNotificacoes(linhas)
 }
 
-func (repositorio Notificacoes) BuscarTodas(usuarioID uint64) ([]modelos.Notificacao, error) {
+func (repositorio Notificacoes) BuscarTodas(usuarioID uint64, limite, offset int) ([]modelos.Notificacao, error) {
+	limite, offset = normalizarPaginacaoNotificacoes(limite, offset, 100)
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, usuario_id, tipo_notificacao, titulo, conteudo, referencia_id, lida, criadoEm
 		 FROM notificacoes
 		 WHERE usuario_id = $1 AND tipo_notificacao <> 'mensagem'
 		 ORDER BY criadoEm DESC
-		 LIMIT 100`,
-		usuarioID,
+		 LIMIT $2 OFFSET $3`,
+		usuarioID, limite, offset,
 	)
 	if erro != nil {
 		return nil, erro
@@ -104,6 +119,15 @@ func (repositorio Notificacoes) MarcarComoLida(usuarioID, notificacaoID uint64) 
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (repositorio Notificacoes) MarcarTodasComoLidas(usuarioID uint64) error {
+	_, erro := repositorio.db.Exec(
+		`UPDATE notificacoes SET lida = TRUE
+		 WHERE usuario_id = $1 AND lida = FALSE AND tipo_notificacao <> 'mensagem'`,
+		usuarioID,
+	)
+	return erro
 }
 
 func scanNotificacoes(linhas *sql.Rows) ([]modelos.Notificacao, error) {

@@ -23,9 +23,9 @@ export default function MenuDireito() {
         !pathname.startsWith("/explorar") && !pathname.startsWith("/descoberta");
 
     return (
-        <section className="flex h-full min-h-0 w-full min-w-0 flex-col gap-3 overflow-hidden">
+        <section className="flex w-full min-w-0 flex-col gap-3">
             {mostrarStreak ? (
-                <Box className="flex w-full min-w-0 shrink-0 flex-col gap-2 !p-3">
+                <Box className="flex w-full min-w-0 flex-col gap-2 !p-3">
                     <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                             <h2 className="font-gabarito-bold text-base leading-tight text-azul-900">
@@ -99,10 +99,10 @@ export default function MenuDireito() {
                         disabled={jaLeuHoje}
                         onClick={() => setModalAberto(true)}
                         className={cn(
-                            "flex w-full items-center justify-center gap-1.5 rounded-full py-1.5 font-gabarito-bold text-sm text-white transition",
+                            "flex w-full items-center justify-center gap-1.5 rounded-full py-1.5 font-gabarito-bold text-sm transition",
                             jaLeuHoje
-                                ? "cursor-not-allowed bg-gray-400 opacity-75"
-                                : "bg-azul-600 hover:bg-azul-700",
+                                ? "cursor-not-allowed bg-cinza-300 text-cinza-700 opacity-90"
+                                : "bg-azul-600 text-azul-600-foreground hover:bg-azul-700",
                         )}
                     >
                         {jaLeuHoje ? (
@@ -120,12 +120,10 @@ export default function MenuDireito() {
             <RegistrarLeituraModal open={modalAberto} onClose={() => setModalAberto(false)} />
 
             {mostrarDescobertaLateral && !modoZen ? (
-                <div className="min-h-0 flex-1 overflow-hidden">
+                <div className="min-w-0">
                     <DescobertaSecoes variante="lateral" mostrarTitulo />
                 </div>
-            ) : (
-                <div className="min-h-0 flex-1" />
-            )}
+            ) : null}
         </section>
     );
 }

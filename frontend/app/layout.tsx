@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Providers from "./providers";
 import "./globals.css";
 import { Figtree } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { SCRIPT_TEMA_ANTES_PAINT } from "@/lib/tema";
 
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
 
@@ -16,13 +17,25 @@ export const metadata: Metadata = {
     },
 };
 
+/** Blocks iOS Safari auto-zoom on focus / pinch; viewport-fit for notches. */
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
+};
+
 export default function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="pt-br" className={cn("font-sans", figtree.variable)}>
+        <html lang="pt-br" className={cn("font-sans", figtree.variable)} data-tema="claro" suppressHydrationWarning>
+            <head>
+                <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_PAINT }} />
+            </head>
             <body className="antialiased">
                 <Providers>{children}</Providers>
             </body>

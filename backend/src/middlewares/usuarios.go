@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-// VerificarAdmin consulta is_admin no banco — fonte de verdade para rotas /admin.
+// VerificarAdmin consulta is_admin no banco: fonte de verdade para rotas /admin.
 func VerificarAdmin(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		usuarioID, erro := auth.ExtrairUsuarioID(r)

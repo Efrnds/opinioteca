@@ -42,15 +42,15 @@ export default function EstatisticasLeitura({ stats, carregando, ehMeuPerfil }: 
                 <div className="rounded-2xl border border-dashed border-azul-300 bg-azul-50/60 p-4">
                     <p className="font-gabarito-bold text-base text-azul-900">Estatísticas de leitura</p>
                     <p className="mt-1 font-gabarito-regular text-sm text-cinza-700">
-                        Veja páginas lidas, livros finalizados e dias com leitura no último mês — exclusivo do OpinioTop.
+                        Veja páginas lidas, livros finalizados e dias com leitura no último mês. Exclusivo do OpinioTop.
                     </p>
                     <div className="mt-3 grid grid-cols-2 gap-2 opacity-50 blur-[2px] select-none" aria-hidden>
                         <div className="rounded-xl bg-white p-3 text-center">
-                            <p className="font-gabarito-bold text-xl text-azul-600">—</p>
+                            <p className="font-gabarito-bold text-xl text-azul-600">-</p>
                             <p className="text-xs text-cinza-600">páginas</p>
                         </div>
                         <div className="rounded-xl bg-white p-3 text-center">
-                            <p className="font-gabarito-bold text-xl text-azul-600">—</p>
+                            <p className="font-gabarito-bold text-xl text-azul-600">-</p>
                             <p className="text-xs text-cinza-600">finalizados</p>
                         </div>
                     </div>

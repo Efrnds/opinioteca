@@ -1,5 +1,5 @@
 -- =============================================================================
--- Opinioteca — migração incremental para produção
+-- Opinioteca: migração incremental para produção
 -- =============================================================================
 -- Idempotente: pode rodar mais de uma vez com segurança (IF NOT EXISTS).
 -- Destinada a bancos criados com o schema antigo, antes das features recentes.
@@ -12,7 +12,7 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- 1) Livros — Google Books e campos opcionais
+-- 1) Livros: Google Books e campos opcionais
 -- -----------------------------------------------------------------------------
 INSERT INTO categorias (nome_categoria)
 VALUES ('Outros')
@@ -47,7 +47,7 @@ BEGIN
 END $$;
 
 -- -----------------------------------------------------------------------------
--- 2) Avaliações — spoiler e mídia (imagem/GIF na resenha)
+-- 2) Avaliações: spoiler e mídia (imagem/GIF na resenha)
 -- -----------------------------------------------------------------------------
 ALTER TABLE avaliacoes
     ADD COLUMN IF NOT EXISTS contem_spoiler BOOLEAN NOT NULL DEFAULT FALSE;
@@ -56,7 +56,7 @@ ALTER TABLE avaliacoes
     ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512);
 
 -- -----------------------------------------------------------------------------
--- 3) Comentários — threads (respostas) e mídia
+-- 3) Comentários: threads (respostas) e mídia
 -- -----------------------------------------------------------------------------
 ALTER TABLE comentarios
     ADD COLUMN IF NOT EXISTS pai_id INTEGER;
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS comentario_destaque_cache (
 );
 
 -- -----------------------------------------------------------------------------
--- 6) Mensagens — mídia, edição, respostas, reações e exclusão suave
+-- 6) Mensagens: mídia, edição, respostas, reações e exclusão suave
 -- -----------------------------------------------------------------------------
 ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512);
 ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS editada BOOLEAN NOT NULL DEFAULT FALSE;
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS conversas_fixadas (
 );
 
 -- -----------------------------------------------------------------------------
--- 8) Citações do feed (opcional — o backend também cria via startup)
+-- 8) Citações do feed (opcional: o backend também cria via startup)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS citacoes (
     id SERIAL PRIMARY KEY,

@@ -216,15 +216,11 @@ type FiltrosLivros struct {
 	Status string
 	Origem string
 	Limite int
+	Offset int
 }
 
-func (repositorio Livros) BuscarTodos(filtros FiltrosLivros) ([]modelos.Livro, error) {
-	limite := filtros.Limite
-	if limite <= 0 {
-		limite = 50
-	}
-
-	query := selectLivro + " WHERE 1=1"
+func (repositorio Livros) whereBuscarTodos(filtros FiltrosLivros) (string, []interface{}) {
+	query := " WHERE 1=1"
 	args := []interface{}{}
 	indice := 1
 
@@ -244,13 +240,39 @@ func (repositorio Livros) BuscarTodos(filtros FiltrosLivros) ([]modelos.Livro, e
 		args = append(args, padrao)
 		indice++
 	}
+	_ = indice
+	return query, args
+}
 
-	query += fmt.Sprintf(" ORDER BY criadoEm DESC LIMIT $%d", indice)
-	args = append(args, limite)
+func (repositorio Livros) BuscarTodos(filtros FiltrosLivros) ([]modelos.Livro, error) {
+	livros, _, erro := repositorio.BuscarTodosPaginado(filtros)
+	return livros, erro
+}
+
+func (repositorio Livros) BuscarTodosPaginado(filtros FiltrosLivros) ([]modelos.Livro, int, error) {
+	limite := filtros.Limite
+	if limite <= 0 {
+		limite = 50
+	}
+	offset := filtros.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	where, args := repositorio.whereBuscarTodos(filtros)
+
+	var total int
+	if erro := repositorio.db.QueryRow("SELECT COUNT(*) FROM livros"+where, args...).Scan(&total); erro != nil {
+		return nil, 0, erro
+	}
+
+	query := selectLivro + where
+	query += fmt.Sprintf(" ORDER BY criadoEm DESC LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+	args = append(args, limite, offset)
 
 	linhas, erro := repositorio.db.Query(query, args...)
 	if erro != nil {
-		return nil, erro
+		return nil, 0, erro
 	}
 	defer linhas.Close()
 
@@ -258,11 +280,11 @@ func (repositorio Livros) BuscarTodos(filtros FiltrosLivros) ([]modelos.Livro, e
 	for linhas.Next() {
 		livro, erro := repositorio.scanLivro(linhas)
 		if erro != nil {
-			return nil, erro
+			return nil, 0, erro
 		}
 		livros = append(livros, livro)
 	}
-	return livros, nil
+	return livros, total, nil
 }
 
 func (repositorio Livros) UpsertGoogle(livro modelos.Livro) (uint64, error) {

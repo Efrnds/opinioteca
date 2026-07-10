@@ -72,6 +72,13 @@ type AvaliacaoFeed struct {
 	QtdComentarios     int                 `json:"qtd_comentarios"`
 }
 
+// FeedPaginaResposta é a resposta paginada do feed (keyset / cursor).
+// next_cursor é um base64url de JSON {"criadoEm":"<RFC3339Nano>","id":<uint64>}, ou null no fim.
+type FeedPaginaResposta struct {
+	Itens      []AvaliacaoFeed `json:"itens"`
+	NextCursor *string         `json:"next_cursor"`
+}
+
 func (req *CriarAvaliacaoRequest) Preparar() error {
 	req.GoogleVolumeID = strings.TrimSpace(req.GoogleVolumeID)
 	req.Texto = strings.TrimSpace(req.Texto)

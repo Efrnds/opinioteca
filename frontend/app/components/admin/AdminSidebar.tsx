@@ -2,49 +2,45 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ChevronDown, CreditCard, FileText, Flag, Tags, Users } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useAdminReport } from "./AdminShell";
-import { RELATORIOS, type RelatorioSlug } from "@/lib/admin/relatorios";
+import { BookOpen, CreditCard, FileBarChart, FileText, Flag, Tags, Users } from "lucide-react";
+import { useEffect, useState, type ComponentType } from "react";
 
-function NavLink({
+function NavItem({
     href,
     label,
-    active,
+    icon: Icon,
+    badge,
 }: {
     href: string;
     label: string;
-    active: boolean;
+    icon: ComponentType<{ className?: string }>;
+    badge?: number;
 }) {
+    const pathname = usePathname();
+    const active = pathname.startsWith(href);
+
     return (
         <Link
             href={href}
-            className={`block rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
+            className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
                 active ? "bg-azul-600 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
             }`}
         >
-            {label}
+            <span className="flex items-center gap-3">
+                <Icon className="h-4 w-4 shrink-0" />
+                {label}
+            </span>
+            {badge != null && badge > 0 && (
+                <span className="rounded-full bg-amber-500 px-2 py-0.5 font-gabarito-bold text-xs text-white">
+                    {badge}
+                </span>
+            )}
         </Link>
-    );
-}
-
-function ReportButton({ slug, label }: { slug: RelatorioSlug; label: string }) {
-    const { abrirRelatorio } = useAdminReport();
-
-    return (
-        <button
-            type="button"
-            onClick={() => abrirRelatorio(slug)}
-            className="block w-full rounded-lg px-3 py-2 text-left font-gabarito-regular text-sm text-white/75 transition hover:bg-white/10 hover:text-white"
-        >
-            {label}
-        </button>
     );
 }
 
 export default function AdminSidebar() {
     const pathname = usePathname();
-    const [relatoriosAberto, setRelatoriosAberto] = useState(true);
     const [pendentesDenuncias, setPendentesDenuncias] = useState(0);
 
     useEffect(() => {
@@ -63,125 +59,13 @@ export default function AdminSidebar() {
             <h1 className="mb-8 px-2 font-gabarito-bold text-lg leading-tight">Painel Administrativo</h1>
 
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto">
-                <Link
-                    href="/admin/livros"
-                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
-                        pathname.startsWith("/admin/livros")
-                            ? "bg-azul-600 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
-                >
-                    <BookOpen className="h-4 w-4 shrink-0" />
-                    Livros
-                </Link>
-
-                <Link
-                    href="/admin/usuarios"
-                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
-                        pathname.startsWith("/admin/usuarios")
-                            ? "bg-azul-600 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
-                >
-                    <Users className="h-4 w-4 shrink-0" />
-                    Usuários
-                </Link>
-
-                <Link
-                    href="/admin/assinaturas"
-                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
-                        pathname.startsWith("/admin/assinaturas")
-                            ? "bg-azul-600 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
-                >
-                    <CreditCard className="h-4 w-4 shrink-0" />
-                    Assinaturas
-                </Link>
-
-                <Link
-                    href="/admin/templates"
-                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
-                        pathname.startsWith("/admin/templates")
-                            ? "bg-azul-600 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
-                >
-                    <FileText className="h-4 w-4 shrink-0" />
-                    Templates
-                </Link>
-
-                <Link
-                    href="/admin/categorias"
-                    className={`flex items-center gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
-                        pathname.startsWith("/admin/categorias")
-                            ? "bg-azul-600 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
-                >
-                    <Tags className="h-4 w-4 shrink-0" />
-                    Categorias
-                </Link>
-
-                <Link
-                    href="/admin/denuncias"
-                    className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 font-gabarito-medium text-sm transition ${
-                        pathname.startsWith("/admin/denuncias")
-                            ? "bg-azul-600 text-white"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
-                >
-                    <span className="flex items-center gap-3">
-                        <Flag className="h-4 w-4 shrink-0" />
-                        Denúncias
-                    </span>
-                    {pendentesDenuncias > 0 && (
-                        <span className="rounded-full bg-amber-500 px-2 py-0.5 font-gabarito-bold text-xs text-white">
-                            {pendentesDenuncias}
-                        </span>
-                    )}
-                </Link>
-
-                <div className="mt-2">
-                    <button
-                        type="button"
-                        onClick={() => setRelatoriosAberto((v) => !v)}
-                        className="flex w-full items-center justify-between rounded-xl px-4 py-2.5 font-gabarito-medium text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
-                    >
-                        Relatórios
-                        <ChevronDown
-                            className={`h-4 w-4 transition ${relatoriosAberto ? "rotate-180" : ""}`}
-                        />
-                    </button>
-
-                    {relatoriosAberto && (
-                        <div className="mt-2 flex flex-col gap-3 px-1">
-                            <div className="rounded-xl bg-white/5 p-3">
-                                <p className="mb-2 px-2 font-gabarito-medium text-xs text-white/50">
-                                    Comentários por
-                                </p>
-                                <ReportButton slug="comentarios-livro" label="Livro" />
-                                <ReportButton slug="comentarios-usuario" label="Usuário" />
-                                <ReportButton slug="comentarios-categoria" label="Categoria" />
-                            </div>
-
-                            <div className="rounded-xl bg-white/5 p-3">
-                                <p className="mb-2 px-2 font-gabarito-medium text-xs text-white/50">
-                                    Listagem de livro por
-                                </p>
-                                <ReportButton slug="livros-autor" label="Autor" />
-                                <ReportButton slug="livros-editora" label="Editora" />
-                                <ReportButton slug="livros-categoria" label="Categoria" />
-                            </div>
-
-                            <ReportButton
-                                slug="seguidores-seguindo"
-                                label="Listagem de Seguidores e Seguindo do Leitor"
-                            />
-                            <ReportButton slug="historico-leitura" label="Histórico de Leitura do Leitor" />
-                        </div>
-                    )}
-                </div>
+                <NavItem href="/admin/livros" label="Livros" icon={BookOpen} />
+                <NavItem href="/admin/usuarios" label="Usuários" icon={Users} />
+                <NavItem href="/admin/assinaturas" label="Assinaturas" icon={CreditCard} />
+                <NavItem href="/admin/templates" label="Templates" icon={FileText} />
+                <NavItem href="/admin/categorias" label="Categorias" icon={Tags} />
+                <NavItem href="/admin/denuncias" label="Denúncias" icon={Flag} badge={pendentesDenuncias} />
+                <NavItem href="/admin/relatorios" label="Relatórios" icon={FileBarChart} />
             </nav>
 
             <Link

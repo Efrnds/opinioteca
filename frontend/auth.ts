@@ -60,7 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ],
     callbacks: {
         async jwt({ token, user, trigger, session }) {
-            // Login: substitui identidade inteira — merge condicional deixava nick/imagem do usuário anterior.
+            // Login: substitui identidade inteira; merge condicional deixava nick/imagem do usuário anterior.
             if (user) {
                 token.sub = user.id;
                 token.id = user.id;

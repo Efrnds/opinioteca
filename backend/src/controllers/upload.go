@@ -68,3 +68,25 @@ func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	respostas.JSON(w, http.StatusCreated, uploadResposta{URL: url})
 }
+
+// UploadBanner recebe uma imagem de capa e salva em uploads/banners.
+func UploadBanner(w http.ResponseWriter, r *http.Request) {
+	if erro := r.ParseMultipartForm(5 << 20); erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	arquivo, header, erro := r.FormFile("imagem")
+	if erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	url, erro := upload.SalvarBanner(arquivo, header)
+	if erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	respostas.JSON(w, http.StatusCreated, uploadResposta{URL: url})
+}

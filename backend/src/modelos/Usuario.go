@@ -26,6 +26,7 @@ type Usuario struct {
 	ModoZen            bool       `json:"modoZen"`
 	Status             string     `json:"status"`
 	Image              string     `json:"image,omitempty"`
+	Banner             string     `json:"banner,omitempty"`
 	InativadoEm        *time.Time `json:"inativadoEm,omitempty"`
 	IsAdmin            bool       `json:"-"`
 	ContaApagada       bool       `json:"contaApagada,omitempty"`
@@ -72,6 +73,7 @@ func (usuario *Usuario) formatar(etapa string) error {
 	usuario.Nick = strings.TrimSpace(usuario.Nick)
 	usuario.Email = strings.TrimSpace(usuario.Email)
 	usuario.Image = strings.TrimSpace(usuario.Image)
+	usuario.Banner = strings.TrimSpace(usuario.Banner)
 
 	if etapa == "cadastro" {
 		senhaHash, erro := security.Hash(usuario.Senha)
@@ -91,6 +93,7 @@ func (usuario *Usuario) OcultarSenha() Usuario {
 		Nick:               usuario.Nick,
 		Email:              usuario.Email,
 		Image:              usuario.Image,
+		Banner:             usuario.Banner,
 		Senha:              "",
 		AssinaturaID:       usuario.AssinaturaID,
 		MaiorSequencia:     usuario.MaiorSequencia,
@@ -117,6 +120,7 @@ func (usuario *Usuario) ListarPublico() Usuario {
 		Nome:               usuario.Nome,
 		Nick:               usuario.Nick,
 		Image:              usuario.Image,
+		Banner:             usuario.Banner,
 		AssinaturaID:       usuario.AssinaturaID,
 		AssinaturaExpiraEm: PtrTempoJSON(usuario.AssinaturaExpiraEm),
 		Plano:              plano,
@@ -132,6 +136,7 @@ func (usuario *Usuario) ListarPerfilPrivadoReduzido() Usuario {
 		ID:            usuario.ID,
 		Nick:          usuario.Nick,
 		Image:         usuario.Image,
+		Banner:        usuario.Banner,
 		PerfilPrivado: true,
 	}
 }
@@ -144,6 +149,7 @@ func (usuario *Usuario) ListarPrivado() Usuario {
 		Nick:               usuario.Nick,
 		Email:              usuario.Email,
 		Image:              usuario.Image,
+		Banner:             usuario.Banner,
 		Status:             usuario.Status,
 		AssinaturaID:       usuario.AssinaturaID,
 		AssinaturaExpiraEm: PtrTempoJSON(usuario.AssinaturaExpiraEm),

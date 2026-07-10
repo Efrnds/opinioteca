@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Rotas admin — gestão de acervo e moderação (prefixo /admin).
+// Rotas admin: gestão de acervo e moderação (prefixo /admin).
 var rotasAdmin = []Rota{
 	{
 		URI:                "/admin/usuarios",
@@ -137,6 +137,62 @@ var rotasAdmin = []Rota{
 		URI:                "/admin/relatorios/historico-leitura",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.AdminRelatorioHistoricoLeitura,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/pdf/usuarios",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioPDFUsuarios,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/pdf/avaliacoes",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioPDFAvaliacoes,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/pdf/assinaturas",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioPDFAssinaturas,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/pdf/denuncias",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioPDFDenuncias,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/pdf/comentarios",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioPDFComentarios,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/pdf/livros",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioPDFLivros,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/pdf/seguidores-seguindo",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioPDFSeguidoresSeguindo,
+		RequerAutenticacao: true,
+		RequerAdmin:        true,
+	},
+	{
+		URI:                "/admin/relatorios/pdf/historico-leitura",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.AdminRelatorioPDFHistoricoLeitura,
 		RequerAutenticacao: true,
 		RequerAdmin:        true,
 	},

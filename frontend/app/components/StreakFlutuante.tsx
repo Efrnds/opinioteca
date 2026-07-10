@@ -28,10 +28,10 @@ export default function StreakFlutuante() {
                         : "Registrar leitura de hoje"
                 }
                 className={cn(
-                    "fixed bottom-4 left-3 z-30 flex items-center gap-1.5 rounded-full bg-white shadow-lg ring-1 ring-black/5 transition lg:hidden",
+                    "fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-3 z-30 flex items-center gap-1.5 rounded-full bg-white shadow-lg ring-1 ring-black/10 transition lg:hidden",
                     jaLeuHoje
                         ? "cursor-default py-1.5 pl-3 pr-3"
-                        : "py-1.5 pl-3 pr-1.5 active:scale-95",
+                        : "py-1.5 pl-3 pr-1.5 active:scale-95 hover:brightness-110",
                 )}
             >
                 <span

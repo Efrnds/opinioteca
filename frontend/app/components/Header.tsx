@@ -227,22 +227,22 @@ export default function Header() {
     }
 
     return (
-        <header className="flex items-center justify-between gap-2 border-b-2 border-azul-900 p-3 md:gap-4 md:p-4">
-            <Link href="/" className="flex min-w-0 items-center sm:min-w-48 lg:min-w-72">
+        <header className="sticky top-0 z-40 flex items-center justify-between gap-2 border-b-2 border-azul-900 bg-background/95 p-2.5 backdrop-blur-sm sm:p-3 md:gap-4 md:p-4">
+            <Link href="/" className="flex min-w-0 items-center sm:min-w-40 lg:min-w-56 xl:min-w-72">
                 <Image
                     src="/assets/images/Vector.svg"
                     width={200}
                     height={163}
                     alt="Logo da opinioteca"
-                    className="h-7 w-fit sm:h-9"
+                    className="logo-opinioteca h-7 w-fit sm:h-8 md:h-9"
                 />
             </Link>
 
-            <h1 className="hidden truncate font-gabarito-bold text-azul-900 lg:block lg:flex-1 lg:text-center lg:text-4xl">
+            <h1 className="hidden truncate font-gabarito-bold text-azul-900 xl:block xl:flex-1 xl:text-center xl:text-3xl 2xl:text-4xl">
                 opinioteca
             </h1>
 
-            <div ref={containerRef} className="relative hidden min-w-48 lg:block lg:min-w-72">
+            <div ref={containerRef} className="relative hidden min-w-40 lg:block lg:min-w-56 xl:min-w-72">
                 <div className="flex items-center justify-between gap-2 rounded-full border-4 border-transparent bg-white p-2 transition-all duration-300 focus-within:border-azul-600 [&:hover:not(:focus-within)]:border-cinza-700">
                     <input
                         type="text"
@@ -250,7 +250,7 @@ export default function Header() {
                         onChange={e => setTermo(e.target.value)}
                         onFocus={() => termo.trim() && setDropdownAberto(true)}
                         placeholder="Buscar usuários e livros..."
-                        className="w-full bg-transparent pl-2 text-black outline-none placeholder:text-cinza-700"
+                        className="w-full bg-transparent pl-2 text-base text-black outline-none placeholder:text-cinza-700"
                     />
                     {buscando ? (
                         <Loader2 className="h-6 w-6 shrink-0 animate-spin text-cinza-700" />
@@ -304,7 +304,7 @@ export default function Header() {
                                         value={termo}
                                         onChange={e => setTermo(e.target.value)}
                                         placeholder="Buscar usuários e livros..."
-                                        className="w-full min-w-0 bg-transparent text-black outline-none placeholder:text-cinza-700"
+                                        className="w-full min-w-0 bg-transparent text-base text-black outline-none placeholder:text-cinza-700"
                                         autoFocus
                                     />
                                     {buscando && <Loader2 className="h-5 w-5 shrink-0 animate-spin text-cinza-700" />}

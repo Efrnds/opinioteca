@@ -10,7 +10,7 @@
 
 - Não existe bottom tab bar. Menu: `frontend/lib/nav.ts` → `itensMenu`, consumido por `MenuEsquerdo` (desktop) e `Header` (hamburger mobile).
 - Itens atuais: Home (`/home`), Mensagens, Notificações, Perfil, **Configurações** (`/configuracoes`).
-- **`/configuracoes` estava no menu mas a rota não existia** (link morto) — agora criada.
+- **`/configuracoes` estava no menu mas a rota não existia** (link morto); agora criada.
 - “Ajuda” era stub no desktop: `MenuDireito` (`linksAjuda` → `href="/"`). Substituído por CTA Descoberta.
 
 ### 1.2 Auth / convidado
@@ -70,7 +70,7 @@ Rota: **`/configuracoes`**.
 |-------|--------|
 | **Conta** | Alterar senha; E-mail; Apagar conta (soft-delete 30 dias + reativar) |
 | **Preferências** | Spoiler por padrão; Mostrar/ocultar streak |
-| **Notificações** | Toggles: **Seguidor** (só incoming); Comentário; Votos; Mensagens — **sem** toggle “seguindo” |
+| **Notificações** | Toggles: **Seguidor** (só incoming); Comentário; Votos; Mensagens; **sem** toggle “seguindo” |
 | **Plano e assinatura** | Placeholder (“Em breve”); modo zen **ignorado** |
 | **Privacidade** | Quem pode mensagem / ver streak / ver histórico: `todos` \| `seguidores` \| `ninguem`; perfil `publico` \| `privado` |
 | **Sobre** | Termos e Privacidade (páginas internas); Versão (`package.json`) |
@@ -90,7 +90,7 @@ Rota: **`/configuracoes`**.
 
 Arquivo: `backend/sql/migrations/20260708_configuracoes_descoberta.sql` (+ espelhar em `backend/sql/sql.sql`).
 
-#### A) Conta — recuperação 30 dias
+#### A) Conta: recuperação 30 dias
 
 ```sql
 ALTER TABLE usuarios
@@ -133,7 +133,7 @@ Criar linha no cadastro + lazy-create no GET settings.
 | Apagar | `status='inativo'` + `inativado_em=NOW()` |
 | ≤ 30 dias | Login oferece erro com flag `podeReativar`; `POST /usuarios/reativar` |
 | > 30 dias | Login impossível; dados **permanecem** (não hard-purge) |
-| Conteúdo legado | Autores inativos aparecem como **“conta apagada”** (nick/imagem genéricos ou flag `contaApagada`) — sem links quebrados |
+| Conteúdo legado | Autores inativos aparecem como **“conta apagada”** (nick/imagem genéricos ou flag `contaApagada`); sem links quebrados |
 
 ### 3.3 Perfil privado (Twitter-like)
 
@@ -166,7 +166,7 @@ Criar linha no cadastro + lazy-create no GET settings.
 
 | Preferência | Onde |
 |-------------|------|
-| Notificações | `DispararNotificacao` — early-return se flag off; tipos sistema **sempre** enviam |
+| Notificações | `DispararNotificacao`: early-return se flag off; tipos sistema **sempre** enviam |
 | Spoilers | FE via settings cache |
 | `mostrar_streak` | Esconder UI própria |
 | `mensagem_de` | `EnviarMensagem` |
@@ -179,7 +179,7 @@ GETs com auth opcional: livro, avaliações do livro, avaliação por id, coment
 
 ---
 
-## 5. Frontend — estrutura
+## 5. Frontend: estrutura
 
 - Nav: Descoberta em `itensMenu`; limpar Ajuda.
 - `/configuracoes` com rail + seções.
@@ -197,22 +197,22 @@ Ver §7 e implementação no repositório. Migration + modelos + controllers + B
 
 ## 7. Ordem de implementação (PRs)
 
-### PR 1 — Schema + API de configurações ✅
+### PR 1: Schema + API de configurações ✅
 
 - Migration `usuario_configuracoes` + `usuarios.inativado_em`.
 - CRUD settings + soft-delete/reativar.
 - Hook prefs em notificações + gate mensagem/diario/perfil.
 
-### PR 2 — UI Configurações ✅
+### PR 2: UI Configurações ✅
 
 - Página `/configuracoes` + seções + modais.
 - Termos/Privacidade internas; plano placeholder.
 
-### PR 3 — Descoberta ✅
+### PR 3: Descoberta ✅
 
 - Endpoints + página + item no nav; limpar Ajuda.
 
-### PR 4 — Links compartilhados (guest soft-gate) ✅ (base)
+### PR 4: Links compartilhados (guest soft-gate) ✅ (base)
 
 - GET públicos + middleware + AuthModal nas ações (`PostCard`, perfil, livro).
 - Perfil privado reduzido; “conta apagada” em autores inativos.

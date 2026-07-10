@@ -32,6 +32,7 @@ import PlanoUpgradeModal from "../../components/PlanoUpgradeModal";
 import { useAuthGate } from "../../components/AuthGateProvider";
 import AvatarPerfilEditavel from "../../components/AvatarPerfilEditavel";
 import AvatarUsuario from "../../components/AvatarUsuario";
+import BannerPerfil from "../../components/BannerPerfil";
 import Box from "../../components/Box";
 import DenunciarModal from "../../components/DenunciarModal";
 import ListaUsuariosModal from "../../components/ListaUsuariosModal";
@@ -89,6 +90,10 @@ function normalizarAvaliacoes(
                 nome: usuarioOriginal?.nome || perfil.nome || "Usuário",
                 nick: usuarioOriginal?.nick || perfil.nick || nickRota,
                 image: usuarioOriginal?.image || perfil.image,
+                // Sem esses campos, AvatarUsuario bloqueia GIF (trata como não-Pro).
+                assinaturaId: usuarioOriginal?.assinaturaId ?? perfil.assinaturaId,
+                temPlanoTop: usuarioOriginal?.temPlanoTop ?? perfil.plano?.temPlanoTop,
+                temPlanoPro: usuarioOriginal?.temPlanoPro ?? perfil.plano?.temPlanoPro,
             },
             livro: {
                 id: Number(livroOriginal?.id ?? livroDoMapa?.id ?? livroID),
@@ -699,17 +704,29 @@ export default function PerfilNickPage() {
                     )}
                 </div>
 
-                <div className="h-32 w-full bg-gray-700" />
+                <BannerPerfil
+                    nome={perfil.nome}
+                    nick={perfil.nick}
+                    email={perfil.email ?? session?.user?.email ?? ""}
+                    image={perfil.image}
+                    banner={perfil.banner}
+                    editavel={ehMeuPerfil}
+                    onAtualizado={(novoBanner) => {
+                        setPerfil((atual) => (atual ? { ...atual, banner: novoBanner } : atual));
+                        deletePerfilCache(nick);
+                    }}
+                />
 
                 <div className="px-4 pb-4">
-                    <div className="-mt-12 flex items-end justify-between gap-3">
-                        <div className="flex gap-2">
+                    <div className="-mt-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="flex min-w-0 flex-1 gap-2">
                             {ehMeuPerfil ? (
                                 <AvatarPerfilEditavel
                                     nome={perfil.nome}
                                     nick={perfil.nick}
                                     email={perfil.email ?? session?.user?.email ?? ""}
                                     image={perfil.image}
+                                    banner={perfil.banner}
                                     onAtualizado={(novaImage) => {
                                         setPerfil((atual) => (atual ? { ...atual, image: novaImage } : atual));
                                         deletePerfilCache(nick);
@@ -724,19 +741,19 @@ export default function PerfilNickPage() {
                                     plano={perfil.plano}
                                     temPlanoPro={perfil.plano?.temPlanoPro}
                                     size={96}
-                                    className="h-24 w-24 border-4 border-white"
+                                    className="h-24 w-24 shrink-0 border-4 border-white"
                                     inicialClassName="text-3xl"
                                 />
                             )}
-                            <div className="mt-auto">
-                                <p className="flex flex-wrap items-center gap-1.5 font-gabarito-bold text-xl text-azul-900">
-                                    {perfil.nick}
+                            <div className="mt-auto min-w-0">
+                                <p className="flex min-w-0 items-center gap-1.5 font-gabarito-bold text-xl text-azul-900">
+                                    <span className="truncate">{perfil.nick}</span>
                                     <BadgeTop plano={perfil.plano} assinaturaId={perfil.assinaturaId} />
                                 </p>
                             </div>
                         </div>
                         {!ehMeuPerfil && (
-                            <div className="flex shrink-0 items-center gap-2">
+                            <div className="flex shrink-0 flex-wrap items-center gap-2 pl-0 sm:justify-end sm:pl-2">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -885,23 +902,23 @@ export default function PerfilNickPage() {
 
                     {ehMeuPerfil ? <MetaLeituraCard /> : null}
 
-                    <div className="flex items-center justify-between">
-                        <h2 className="font-gabarito-bold text-xl text-azul-900">Semana de leitura</h2>
-                        <p className="font-gabarito-bold text-xl text-[#ed2d00]">
-                            {diario?.sequencia_atual ?? 0} <span className="text-2xl">🔥</span>
+                    <div className="flex min-w-0 items-center justify-between gap-2">
+                        <h2 className="truncate font-gabarito-bold text-lg text-azul-900 sm:text-xl">Semana de leitura</h2>
+                        <p className="shrink-0 font-gabarito-bold text-lg text-[#ed2d00] sm:text-xl">
+                            {diario?.sequencia_atual ?? 0} <span className="text-xl sm:text-2xl">🔥</span>
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-7 gap-3">
+                    <div className="grid w-full min-w-0 grid-cols-7 gap-1 sm:gap-2 md:gap-3">
                         {semanaExpandida.map((dia, index) => (
-                            <div key={`${dia.dia}-${index}`} className="flex flex-col items-center gap-2">
+                            <div key={`${dia.dia}-${index}`} className="flex min-w-0 flex-col items-center gap-1 sm:gap-2">
                                 <div
-                                    className={`flex h-12 w-12 items-center justify-center rounded-full ${dia.leu ? "bg-azul-800" : "bg-azul-200"
+                                    className={`flex aspect-square w-full max-w-12 items-center justify-center rounded-full ${dia.leu ? "bg-azul-800" : "bg-azul-200"
                                         }`}
                                 >
-                                    <Book className={`h-5 w-5 ${dia.leu ? "text-azul-200" : "text-azul-400"}`} />
+                                    <Book className={`h-4 w-4 sm:h-5 sm:w-5 ${dia.leu ? "text-azul-200" : "text-azul-400"}`} />
                                 </div>
-                                <p className={`font-gabarito-bold text-sm ${dia.leu ? "text-azul-800" : "text-azul-400"}`}>
+                                <p className={`font-gabarito-bold text-xs sm:text-sm ${dia.leu ? "text-azul-800" : "text-azul-400"}`}>
                                     {dia.dia}
                                 </p>
                             </div>
@@ -1002,7 +1019,7 @@ export default function PerfilNickPage() {
                                 : "Nenhum livro com este status."}
                         </p>
                     ) : (
-                        <div className="grid grid-cols-3 gap-4 sm:grid-cols-4">
+                        <div className="grid grid-cols-3 items-stretch gap-4 sm:grid-cols-4">
                             {livrosFiltrados.map((livro) => (
                                 <button
                                     key={`${livro.id}-${livro.titulo}`}
@@ -1011,7 +1028,7 @@ export default function PerfilNickPage() {
                                         setLivroSelecionadoId(livro.id);
                                         setLivroModalAberto(true);
                                     }}
-                                    className="group flex flex-col gap-2 rounded-xl bg-background p-2 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                                    className="group flex h-full flex-col gap-2 rounded-xl bg-background p-2 text-left transition hover:-translate-y-0.5 hover:shadow-md"
                                 >
                                     {livro.capa_url ? (
                                         <Image
@@ -1019,17 +1036,19 @@ export default function PerfilNickPage() {
                                             alt={livro.titulo}
                                             width={120}
                                             height={180}
-                                            className="h-40 w-full rounded-lg object-cover"
+                                            className="h-40 w-full shrink-0 rounded-lg object-cover"
                                             unoptimized
                                         />
                                     ) : (
-                                        <div className="flex h-40 w-full items-center justify-center rounded-lg bg-azul-200 text-3xl">
+                                        <div className="flex h-40 w-full shrink-0 items-center justify-center rounded-lg bg-azul-200 text-3xl">
                                             📖
                                         </div>
                                     )}
-                                    <p className="line-clamp-2 font-gabarito-bold text-xs text-azul-900">{livro.titulo}</p>
+                                    <p className="min-h-8 overflow-hidden font-gabarito-bold text-xs leading-4 text-azul-900 line-clamp-2">
+                                        {livro.titulo}
+                                    </p>
                                     <p
-                                        className={`rounded-full px-2 py-1 text-center font-gabarito-bold text-[10px] ${
+                                        className={`shrink-0 rounded-full px-2 py-1 text-center font-gabarito-bold text-[10px] ${
                                             livro.status === "lido"
                                                 ? "bg-green-100 text-green-700"
                                                 : livro.status === "lendo"
@@ -1039,11 +1058,9 @@ export default function PerfilNickPage() {
                                     >
                                         {ROTULOS_STATUS_ESTANTE[livro.status]}
                                     </p>
-                                    {livro.porcentagem > 0 && (
-                                        <p className="font-gabarito-bold text-[11px] text-azul-600">
-                                            {Math.round(livro.porcentagem)}%
-                                        </p>
-                                    )}
+                                    <p className="min-h-[1.25rem] shrink-0 font-gabarito-bold text-[11px] leading-5 text-azul-600">
+                                        {livro.porcentagem > 0 ? `${Math.round(livro.porcentagem)}%` : null}
+                                    </p>
                                 </button>
                             ))}
                         </div>

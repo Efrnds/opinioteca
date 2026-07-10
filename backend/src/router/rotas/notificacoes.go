@@ -13,6 +13,12 @@ var rotasNotificacoes = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
+		URI:                "/notificacoes/lidas",
+		Metodo:             http.MethodPut,
+		Funcao:             controllers.MarcarTodasNotificacoesComoLidas,
+		RequerAutenticacao: true,
+	},
+	{
 		URI:                "/notificacoes/{id}/ler",
 		Metodo:             http.MethodPut,
 		Funcao:             controllers.MarcarNotificacaoComoLida,

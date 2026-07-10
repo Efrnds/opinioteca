@@ -1,11 +1,13 @@
 import { adminFetch, proxyResposta, requireAdminSession } from "@/lib/admin/proxy";
 import { NextRequest } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     const authResult = await requireAdminSession();
     if ("error" in authResult) return authResult.error;
 
-    const res = await adminFetch("/admin/usuarios", authResult.session.accessToken!);
+    const query = req.nextUrl.searchParams.toString();
+    const path = query ? `/admin/usuarios?${query}` : "/admin/usuarios";
+    const res = await adminFetch(path, authResult.session.accessToken!);
     return proxyResposta(res);
 }
 

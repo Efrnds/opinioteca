@@ -2,7 +2,9 @@
 
 import Box from "@/app/components/Box";
 import AdminPageHeader from "@/app/components/admin/AdminPageHeader";
+import AdminPaginacao from "@/app/components/admin/AdminPaginacao";
 import AdminTable from "@/app/components/admin/AdminTable";
+import { ADMIN_PAGE_SIZE, paramsPaginacao } from "@/lib/admin/paginacao";
 import type { AcaoResolucaoDenuncia, DenunciaAdminDetalhe, DenunciaAdminListItem } from "@/types/admin";
 import { MOTIVOS_DENUNCIA } from "@/types/denuncia";
 import { AnimatePresence, motion } from "framer-motion";
@@ -46,7 +48,7 @@ function ContagemDenunciasBadge({
     total: number;
     procedentes: number;
 }) {
-    if (total <= 0) return <span className="text-cinza-400">—</span>;
+    if (total <= 0) return <span className="text-cinza-400">-</span>;
     return (
         <span className="font-gabarito-regular text-sm text-cinza-700" title="Total / procedentes (limite auto-ban: 3)">
             {total}
@@ -398,6 +400,9 @@ function DenunciaDetalheModal({ denunciaId, onClose, onResolvida }: DenunciaDeta
 export default function AdminDenunciasPage() {
     const [itens, setItens] = useState<DenunciaAdminListItem[]>([]);
     const [pendentes, setPendentes] = useState(0);
+    const [pagina, setPagina] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [limite, setLimite] = useState(ADMIN_PAGE_SIZE);
     const [carregando, setCarregando] = useState(true);
     const [filtroStatus, setFiltroStatus] = useState("");
     const [filtroTipo, setFiltroTipo] = useState("");
@@ -406,24 +411,35 @@ export default function AdminDenunciasPage() {
     const carregar = useCallback(async () => {
         setCarregando(true);
         try {
-            const params = new URLSearchParams();
+            const params = paramsPaginacao(pagina);
             if (filtroStatus) params.set("status", filtroStatus);
             if (filtroTipo) params.set("tipo", filtroTipo);
-            const qs = params.toString();
-            const res = await fetch(qs ? `/api/admin/denuncias?${qs}` : "/api/admin/denuncias");
+            const res = await fetch(`/api/admin/denuncias?${params}`);
             if (res.ok) {
                 const data = await res.json();
                 setItens(Array.isArray(data.itens) ? data.itens : []);
                 setPendentes(typeof data.pendentes === "number" ? data.pendentes : 0);
+                setTotal(typeof data.total === "number" ? data.total : 0);
+                setLimite(typeof data.limite === "number" ? data.limite : ADMIN_PAGE_SIZE);
             }
         } finally {
             setCarregando(false);
         }
-    }, [filtroStatus, filtroTipo]);
+    }, [filtroStatus, filtroTipo, pagina]);
 
     useEffect(() => {
         carregar();
     }, [carregar]);
+
+    function alterarFiltroStatus(valor: string) {
+        setFiltroStatus(valor);
+        setPagina(1);
+    }
+
+    function alterarFiltroTipo(valor: string) {
+        setFiltroTipo(valor);
+        setPagina(1);
+    }
 
     return (
         <>
@@ -441,7 +457,7 @@ export default function AdminDenunciasPage() {
             <Box className="mb-4 flex flex-wrap gap-3 p-4">
                 <select
                     value={filtroStatus}
-                    onChange={(e) => setFiltroStatus(e.target.value)}
+                    onChange={(e) => alterarFiltroStatus(e.target.value)}
                     className="rounded-xl border border-gray-200 bg-white px-3 py-2 font-gabarito-regular text-sm text-azul-900 outline-none focus:border-azul-600"
                 >
                     {STATUS_OPCOES.map((op) => (
@@ -452,7 +468,7 @@ export default function AdminDenunciasPage() {
                 </select>
                 <select
                     value={filtroTipo}
-                    onChange={(e) => setFiltroTipo(e.target.value)}
+                    onChange={(e) => alterarFiltroTipo(e.target.value)}
                     className="rounded-xl border border-gray-200 bg-white px-3 py-2 font-gabarito-regular text-sm text-azul-900 outline-none focus:border-azul-600"
                 >
                     {TIPOS_ENTIDADE.map((op) => (
@@ -469,61 +485,70 @@ export default function AdminDenunciasPage() {
                         <Loader2 className="h-8 w-8 animate-spin text-azul-600" />
                     </div>
                 ) : (
-                    <AdminTable
-                        data={itens}
-                        keyExtractor={(d) => d.id}
-                        emptyMessage="Nenhuma denúncia encontrada."
-                        columns={[
-                            {
-                                key: "tipo",
-                                header: "Tipo",
-                                render: (d) => labelTipo(d.tipo_entidade),
-                            },
-                            {
-                                key: "motivo",
-                                header: "Motivo",
-                                render: (d) => labelMotivo(d.motivo),
-                            },
-                            {
-                                key: "denunciante",
-                                header: "Denunciante",
-                                render: (d) => `@${d.denunciante_nick}`,
-                            },
-                            {
-                                key: "data",
-                                header: "Data",
-                                render: (d) => formatarData(d.criado_em),
-                            },
-                            {
-                                key: "denuncias",
-                                header: "Contra usuário",
-                                render: (d) => (
-                                    <ContagemDenunciasBadge
-                                        total={d.denuncias_contra_usuario ?? 0}
-                                        procedentes={d.denuncias_procedentes ?? 0}
-                                    />
-                                ),
-                            },
-                            {
-                                key: "status",
-                                header: "Status",
-                                render: (d) => <StatusBadge status={d.status} />,
-                            },
-                            {
-                                key: "acao",
-                                header: "Ação",
-                                render: (d) => (
-                                    <button
-                                        type="button"
-                                        onClick={() => setDetalheId(d.id)}
-                                        className="font-gabarito-medium text-sm text-azul-600 hover:underline"
-                                    >
-                                        Ver detalhes
-                                    </button>
-                                ),
-                            },
-                        ]}
-                    />
+                    <>
+                        <AdminTable
+                            data={itens}
+                            keyExtractor={(d) => d.id}
+                            emptyMessage="Nenhuma denúncia encontrada."
+                            columns={[
+                                {
+                                    key: "tipo",
+                                    header: "Tipo",
+                                    render: (d) => labelTipo(d.tipo_entidade),
+                                },
+                                {
+                                    key: "motivo",
+                                    header: "Motivo",
+                                    render: (d) => labelMotivo(d.motivo),
+                                },
+                                {
+                                    key: "denunciante",
+                                    header: "Denunciante",
+                                    render: (d) => `@${d.denunciante_nick}`,
+                                },
+                                {
+                                    key: "data",
+                                    header: "Data",
+                                    render: (d) => formatarData(d.criado_em),
+                                },
+                                {
+                                    key: "denuncias",
+                                    header: "Contra usuário",
+                                    render: (d) => (
+                                        <ContagemDenunciasBadge
+                                            total={d.denuncias_contra_usuario ?? 0}
+                                            procedentes={d.denuncias_procedentes ?? 0}
+                                        />
+                                    ),
+                                },
+                                {
+                                    key: "status",
+                                    header: "Status",
+                                    render: (d) => <StatusBadge status={d.status} />,
+                                },
+                                {
+                                    key: "acao",
+                                    header: "Ação",
+                                    render: (d) => (
+                                        <button
+                                            type="button"
+                                            onClick={() => setDetalheId(d.id)}
+                                            className="font-gabarito-medium text-sm text-azul-600 hover:underline"
+                                        >
+                                            Ver detalhes
+                                        </button>
+                                    ),
+                                },
+                            ]}
+                        />
+                        <AdminPaginacao
+                            pagina={pagina}
+                            limite={limite}
+                            total={total}
+                            onChange={setPagina}
+                            disabled={carregando}
+                        />
+                    </>
                 )}
             </Box>
 

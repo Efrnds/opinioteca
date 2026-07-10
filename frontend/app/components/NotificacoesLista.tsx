@@ -67,7 +67,15 @@ function useAtores(notificacoes: Notificacao[]) {
 
 export default function NotificacoesLista() {
     const router = useRouter();
-    const { notificacoes, notificacoesCarregando, marcarNotificacaoLida, carregarNotificacoes } = useWebSocket();
+    const {
+        notificacoes,
+        notificacoesCarregando,
+        notificacoesCarregandoMais,
+        temMaisNotificacoes,
+        marcarNotificacaoLida,
+        carregarNotificacoes,
+        carregarMaisNotificacoes,
+    } = useWebSocket();
     const notificacoesVisiveis = notificacoes.filter((n) => !notificacaoEhMensagem(n));
     const { nomeExibicao, avatarExibicao } = useAtores(notificacoesVisiveis);
 
@@ -97,66 +105,87 @@ export default function NotificacoesLista() {
     }
 
     return (
-        <ul className="flex flex-col gap-3">
-            {notificacoesVisiveis.map((notif) => {
-                const nick = tituloExibicaoNotificacao(notif);
-                const avatar = notificacaoEhSistema(notif.tipo_notificacao) ? undefined : avatarExibicao(notif);
-                const acao = textoAcaoNotificacao(notif.tipo_notificacao);
+        <div className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-3">
+                {notificacoesVisiveis.map((notif) => {
+                    const nick = tituloExibicaoNotificacao(notif);
+                    const avatar = notificacaoEhSistema(notif.tipo_notificacao) ? undefined : avatarExibicao(notif);
+                    const acao = textoAcaoNotificacao(notif.tipo_notificacao);
 
-                return (
-                    <li key={notif.id}>
-                        <button
-                            type="button"
-                            onClick={() => abrirNotificacao(notif)}
-                            className={cn(
-                                "flex w-full items-center justify-between gap-4 rounded-xl border-2 px-4 py-3 text-left transition hover:opacity-90",
-                                !notificacaoEstaLida(notif.lida) ? "border-azul-600 bg-[#EAF1FF]" : "border-gray-300 bg-white",
-                            )}
-                        >
-                            <div className="flex min-w-0 items-center gap-3">
-                                {avatar ? (
-                                    <Image
-                                        src={mediaUrl(avatar)!}
-                                        alt={nick}
-                                        width={40}
-                                        height={40}
-                                        className="h-10 w-10 shrink-0 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div
+                    return (
+                        <li key={notif.id}>
+                            <button
+                                type="button"
+                                onClick={() => abrirNotificacao(notif)}
+                                className={cn(
+                                    "flex w-full items-center justify-between gap-4 rounded-xl border-2 px-4 py-3 text-left transition hover:opacity-90",
+                                    !notificacaoEstaLida(notif.lida) ? "border-azul-600 bg-[#EAF1FF]" : "border-gray-300 bg-white",
+                                )}
+                            >
+                                <div className="flex min-w-0 items-center gap-3">
+                                    {avatar ? (
+                                        <Image
+                                            src={mediaUrl(avatar)!}
+                                            alt={nick}
+                                            width={40}
+                                            height={40}
+                                            className="h-10 w-10 shrink-0 rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <div
+                                            className={cn(
+                                                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-gabarito-bold text-sm",
+                                                !notificacaoEstaLida(notif.lida) ? "bg-azul-600 text-white" : "bg-gray-200 text-gray-600",
+                                            )}
+                                        >
+                                            {nick.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                    <span
                                         className={cn(
-                                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-gabarito-bold text-sm",
-                                            !notificacaoEstaLida(notif.lida) ? "bg-azul-600 text-white" : "bg-gray-200 text-gray-600",
+                                            "truncate text-base",
+                                            !notificacaoEstaLida(notif.lida)
+                                                ? "font-gabarito-bold text-azul-600"
+                                                : "font-gabarito-regular text-gray-500",
                                         )}
                                     >
-                                        {nick.charAt(0).toUpperCase()}
-                                    </div>
-                                )}
+                                        {nick}
+                                    </span>
+                                </div>
                                 <span
                                     className={cn(
-                                        "truncate text-base",
-                                        !notificacaoEstaLida(notif.lida)
+                                        "shrink-0 text-base",
+                                        !notif.lida
                                             ? "font-gabarito-bold text-azul-600"
                                             : "font-gabarito-regular text-gray-500",
                                     )}
                                 >
-                                    {nick}
+                                    {acao}
                                 </span>
-                            </div>
-                            <span
-                                className={cn(
-                                    "shrink-0 text-base",
-                                    !notif.lida
-                                        ? "font-gabarito-bold text-azul-600"
-                                        : "font-gabarito-regular text-gray-500",
-                                )}
-                            >
-                                {acao}
-                            </span>
-                        </button>
-                    </li>
-                );
-            })}
-        </ul>
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
+            {temMaisNotificacoes && (
+                <div className="flex justify-center pt-1">
+                    <button
+                        type="button"
+                        onClick={() => void carregarMaisNotificacoes()}
+                        disabled={notificacoesCarregandoMais}
+                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-gabarito-medium text-sm text-azul-600 transition hover:bg-azul-50 hover:text-azul-800 disabled:opacity-60"
+                    >
+                        {notificacoesCarregandoMais ? (
+                            <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Carregando…
+                            </>
+                        ) : (
+                            "Ver mais"
+                        )}
+                    </button>
+                </div>
+            )}
+        </div>
     );
 }

@@ -1,5 +1,5 @@
 /**
- * Infraestrutura de planos/assinatura — ver docs/planos-assinatura.md
+ * Infraestrutura de planos/assinatura: ver docs/planos-assinatura.md
  *
  * usePlano() expõe o plano do usuário logado (GET /api/plano).
  * Outros módulos devem usar temPlanoTop / temPlanoPro para feature gates.

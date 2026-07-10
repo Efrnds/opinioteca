@@ -19,8 +19,10 @@ func usuarioIDDaURL(r *http.Request) (uint64, error) {
 	return strconv.ParseUint(mux.Vars(r)["usuarioId"], 10, 64)
 }
 
-// AdminBuscarUsuarios lista todos os usuários (moderação).
+// AdminBuscarUsuarios lista usuários com paginação e filtros opcionais (moderação).
 func AdminBuscarUsuarios(w http.ResponseWriter, r *http.Request) {
+	pagina, limite, offset := paginacaoAdmin(r)
+
 	db, erro := banco.Conectar()
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -29,15 +31,36 @@ func AdminBuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	usuarios, erro := repositorio.BuscarTodos()
+	filtros := repositorios.FiltrosAdminUsuarios{
+		Query:            r.URL.Query().Get("q"),
+		AssinaturaFiltro: r.URL.Query().Get("assinatura"),
+		Limite:           limite,
+		Offset:           offset,
+	}
+
+	usuarios, total, erro := repositorio.BuscarAdmin(filtros)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	resposta := make([]modelos.UsuarioAdmin, 0, len(usuarios))
+	resposta := modelos.UsuariosAdminListagem{
+		Itens:  make([]modelos.UsuarioAdmin, 0, len(usuarios)),
+		Total:  total,
+		Pagina: pagina,
+		Limite: limite,
+	}
 	for _, usuario := range usuarios {
-		resposta = append(resposta, usuario.ListarAdmin())
+		resposta.Itens = append(resposta.Itens, usuario.ListarAdmin())
+	}
+
+	if r.URL.Query().Get("stats") == "assinaturas" {
+		stats, erroStats := repositorio.ContarStatsAssinaturas()
+		if erroStats != nil {
+			respostas.Erro(w, http.StatusInternalServerError, erroStats)
+			return
+		}
+		resposta.Stats = &stats
 	}
 
 	respostas.JSON(w, http.StatusOK, resposta)

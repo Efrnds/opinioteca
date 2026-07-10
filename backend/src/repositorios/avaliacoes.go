@@ -3,6 +3,7 @@ package repositorios
 import (
 	"backend/src/modelos"
 	"database/sql"
+	"time"
 )
 
 type Avaliacoes struct {
@@ -190,102 +191,80 @@ func (repositorio Avaliacoes) BuscarPorUsuario(usuarioID uint64) ([]modelos.Aval
 	return scanAvaliacoes(linhas)
 }
 
-func (repositorio Avaliacoes) BuscarFeed(limite, offset int) ([]modelos.AvaliacaoFeed, error) {
-	linhas, erro := repositorio.db.Query(
-		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
+const selectFeedBase = `SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
 		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
 		        u.id, u.nome, u.nick, u.image_url, u.assinatura_id, u.assinatura_expira_em, u.status,
 		        l.id, l.titulo, l.autor, l.capa_url
 		 FROM avaliacoes a
 		 INNER JOIN usuarios u ON u.id = a.usuario_id
-		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
-		 ORDER BY a.criadoEm DESC
-		 LIMIT $1 OFFSET $2`,
-		limite, offset,
+		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'`
+
+func (repositorio Avaliacoes) BuscarFeed(limite int, cursorCriadoEm *time.Time, cursorID *uint64) ([]modelos.AvaliacaoFeed, error) {
+	var (
+		linhas *sql.Rows
+		erro   error
 	)
+
+	if cursorCriadoEm != nil && cursorID != nil {
+		linhas, erro = repositorio.db.Query(
+			selectFeedBase+`
+		 WHERE (a.criadoEm, a.id) < ($1, $2)
+		 ORDER BY a.criadoEm DESC, a.id DESC
+		 LIMIT $3`,
+			*cursorCriadoEm, *cursorID, limite,
+		)
+	} else {
+		linhas, erro = repositorio.db.Query(
+			selectFeedBase+`
+		 ORDER BY a.criadoEm DESC, a.id DESC
+		 LIMIT $1`,
+			limite,
+		)
+	}
 	if erro != nil {
 		return nil, erro
 	}
 	defer linhas.Close()
 
-	feed := make([]modelos.AvaliacaoFeed, 0)
-	avaliacaoIDs := make([]uint64, 0)
-	for linhas.Next() {
-		var item modelos.AvaliacaoFeed
-		var imageURL, capaURL, anexoURL sql.NullString
-		var assinaturaID uint64
-		var assinaturaExpira sql.NullTime
-		var statusUsuario string
-
-		if erro := linhas.Scan(
-			&item.ID,
-			&item.Nota,
-			&item.Texto,
-			&item.ContemSpoiler,
-			&anexoURL,
-			&item.CriadoEm,
-			&item.QtdComentarios,
-			&item.Usuario.ID,
-			&item.Usuario.Nome,
-			&item.Usuario.Nick,
-			&imageURL,
-			&assinaturaID,
-			&assinaturaExpira,
-			&statusUsuario,
-			&item.Livro.ID,
-			&item.Livro.Titulo,
-			&item.Livro.Autor,
-			&capaURL,
-		); erro != nil {
-			return nil, erro
-		}
-
-		aplicarUsuarioFeed(&item, statusUsuario, imageURL, assinaturaID, assinaturaExpira)
-		if capaURL.Valid {
-			item.Livro.CapaURL = capaURL.String
-		}
-		if anexoURL.Valid {
-			item.AnexoURL = &anexoURL.String
-		}
-
-		feed = append(feed, item)
-		avaliacaoIDs = append(avaliacaoIDs, item.ID)
-	}
-
-	repoComentarios := NovoRepositorioDeComentarios(repositorio.db)
-	destaques, erro := repoComentarios.BuscarDestaquesPorAvaliacoes(avaliacaoIDs)
-	if erro != nil {
-		return nil, erro
-	}
-
-	for i := range feed {
-		feed[i].ComentarioDestaque = destaques[feed[i].ID]
-	}
-
-	return feed, nil
+	return repositorio.escanearFeed(linhas)
 }
 
-func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite, offset int) ([]modelos.AvaliacaoFeed, error) {
-	linhas, erro := repositorio.db.Query(
-		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
-		        (SELECT COUNT(*) FROM comentarios c WHERE c.avaliacao_id = a.id) AS qtd_comentarios,
-		        u.id, u.nome, u.nick, u.image_url, u.assinatura_id, u.assinatura_expira_em, u.status,
-		        l.id, l.titulo, l.autor, l.capa_url
-		 FROM avaliacoes a
-		 INNER JOIN usuarios u ON u.id = a.usuario_id
-		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'
+func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite int, cursorCriadoEm *time.Time, cursorID *uint64) ([]modelos.AvaliacaoFeed, error) {
+	var (
+		linhas *sql.Rows
+		erro   error
+	)
+
+	filtroSeguindo := `
 		 WHERE (a.usuario_id IN (
 		     SELECT id_seguido FROM seguidores WHERE id_seguidor = $1
-		 ) OR a.usuario_id = $1)
-		 ORDER BY a.criadoEm DESC
-		 LIMIT $2 OFFSET $3`,
-		usuarioID, limite, offset,
-	)
+		 ) OR a.usuario_id = $1)`
+
+	if cursorCriadoEm != nil && cursorID != nil {
+		linhas, erro = repositorio.db.Query(
+			selectFeedBase+filtroSeguindo+`
+		 AND (a.criadoEm, a.id) < ($2, $3)
+		 ORDER BY a.criadoEm DESC, a.id DESC
+		 LIMIT $4`,
+			usuarioID, *cursorCriadoEm, *cursorID, limite,
+		)
+	} else {
+		linhas, erro = repositorio.db.Query(
+			selectFeedBase+filtroSeguindo+`
+		 ORDER BY a.criadoEm DESC, a.id DESC
+		 LIMIT $2`,
+			usuarioID, limite,
+		)
+	}
 	if erro != nil {
 		return nil, erro
 	}
 	defer linhas.Close()
 
+	return repositorio.escanearFeed(linhas)
+}
+
+func (repositorio Avaliacoes) escanearFeed(linhas *sql.Rows) ([]modelos.AvaliacaoFeed, error) {
 	feed := make([]modelos.AvaliacaoFeed, 0)
 	avaliacaoIDs := make([]uint64, 0)
 	for linhas.Next() {

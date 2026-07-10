@@ -9,30 +9,97 @@ import (
 	"backend/src/respostas"
 	"backend/src/servicos"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func BuscarFeed(w http.ResponseWriter, r *http.Request) {
-	limite := 20
-	offset := 0
+// feedCursorPayload é o JSON opaco embutido em next_cursor (base64url).
+// Formato: {"criadoEm":"<RFC3339Nano>","id":<uint64>}
+type feedCursorPayload struct {
+	CriadoEm string `json:"criadoEm"`
+	ID       uint64 `json:"id"`
+}
 
-	if valor := r.URL.Query().Get("limite"); valor != "" {
-		if parsed, erro := strconv.Atoi(valor); erro == nil && parsed > 0 && parsed <= 50 {
-			limite = parsed
+func encodeFeedCursor(criadoEm time.Time, id uint64) (string, error) {
+	payload, erro := json.Marshal(feedCursorPayload{
+		CriadoEm: criadoEm.UTC().Format(time.RFC3339Nano),
+		ID:       id,
+	})
+	if erro != nil {
+		return "", erro
+	}
+	return base64.RawURLEncoding.EncodeToString(payload), nil
+}
+
+func decodeFeedCursor(cursor string) (time.Time, uint64, error) {
+	dados, erro := base64.RawURLEncoding.DecodeString(cursor)
+	if erro != nil {
+		dados, erro = base64.URLEncoding.DecodeString(cursor)
+		if erro != nil {
+			return time.Time{}, 0, errors.New("cursor inválido")
 		}
 	}
-	if valor := r.URL.Query().Get("offset"); valor != "" {
-		if parsed, erro := strconv.Atoi(valor); erro == nil && parsed >= 0 {
-			offset = parsed
+
+	var payload feedCursorPayload
+	if erro = json.Unmarshal(dados, &payload); erro != nil {
+		return time.Time{}, 0, errors.New("cursor inválido")
+	}
+	if payload.ID == 0 || payload.CriadoEm == "" {
+		return time.Time{}, 0, errors.New("cursor inválido")
+	}
+
+	criadoEm, erro := time.Parse(time.RFC3339Nano, payload.CriadoEm)
+	if erro != nil {
+		criadoEm, erro = time.Parse(time.RFC3339, payload.CriadoEm)
+		if erro != nil {
+			return time.Time{}, 0, errors.New("cursor inválido")
 		}
+	}
+
+	return criadoEm, payload.ID, nil
+}
+
+func limiteFeed(r *http.Request) int {
+	limite := 20
+	valor := r.URL.Query().Get("limite")
+	if valor == "" {
+		valor = r.URL.Query().Get("limit")
+	}
+	if valor == "" {
+		return limite
+	}
+	parsed, erro := strconv.Atoi(valor)
+	if erro != nil || parsed <= 0 {
+		return limite
+	}
+	if parsed > 50 {
+		return 50
+	}
+	return parsed
+}
+
+func BuscarFeed(w http.ResponseWriter, r *http.Request) {
+	limite := limiteFeed(r)
+
+	var cursorCriadoEm *time.Time
+	var cursorID *uint64
+	if valor := strings.TrimSpace(r.URL.Query().Get("cursor")); valor != "" {
+		criadoEm, id, erro := decodeFeedCursor(valor)
+		if erro != nil {
+			respostas.Erro(w, http.StatusBadRequest, erro)
+			return
+		}
+		cursorCriadoEm = &criadoEm
+		cursorID = &id
 	}
 
 	db, erro := banco.Conectar()
@@ -47,22 +114,39 @@ func BuscarFeed(w http.ResponseWriter, r *http.Request) {
 
 	tipo := strings.ToLower(r.URL.Query().Get("tipo"))
 	var feed []modelos.AvaliacaoFeed
+	// Busca limite+1 para saber se há próxima página sem OFFSET.
 	if tipo == "seguindo" && usuarioID != nil {
-		feed, erro = repoAvaliacoes.BuscarFeedSeguindo(*usuarioID, limite, offset)
+		feed, erro = repoAvaliacoes.BuscarFeedSeguindo(*usuarioID, limite+1, cursorCriadoEm, cursorID)
 	} else {
-		feed, erro = repoAvaliacoes.BuscarFeed(limite, offset)
+		feed, erro = repoAvaliacoes.BuscarFeed(limite+1, cursorCriadoEm, cursorID)
 	}
-	if erro != nil {
-		respostas.Erro(w, http.StatusInternalServerError, erro)
-		return
-	}
-	resposta, erro := montarFeedComVotos(db, feed, usuarioID)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	respostas.JSON(w, http.StatusOK, resposta)
+	var nextCursor *string
+	if len(feed) > limite {
+		ultimo := feed[limite-1]
+		encoded, erroCursor := encodeFeedCursor(ultimo.CriadoEm, ultimo.ID)
+		if erroCursor != nil {
+			respostas.Erro(w, http.StatusInternalServerError, erroCursor)
+			return
+		}
+		nextCursor = &encoded
+		feed = feed[:limite]
+	}
+
+	itens, erro := montarFeedComVotos(db, feed, usuarioID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.JSON(w, http.StatusOK, modelos.FeedPaginaResposta{
+		Itens:      itens,
+		NextCursor: nextCursor,
+	})
 }
 
 func CriarAvaliacao(w http.ResponseWriter, r *http.Request) {

@@ -104,7 +104,7 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuariosFiltrados)
 }
 
-// BuscarUsuario retorna o perfil pelo nick — público (auth opcional), privado gated, dono vê privado.
+// BuscarUsuario retorna o perfil pelo nick: público (auth opcional), privado gated, dono vê privado.
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -204,7 +204,7 @@ func BuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuario.ListarPublico())
 }
 
-// AtualizarUsuario atualiza o perfil — só o dono da conta.
+// AtualizarUsuario atualiza o perfil: só o dono da conta.
 func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -440,7 +440,7 @@ func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, seguindoPublicos)
 }
 
-// AtualizarSenha atualiza a senha — só o dono da conta.
+// AtualizarSenha atualiza a senha: só o dono da conta.
 func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 

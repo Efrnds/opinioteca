@@ -15,6 +15,8 @@ import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+export const LIMITE_NOTIFICACOES = 20;
+
 type WebSocketContextValue = {
     subscribe: (fn: WsListener) => () => void;
     setChatAtivo: (id: number | null) => void;
@@ -25,8 +27,12 @@ type WebSocketContextValue = {
     recarregarMensagensNaoLidas: () => Promise<void>;
     notificacoes: Notificacao[];
     notificacoesCarregando: boolean;
+    notificacoesCarregandoMais: boolean;
+    temMaisNotificacoes: boolean;
     carregarNotificacoes: () => Promise<void>;
+    carregarMaisNotificacoes: () => Promise<void>;
     marcarNotificacaoLida: (id: number) => void;
+    marcarTodasNotificacoesLidas: () => Promise<void>;
 };
 
 const WebSocketContext = createContext<WebSocketContextValue>({
@@ -39,8 +45,12 @@ const WebSocketContext = createContext<WebSocketContextValue>({
     recarregarMensagensNaoLidas: async () => {},
     notificacoes: [],
     notificacoesCarregando: false,
+    notificacoesCarregandoMais: false,
+    temMaisNotificacoes: false,
     carregarNotificacoes: async () => {},
+    carregarMaisNotificacoes: async () => {},
     marcarNotificacaoLida: () => {},
+    marcarTodasNotificacoesLidas: async () => {},
 });
 
 export function useWebSocket() {
@@ -57,10 +67,14 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
     const pathname = usePathname();
     const chatAtivoRef = useRef<number | null>(null);
     const pathnameRef = useRef(pathname);
+    const carregandoMaisRef = useRef(false);
+    const offsetApiRef = useRef(0);
     const [contagemNaoLidas, setContagemNaoLidas] = useState(0);
     const [mensagensNaoLidasTotal, setMensagensNaoLidasTotal] = useState(0);
     const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
     const [notificacoesCarregando, setNotificacoesCarregando] = useState(false);
+    const [notificacoesCarregandoMais, setNotificacoesCarregandoMais] = useState(false);
+    const [temMaisNotificacoes, setTemMaisNotificacoes] = useState(false);
 
     pathnameRef.current = pathname;
 
@@ -68,8 +82,10 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
         try {
             const res = await fetch("/api/notificacoes");
             if (res.ok) {
-                const data = (await res.json()) as Notificacao[];
-                setContagemNaoLidas(contarNotificacoesNaoLidas(data));
+                const data: unknown = await res.json();
+                if (Array.isArray(data)) {
+                    setContagemNaoLidas(contarNotificacoesNaoLidas(data as Notificacao[]));
+                }
             }
         } catch {
             /* ignore */
@@ -91,12 +107,17 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
     const carregarNotificacoes = useCallback(async () => {
         setNotificacoesCarregando(true);
         try {
-            const res = await fetch("/api/notificacoes?todas=true");
+            const res = await fetch(
+                `/api/notificacoes?todas=true&limite=${LIMITE_NOTIFICACOES}&offset=0`,
+            );
             if (res.ok) {
-                const lista = (await res.json()) as Notificacao[];
+                const data: unknown = await res.json();
+                if (!Array.isArray(data)) return;
+                const lista = data as Notificacao[];
                 const visiveis = lista.filter((n) => !notificacaoEhMensagem(n));
+                offsetApiRef.current = lista.length;
                 setNotificacoes(visiveis);
-                setContagemNaoLidas(contarNotificacoesNaoLidas(visiveis));
+                setTemMaisNotificacoes(lista.length >= LIMITE_NOTIFICACOES);
             }
         } catch {
             /* ignore */
@@ -104,6 +125,35 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
             setNotificacoesCarregando(false);
         }
     }, []);
+
+    const carregarMaisNotificacoes = useCallback(async () => {
+        if (carregandoMaisRef.current || !temMaisNotificacoes) return;
+        carregandoMaisRef.current = true;
+        setNotificacoesCarregandoMais(true);
+        try {
+            const offset = offsetApiRef.current;
+            const res = await fetch(
+                `/api/notificacoes?todas=true&limite=${LIMITE_NOTIFICACOES}&offset=${offset}`,
+            );
+            if (res.ok) {
+                const data: unknown = await res.json();
+                if (!Array.isArray(data)) return;
+                const lista = data as Notificacao[];
+                const visiveis = lista.filter((n) => !notificacaoEhMensagem(n));
+                offsetApiRef.current = offset + lista.length;
+                setNotificacoes((atual) => {
+                    const ids = new Set(atual.map((n) => n.id));
+                    return [...atual, ...visiveis.filter((n) => !ids.has(n.id))];
+                });
+                setTemMaisNotificacoes(lista.length >= LIMITE_NOTIFICACOES);
+            }
+        } catch {
+            /* ignore */
+        } finally {
+            carregandoMaisRef.current = false;
+            setNotificacoesCarregandoMais(false);
+        }
+    }, [temMaisNotificacoes]);
 
     const decrementarContagem = useCallback(() => {
         setContagemNaoLidas((c) => Math.max(0, c - 1));
@@ -123,6 +173,16 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
         [decrementarContagem],
     );
 
+    const marcarTodasNotificacoesLidas = useCallback(async () => {
+        setNotificacoes((atual) => atual.map((n) => ({ ...n, lida: true })));
+        setContagemNaoLidas(0);
+        try {
+            await fetch("/api/notificacoes/lidas", { method: "PUT" });
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
     const subscribe = useCallback((fn: WsListener) => wsClient.subscribe(fn), []);
 
     const setChatAtivo = useCallback((id: number | null) => {
@@ -139,6 +199,8 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
             setContagemNaoLidas(0);
             setMensagensNaoLidasTotal(0);
             setNotificacoes([]);
+            setTemMaisNotificacoes(false);
+            offsetApiRef.current = 0;
             wsClient.disconnect();
             return;
         }
@@ -146,6 +208,8 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
         setContagemNaoLidas(0);
         setMensagensNaoLidasTotal(0);
         setNotificacoes([]);
+        setTemMaisNotificacoes(false);
+        offsetApiRef.current = 0;
         recarregarContagem();
         recarregarMensagensNaoLidas();
         carregarNotificacoes();
@@ -219,8 +283,12 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
                 recarregarMensagensNaoLidas,
                 notificacoes,
                 notificacoesCarregando,
+                notificacoesCarregandoMais,
+                temMaisNotificacoes,
                 carregarNotificacoes,
+                carregarMaisNotificacoes,
                 marcarNotificacaoLida,
+                marcarTodasNotificacoesLidas,
             }}
         >
             {children}

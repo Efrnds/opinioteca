@@ -47,7 +47,9 @@ func CriarCategoria(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, categoria)
 }
 
-// BuscarCategorias é a função responsável por buscar todas as categorias.
+// BuscarCategorias lista categorias ativas.
+// Sem parâmetros de paginação, retorna o array completo (compatível com /categorias público).
+// Com pagina/limite, retorna envelope { itens, total, pagina, limite }.
 func BuscarCategorias(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -57,7 +59,25 @@ func BuscarCategorias(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeCategorias(db)
-	categorias, erro := repositorio.Buscar()
+	query := r.URL.Query()
+	paginar := query.Get("pagina") != "" || query.Get("limite") != "" ||
+		query.Get("page") != "" || query.Get("pageSize") != "" || query.Get("offset") != ""
+
+	if !paginar {
+		categorias, erro := repositorio.Buscar()
+		if erro != nil {
+			respostas.Erro(w, http.StatusInternalServerError, erro)
+			return
+		}
+		if categorias == nil {
+			categorias = []modelos.Categoria{}
+		}
+		respostas.JSON(w, http.StatusOK, categorias)
+		return
+	}
+
+	pagina, limite, offset := paginacaoAdmin(r)
+	categorias, total, erro := repositorio.BuscarPaginado(limite, offset)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
@@ -65,7 +85,12 @@ func BuscarCategorias(w http.ResponseWriter, r *http.Request) {
 	if categorias == nil {
 		categorias = []modelos.Categoria{}
 	}
-	respostas.JSON(w, http.StatusOK, categorias)
+	respostas.JSON(w, http.StatusOK, modelos.RespostaPaginada{
+		Itens:  categorias,
+		Total:  total,
+		Pagina: pagina,
+		Limite: limite,
+	})
 }
 
 // BuscarCategoriaPorID é a função responsável por buscar uma categoria específica pelo seu ID.

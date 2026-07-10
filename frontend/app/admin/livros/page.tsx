@@ -6,8 +6,10 @@ import AdminPageHeader, {
     AdminNovoButton,
     AdminStatusBadge,
 } from "@/app/components/admin/AdminPageHeader";
+import AdminPaginacao from "@/app/components/admin/AdminPaginacao";
 import AdminTable from "@/app/components/admin/AdminTable";
 import LivroFormModal from "@/app/components/admin/LivroFormModal";
+import { ADMIN_PAGE_SIZE, paramsPaginacao, parseListaPaginada } from "@/lib/admin/paginacao";
 import type { CategoriaAdmin, LivroAdmin } from "@/types/admin";
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -15,31 +17,46 @@ import { useCallback, useEffect, useState } from "react";
 export default function AdminLivrosPage() {
     const [livros, setLivros] = useState<LivroAdmin[]>([]);
     const [categorias, setCategorias] = useState<CategoriaAdmin[]>([]);
+    const [pagina, setPagina] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [limite, setLimite] = useState(ADMIN_PAGE_SIZE);
     const [carregando, setCarregando] = useState(true);
     const [modalAberto, setModalAberto] = useState(false);
     const [livroEditando, setLivroEditando] = useState<LivroAdmin | null>(null);
     const [filtro, setFiltro] = useState("");
+    const [filtroDebounced, setFiltroDebounced] = useState("");
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setFiltroDebounced(filtro);
+            setPagina(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [filtro]);
 
     const carregar = useCallback(async () => {
         setCarregando(true);
         try {
-            const params = filtro ? `?q=${encodeURIComponent(filtro)}` : "";
+            const params = paramsPaginacao(pagina);
+            if (filtroDebounced) params.set("q", filtroDebounced);
             const [resLivros, resCategorias] = await Promise.all([
-                fetch(`/api/admin/livros${params}`),
+                fetch(`/api/admin/livros?${params}`),
                 fetch("/api/admin/categorias"),
             ]);
             if (resLivros.ok) {
-                const data = await resLivros.json();
-                setLivros(Array.isArray(data) ? data : []);
+                const data = parseListaPaginada<LivroAdmin>(await resLivros.json());
+                setLivros(data.itens);
+                setTotal(data.total);
+                setLimite(data.limite);
             }
             if (resCategorias.ok) {
                 const data = await resCategorias.json();
-                setCategorias(Array.isArray(data) ? data : []);
+                setCategorias(Array.isArray(data) ? data : parseListaPaginada<CategoriaAdmin>(data).itens);
             }
         } finally {
             setCarregando(false);
         }
-    }, [filtro]);
+    }, [filtroDebounced, pagina]);
 
     useEffect(() => {
         carregar();
@@ -86,44 +103,53 @@ export default function AdminLivrosPage() {
                         <Loader2 className="h-8 w-8 animate-spin text-azul-600" />
                     </div>
                 ) : (
-                    <AdminTable
-                        data={livros}
-                        keyExtractor={(l) => l.id}
-                        columns={[
-                            { key: "titulo", header: "Título", render: (l) => l.titulo },
-                            { key: "autor", header: "Autor", render: (l) => l.autor },
-                            { key: "editora", header: "Editora", render: (l) => l.editora || "—" },
-                            {
-                                key: "categoria",
-                                header: "Categorias",
-                                render: (l) => {
-                                    const ids =
-                                        l.categorias_ids && l.categorias_ids.length > 0
-                                            ? l.categorias_ids
-                                            : l.categoria_id
-                                              ? [l.categoria_id]
-                                              : [];
-                                    return ids.map((id) => mapaCategorias[id] ?? id).join(", ") || "—";
+                    <>
+                        <AdminTable
+                            data={livros}
+                            keyExtractor={(l) => l.id}
+                            columns={[
+                                { key: "titulo", header: "Título", render: (l) => l.titulo },
+                                { key: "autor", header: "Autor", render: (l) => l.autor },
+                                { key: "editora", header: "Editora", render: (l) => l.editora || "-" },
+                                {
+                                    key: "categoria",
+                                    header: "Categorias",
+                                    render: (l) => {
+                                        const ids =
+                                            l.categorias_ids && l.categorias_ids.length > 0
+                                                ? l.categorias_ids
+                                                : l.categoria_id
+                                                  ? [l.categoria_id]
+                                                  : [];
+                                        return ids.map((id) => mapaCategorias[id] ?? id).join(", ") || "-";
+                                    },
                                 },
-                            },
-                            {
-                                key: "status",
-                                header: "Status",
-                                render: (l) => <AdminStatusBadge status={l.status} />,
-                            },
-                            { key: "origem", header: "Origem", render: (l) => l.origem },
-                            {
-                                key: "acao",
-                                header: "Ação",
-                                render: (l) => (
-                                    <AdminAcoes
-                                        onEditar={() => abrirEditar(l)}
-                                        onApagar={() => apagar(l)}
-                                    />
-                                ),
-                            },
-                        ]}
-                    />
+                                {
+                                    key: "status",
+                                    header: "Status",
+                                    render: (l) => <AdminStatusBadge status={l.status} />,
+                                },
+                                { key: "origem", header: "Origem", render: (l) => l.origem },
+                                {
+                                    key: "acao",
+                                    header: "Ação",
+                                    render: (l) => (
+                                        <AdminAcoes
+                                            onEditar={() => abrirEditar(l)}
+                                            onApagar={() => apagar(l)}
+                                        />
+                                    ),
+                                },
+                            ]}
+                        />
+                        <AdminPaginacao
+                            pagina={pagina}
+                            limite={limite}
+                            total={total}
+                            onChange={setPagina}
+                            disabled={carregando}
+                        />
+                    </>
                 )}
             </Box>
 

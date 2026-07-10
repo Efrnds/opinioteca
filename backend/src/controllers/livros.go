@@ -115,6 +115,8 @@ func CriarLivroUsuario(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminListarLivros(w http.ResponseWriter, r *http.Request) {
+	pagina, limite, offset := paginacaoAdmin(r)
+
 	db, erro := banco.Conectar()
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -126,11 +128,12 @@ func AdminListarLivros(w http.ResponseWriter, r *http.Request) {
 		Query:  r.URL.Query().Get("q"),
 		Status: r.URL.Query().Get("status"),
 		Origem: r.URL.Query().Get("origem"),
-		Limite: 100,
+		Limite: limite,
+		Offset: offset,
 	}
 
 	repositorio := repositorios.NovoRepositorioDeLivros(db)
-	livros, erro := repositorio.BuscarTodos(filtros)
+	livros, total, erro := repositorio.BuscarTodosPaginado(filtros)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
@@ -139,7 +142,12 @@ func AdminListarLivros(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
-	respostas.JSON(w, http.StatusOK, livros)
+	respostas.JSON(w, http.StatusOK, modelos.RespostaPaginada{
+		Itens:  livros,
+		Total:  total,
+		Pagina: pagina,
+		Limite: limite,
+	})
 }
 
 func BuscarLivroPorGoogleVolume(w http.ResponseWriter, r *http.Request) {

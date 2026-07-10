@@ -1,5 +1,6 @@
 "use client";
 
+import AvisoAssinaturaExpirando from "@/app/components/AvisoAssinaturaExpirando";
 import { usePlano } from "@/app/components/PlanoProvider";
 import { formatarPreco, rotuloValidadePlano } from "@/types/plano";
 import { Check, Crown, Sparkles } from "lucide-react";
@@ -17,7 +18,7 @@ const FEATURES_PRO = [
     "Modo Zen (leitura sem distrações)",
     "Meta de leitura com progresso",
     "GIF como foto de perfil",
-    "OpinioWrapped — seu ano em leitura",
+    "OpinioWrapped: seu ano em leitura",
     "Badge PRO no perfil",
 ];
 
@@ -108,6 +109,8 @@ export default function PlanoSecao() {
             ) : carregando ? (
                 <p className="font-gabarito-regular text-sm text-cinza-600">Carregando plano…</p>
             ) : null}
+
+            <AvisoAssinaturaExpirando dismissivel={false} variante="nota" />
 
             <p className="font-gabarito-regular text-cinza-700">
                 Pagamento online em breve. Por enquanto, assinaturas são ativadas manualmente pela equipe

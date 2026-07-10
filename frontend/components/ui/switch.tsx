@@ -28,8 +28,10 @@ export function Switch({ id, checked, onCheckedChange, disabled, "aria-label": a
             } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
         >
             <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                    checked ? "translate-x-5" : "translate-x-0.5"
+                className={`inline-block h-5 w-5 transform rounded-full shadow transition ${
+                    checked
+                        ? "translate-x-5 bg-azul-600-foreground"
+                        : "translate-x-0.5 bg-white"
                 }`}
             />
         </button>
