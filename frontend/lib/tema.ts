@@ -64,6 +64,27 @@ export function ehHexCor(v: string): boolean {
     return HEX_RE.test(v.trim());
 }
 
+/** Digitos hex (sem #) para o campo de texto; remove # e caracteres invalidos. */
+export function digitosHexDigitados(raw: string): string {
+    return raw
+        .replace(/#/g, "")
+        .replace(/[^0-9A-Fa-f]/g, "")
+        .slice(0, 6)
+        .toLowerCase();
+}
+
+/** Valor exibido no input (sem #) a partir de um hex armazenado. */
+export function hexParaCampo(hex: string): string {
+    return digitosHexDigitados(hex);
+}
+
+/** Monta #rrggbb lowercase a partir dos digitos; null se incompleto. */
+export function hexDeDigitos(digits: string): string | null {
+    const d = digitosHexDigitados(digits);
+    if (d.length !== 6) return null;
+    return `#${d}`;
+}
+
 export function ehPresetCor(v: string): v is CorDestaquePreset {
     return CORES_DESTAQUE.some((c) => c.id === v);
 }

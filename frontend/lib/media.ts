@@ -49,12 +49,8 @@ export function wsBaseUrl(): string {
             return apiUrl;
         }
 
-        // Produção: usar a mesma base da API quando configurada (ex.: subdomínio do backend)
-        if (!onLocalhost && apiUrl && !apiUrl.includes("localhost") && !apiUrl.includes("127.0.0.1")) {
-            return apiUrl;
-        }
-
-        // Fallback: mesmo domínio do front (nginx deve fazer proxy de /ws → backend)
+        // Produção: sempre mesmo domínio do front (nginx deve proxy /ws → Go).
+        // Não usar NEXT_PUBLIC_API_URL aqui — costuma ser URL interna sem upgrade WS.
         const protocol = window.location.protocol === "https:" ? "https:" : "http:";
         return `${protocol}//${window.location.host}`;
     }

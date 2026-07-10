@@ -14,6 +14,7 @@ import {
     livroPrecisaCadastro,
     registrarLivroUsuario,
 } from "@/lib/livro-cadastro";
+import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { BookPlus, Loader2, Search } from "lucide-react";
 import Image from "next/image";
@@ -234,9 +235,9 @@ export default function AdicionarLivroEstanteModal({
                                                     onClick={() => selecionarLivro(livro)}
                                                     className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-background"
                                                 >
-                                                    {livro.capa_url ? (
+                                                    {mediaUrl(livro.capa_url) ? (
                                                         <Image
-                                                            src={livro.capa_url}
+                                                            src={mediaUrl(livro.capa_url)!}
                                                             alt={livro.titulo}
                                                             width={32}
                                                             height={48}

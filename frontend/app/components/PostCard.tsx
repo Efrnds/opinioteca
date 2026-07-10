@@ -3,6 +3,7 @@
 import type { AvaliacaoFeed, ComentarioAvaliacao, ContadoresVoto } from "@/types/avaliacao";
 import type { TemaAparencia } from "@/types/configuracao";
 import { avaliacaoTemSpoiler, urlAvaliacao } from "@/lib/avaliacao";
+import { mediaUrl } from "@/lib/media";
 import {
     coresTextoSobreFundo,
     fundoEhClaro,
@@ -667,9 +668,9 @@ export default function PostCard({
                 className="group flex gap-3 rounded-2xl bg-background p-3 transition hover:bg-[var(--livro-hover-bg)]"
                 style={estiloHoverLivro}
             >
-                {livro.capa_url ? (
+                {mediaUrl(livro.capa_url) ? (
                     <Image
-                        src={livro.capa_url}
+                        src={mediaUrl(livro.capa_url)!}
                         alt={livro.titulo}
                         width={56}
                         height={84}

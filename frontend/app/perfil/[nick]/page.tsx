@@ -1040,9 +1040,9 @@ export default function PerfilNickPage() {
                                     }}
                                     className="group flex h-full flex-col gap-2 rounded-xl bg-background p-2 text-left transition hover:-translate-y-0.5 hover:shadow-md"
                                 >
-                                    {livro.capa_url ? (
+                                    {mediaUrl(livro.capa_url) ? (
                                         <Image
-                                            src={livro.capa_url}
+                                            src={mediaUrl(livro.capa_url)!}
                                             alt={livro.titulo}
                                             width={120}
                                             height={180}

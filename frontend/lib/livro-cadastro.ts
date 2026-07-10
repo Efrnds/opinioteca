@@ -1,3 +1,5 @@
+import { mediaUrl } from "@/lib/media";
+
 export type CategoriaLivro = {
 
     id: number;
@@ -74,7 +76,7 @@ export function dadosDeLivroBusca(livro: {
 
         paginas: livro.paginas ? String(livro.paginas) : "",
 
-        capa_url: livro.capa_url ?? "",
+        capa_url: mediaUrl(livro.capa_url) ?? livro.capa_url ?? "",
 
         categorias_ids: categoriasIds,
 

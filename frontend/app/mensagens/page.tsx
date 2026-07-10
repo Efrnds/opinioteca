@@ -797,10 +797,10 @@ function MensagensConteudo() {
 
     return (
         <>
-            <Box className="flex h-full min-h-0 flex-col overflow-hidden p-0 lg:flex-row">
+            <Box className="flex min-h-0 flex-1 flex-col overflow-hidden p-0 lg:flex-row">
                 <aside
                     className={cn(
-                        "h-full min-h-0 w-full shrink-0 flex-col lg:flex lg:w-80 lg:border-r lg:border-cinza-200",
+                        "flex min-h-0 w-full shrink-0 flex-col overflow-hidden lg:w-80 lg:border-r lg:border-cinza-200",
                         chatAtivo ? "hidden lg:flex" : "flex",
                     )}
                 >
@@ -920,12 +920,12 @@ function MensagensConteudo() {
 
                 <section
                     className={cn(
-                        "h-full min-h-0 min-w-0 flex-1 flex-col lg:flex",
+                        "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
                         chatAtivo ? "flex" : "hidden lg:flex",
                     )}
                 >
                     {!chatAtivo || !conversaAtiva ? (
-                        <div className="flex flex-1 items-center justify-center p-8">
+                        <div className="flex min-h-0 flex-1 items-center justify-center p-8">
                             <p className="font-gabarito-regular text-cinza-700">
                                 Selecione uma mensagem para iniciar uma conversa.
                             </p>
@@ -1451,7 +1451,7 @@ export default function MensagensPage() {
     return (
         <Suspense
             fallback={
-                <Box className="flex items-center justify-center p-8">
+                <Box className="flex min-h-0 flex-1 items-center justify-center p-8">
                     <Loader2 className="h-6 w-6 animate-spin text-azul-600" />
                 </Box>
             }

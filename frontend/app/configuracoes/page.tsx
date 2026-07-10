@@ -28,9 +28,12 @@ import {
     coresTextoSobreFundo,
     derivarDestaqueParaTexto,
     derivarTextoSobreDestaque,
+    digitosHexDigitados,
     ehHexCor,
     ehPresetCor,
     ehTemaCustom,
+    hexDeDigitos,
+    hexParaCampo,
     OPCOES_TEMA,
     aplicarTemaNoDocumento,
     resolverFundoContrasteDestaque,
@@ -636,6 +639,97 @@ function ContaSecao() {
     );
 }
 
+/** Campo de cor: picker + # fixo + digitos hex (cola com # e remove). */
+function CampoCorHex({
+    valor,
+    fallback,
+    disabled,
+    onHex,
+    ariaLabelPicker,
+    ariaLabelHex,
+    onRestore,
+    showRestore,
+    pickerClassName = "h-9 w-12",
+}: {
+    valor: string | null | undefined;
+    fallback: string;
+    disabled?: boolean;
+    onHex: (hex: string) => void;
+    ariaLabelPicker: string;
+    ariaLabelHex: string;
+    onRestore?: () => void;
+    showRestore?: boolean;
+    pickerClassName?: string;
+}) {
+    const efetivo = valor && ehHexCor(valor) ? valor : fallback;
+    const [digitos, setDigitos] = useState(() => hexParaCampo(efetivo));
+
+    useEffect(() => {
+        setDigitos(hexParaCampo(valor && ehHexCor(valor) ? valor : fallback));
+    }, [valor, fallback]);
+
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <input
+                type="color"
+                value={efetivo.toLowerCase()}
+                disabled={disabled}
+                onChange={(e) => {
+                    if (disabled) return;
+                    const hex = e.target.value.toLowerCase();
+                    setDigitos(hexParaCampo(hex));
+                    onHex(hex);
+                }}
+                className={cn(
+                    "cursor-pointer rounded border border-cinza-200 bg-transparent disabled:cursor-not-allowed",
+                    pickerClassName,
+                )}
+                aria-label={ariaLabelPicker}
+            />
+            <div
+                className={cn(
+                    "flex items-center rounded-lg border border-cinza-200 bg-superficie",
+                    disabled && "opacity-70",
+                )}
+            >
+                <span
+                    className="select-none pl-2 font-gabarito-regular text-sm text-cinza-700"
+                    aria-hidden
+                >
+                    #
+                </span>
+                <input
+                    type="text"
+                    value={digitos}
+                    disabled={disabled}
+                    maxLength={6}
+                    spellCheck={false}
+                    autoComplete="off"
+                    placeholder={hexParaCampo(fallback)}
+                    onChange={(e) => {
+                        if (disabled) return;
+                        const d = digitosHexDigitados(e.target.value);
+                        setDigitos(d);
+                        const completo = hexDeDigitos(d);
+                        if (completo) onHex(completo);
+                    }}
+                    className="w-[4.75rem] border-0 bg-transparent py-1.5 pr-2 pl-0.5 font-gabarito-regular text-sm text-azul-900 outline-none disabled:cursor-not-allowed"
+                    aria-label={ariaLabelHex}
+                />
+            </div>
+            {showRestore && onRestore ? (
+                <button
+                    type="button"
+                    className="font-gabarito-regular text-xs text-azul-600 underline"
+                    onClick={onRestore}
+                >
+                    Restaurar
+                </button>
+            ) : null}
+        </div>
+    );
+}
+
 function PreferenciasSecao() {
     const { config, salvar } = useConfiguracoes();
     const { modoZen, temPlanoPro, alternarModoZen } = usePlano();
@@ -650,7 +744,6 @@ function PreferenciasSecao() {
     const hexAtual = resolverHexDestaque(config.corDestaque, temaAtual);
     const hexPicker =
         ehHexCor(config.corDestaque) ? config.corDestaque : hexAtual;
-    const [hexLocal, setHexLocal] = useState(hexPicker);
     const presetAtivo = ehPresetCor(config.corDestaque) ? config.corDestaque : null;
     const coresCardTemaAtivo = coresTextoSobreFundo(
         resolverTomDestaque50({
@@ -687,10 +780,6 @@ function PreferenciasSecao() {
         ? config.corHover
         : "#E8EFFF"
     ).toUpperCase();
-
-    useEffect(() => {
-        setHexLocal(hexPicker);
-    }, [hexPicker]);
 
     function prefCom(parcial: Partial<ConfiguracaoUsuario>) {
         return {
@@ -873,35 +962,14 @@ function PreferenciasSecao() {
                         onKeyDown={undefined}
                         role={!temPlanoPro ? "button" : undefined}
                     >
-                        <input
-                            type="color"
-                            value={(ehHexCor(hexLocal) ? hexLocal : hexPicker).toLowerCase()}
+                        <CampoCorHex
+                            valor={ehHexCor(config.corDestaque) ? config.corDestaque : hexPicker}
+                            fallback={hexPicker}
                             disabled={!temPlanoPro}
-                            onChange={(e) => {
-                                if (!temPlanoPro) return;
-                                const hex = e.target.value.toUpperCase();
-                                setHexLocal(hex);
-                                salvarCorDebounced({ corDestaque: hex });
-                            }}
-                            className="h-10 w-14 cursor-pointer rounded border border-cinza-200 bg-transparent disabled:cursor-not-allowed"
-                            aria-label="Escolher cor de destaque personalizada"
-                        />
-                        <input
-                            type="text"
-                            value={hexLocal}
-                            disabled={!temPlanoPro}
-                            maxLength={7}
-                            onChange={(e) => {
-                                if (!temPlanoPro) return;
-                                let v = e.target.value.trim();
-                                if (v && !v.startsWith("#")) v = `#${v}`;
-                                setHexLocal(v.toUpperCase());
-                                if (ehHexCor(v)) {
-                                    void atualizar(comTemaCustomSePro({ corDestaque: v.toUpperCase() }));
-                                }
-                            }}
-                            placeholder="#0048FF"
-                            className="w-28 rounded-lg border border-cinza-200 bg-superficie px-2 py-1.5 font-gabarito-regular text-sm text-azul-900 disabled:cursor-not-allowed"
+                            onHex={(hex) => salvarCorDebounced({ corDestaque: hex })}
+                            ariaLabelPicker="Escolher cor de destaque personalizada"
+                            ariaLabelHex="Hexadecimal da cor de destaque"
+                            pickerClassName="h-10 w-14"
                         />
                         <span className="font-gabarito-regular text-xs text-cinza-700">Destaque (hex)</span>
                     </div>
@@ -912,30 +980,21 @@ function PreferenciasSecao() {
                                 Fundo do texto
                             </span>
                             <div
-                                className="flex items-center gap-2"
                                 onClick={!temPlanoPro ? exigirPro : undefined}
                                 role={!temPlanoPro ? "button" : undefined}
                             >
-                                <input
-                                    type="color"
-                                    value={(config.corFundoTexto ?? "#E8EAED").toLowerCase()}
+                                <CampoCorHex
+                                    valor={config.corFundoTexto}
+                                    fallback="#E8EAED"
                                     disabled={!temPlanoPro}
-                                    onChange={(e) => {
-                                        if (!temPlanoPro) return;
-                                        salvarCorDebounced({ corFundoTexto: e.target.value.toUpperCase() });
-                                    }}
-                                    className="h-9 w-12 cursor-pointer rounded border border-cinza-200 disabled:cursor-not-allowed"
-                                    aria-label="Cor de fundo do texto"
+                                    onHex={(hex) => salvarCorDebounced({ corFundoTexto: hex })}
+                                    ariaLabelPicker="Cor de fundo do texto"
+                                    ariaLabelHex="Hexadecimal do fundo do texto"
+                                    showRestore={temPlanoPro && !!config.corFundoTexto}
+                                    onRestore={() =>
+                                        void atualizar(comTemaCustomSePro({ corFundoTexto: null }))
+                                    }
                                 />
-                                {temPlanoPro && config.corFundoTexto ? (
-                                    <button
-                                        type="button"
-                                        className="font-gabarito-regular text-xs text-azul-600 underline"
-                                        onClick={() => void atualizar(comTemaCustomSePro({ corFundoTexto: null }))}
-                                    >
-                                        Restaurar
-                                    </button>
-                                ) : null}
                             </div>
                         </label>
                         <label className="flex flex-col gap-1.5">
@@ -943,30 +1002,21 @@ function PreferenciasSecao() {
                                 Superfície de leitura
                             </span>
                             <div
-                                className="flex items-center gap-2"
                                 onClick={!temPlanoPro ? exigirPro : undefined}
                                 role={!temPlanoPro ? "button" : undefined}
                             >
-                                <input
-                                    type="color"
-                                    value={(config.corSuperficie ?? "#FFFFFF").toLowerCase()}
+                                <CampoCorHex
+                                    valor={config.corSuperficie}
+                                    fallback="#FFFFFF"
                                     disabled={!temPlanoPro}
-                                    onChange={(e) => {
-                                        if (!temPlanoPro) return;
-                                        salvarCorDebounced({ corSuperficie: e.target.value.toUpperCase() });
-                                    }}
-                                    className="h-9 w-12 cursor-pointer rounded border border-cinza-200 disabled:cursor-not-allowed"
-                                    aria-label="Cor da superfície de leitura"
+                                    onHex={(hex) => salvarCorDebounced({ corSuperficie: hex })}
+                                    ariaLabelPicker="Cor da superfície de leitura"
+                                    ariaLabelHex="Hexadecimal da superfície de leitura"
+                                    showRestore={temPlanoPro && !!config.corSuperficie}
+                                    onRestore={() =>
+                                        void atualizar(comTemaCustomSePro({ corSuperficie: null }))
+                                    }
                                 />
-                                {temPlanoPro && config.corSuperficie ? (
-                                    <button
-                                        type="button"
-                                        className="font-gabarito-regular text-xs text-azul-600 underline"
-                                        onClick={() => void atualizar(comTemaCustomSePro({ corSuperficie: null }))}
-                                    >
-                                        Restaurar
-                                    </button>
-                                ) : null}
                             </div>
                         </label>
                         <label className="flex flex-col gap-1.5">
@@ -974,30 +1024,21 @@ function PreferenciasSecao() {
                                 Cor de hover
                             </span>
                             <div
-                                className="flex items-center gap-2"
                                 onClick={!temPlanoPro ? exigirPro : undefined}
                                 role={!temPlanoPro ? "button" : undefined}
                             >
-                                <input
-                                    type="color"
-                                    value={(config.corHover ?? "#E8EFFF").toLowerCase()}
+                                <CampoCorHex
+                                    valor={config.corHover}
+                                    fallback="#E8EFFF"
                                     disabled={!temPlanoPro}
-                                    onChange={(e) => {
-                                        if (!temPlanoPro) return;
-                                        salvarCorDebounced({ corHover: e.target.value.toUpperCase() });
-                                    }}
-                                    className="h-9 w-12 cursor-pointer rounded border border-cinza-200 disabled:cursor-not-allowed"
-                                    aria-label="Cor de hover"
+                                    onHex={(hex) => salvarCorDebounced({ corHover: hex })}
+                                    ariaLabelPicker="Cor de hover"
+                                    ariaLabelHex="Hexadecimal da cor de hover"
+                                    showRestore={temPlanoPro && !!config.corHover}
+                                    onRestore={() =>
+                                        void atualizar(comTemaCustomSePro({ corHover: null }))
+                                    }
                                 />
-                                {temPlanoPro && config.corHover ? (
-                                    <button
-                                        type="button"
-                                        className="font-gabarito-regular text-xs text-azul-600 underline"
-                                        onClick={() => void atualizar(comTemaCustomSePro({ corHover: null }))}
-                                    >
-                                        Restaurar
-                                    </button>
-                                ) : null}
                             </div>
                         </label>
                     </div>

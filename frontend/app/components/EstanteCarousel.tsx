@@ -4,6 +4,7 @@ import type { EstanteItem } from "@/types/estante";
 import { ROTULOS_STATUS_ESTANTE } from "@/types/estante";
 import type { TemaAparencia } from "@/types/configuracao";
 import { coresTextoSobreFundo, resolverTomDestaque50 } from "@/lib/tema";
+import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { motion, useMotionValue, type PanInfo } from "framer-motion";
 import Image from "next/image";
@@ -192,9 +193,9 @@ export default function EstanteCarousel({
                             )}
                         >
                             <div className={cn("relative", arrastando && "pointer-events-none")}>
-                                {item.livro.capa_url ? (
+                                {mediaUrl(item.livro.capa_url) ? (
                                     <Image
-                                        src={item.livro.capa_url}
+                                        src={mediaUrl(item.livro.capa_url)!}
                                         alt={item.livro.titulo}
                                         width={CARD_WIDTH}
                                         height={210}

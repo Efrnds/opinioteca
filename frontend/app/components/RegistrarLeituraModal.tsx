@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { EstanteItem } from "@/types/estante";
 import { dadosDeLivroBusca } from "@/lib/livro-cadastro";
+import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import ConviteResenhaModal from "@/app/components/ConviteResenhaModal";
 import EstanteCarousel from "@/app/components/EstanteCarousel";
@@ -63,10 +64,10 @@ function CapaHero({
               ? { w: 96, h: 144, className: "h-36 w-24" }
               : { w: 64, h: 96, className: "h-24 w-16" };
 
-    if (livro.capa_url) {
+    if (mediaUrl(livro.capa_url)) {
         return (
             <Image
-                src={livro.capa_url}
+                src={mediaUrl(livro.capa_url)!}
                 alt={livro.titulo}
                 width={dims.w}
                 height={dims.h}

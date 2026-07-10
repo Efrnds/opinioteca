@@ -7,6 +7,7 @@ import CompartilharLivroModal from "@/app/components/CompartilharLivroModal";
 import { iniciarCompartilharLivro } from "@/lib/compartilhar";
 import { dadosDeLivroBusca } from "@/lib/livro-cadastro";
 import { livroRegistrado } from "@/lib/livro-url";
+import { mediaUrl } from "@/lib/media";
 import type { LivroBusca, LivroPublico } from "@/types/livro";
 import { BookOpen, ChevronLeft, Loader2, Share2 } from "lucide-react";
 import Image from "next/image";
@@ -163,9 +164,9 @@ export default function LivroPage() {
 
                 <div className="flex justify-between rounded-xl bg-[#3f3f42] p-4">
                     <div className="flex gap-4">
-                        {livro.capa_url ? (
+                        {mediaUrl(livro.capa_url) ? (
                             <Image
-                                src={livro.capa_url}
+                                src={mediaUrl(livro.capa_url)!}
                                 alt={livro.titulo}
                                 width={120}
                                 height={180}

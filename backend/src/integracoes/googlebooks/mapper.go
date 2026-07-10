@@ -19,7 +19,7 @@ func VolumeParaLivro(item VolumeItem) (modelos.Livro, error) {
 		Editora:        strings.TrimSpace(item.VolumeInfo.Publisher),
 		Sinopse:        strings.TrimSpace(item.VolumeInfo.Description),
 		Paginas:        extrairPaginas(item.VolumeInfo),
-		CapaURL:        strings.TrimSpace(item.VolumeInfo.ImageLinks.Thumbnail),
+		CapaURL:        httpsCapaURL(item.VolumeInfo.ImageLinks.Thumbnail),
 	}
 
 	if len(item.VolumeInfo.Authors) > 0 {
@@ -51,7 +51,7 @@ func VolumeParaLivroBusca(item VolumeItem) (modelos.LivroBusca, error) {
 		Paginas:        extrairPaginas(item.VolumeInfo),
 		Editora:        strings.TrimSpace(item.VolumeInfo.Publisher),
 		Sinopse:        strings.TrimSpace(item.VolumeInfo.Description),
-		CapaURL:        strings.TrimSpace(item.VolumeInfo.ImageLinks.Thumbnail),
+		CapaURL:        httpsCapaURL(item.VolumeInfo.ImageLinks.Thumbnail),
 	}
 
 	if len(item.VolumeInfo.Authors) > 0 {
@@ -65,6 +65,15 @@ func VolumeParaLivroBusca(item VolumeItem) (modelos.LivroBusca, error) {
 	}
 
 	return livro, nil
+}
+
+// httpsCapaURL normaliza capas do Google Books (API costuma devolver http://).
+func httpsCapaURL(raw string) string {
+	url := strings.TrimSpace(raw)
+	if strings.HasPrefix(url, "http://") {
+		return "https://" + strings.TrimPrefix(url, "http://")
+	}
+	return url
 }
 
 func extrairISBN(identifiers []industryIdentifier) string {

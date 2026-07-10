@@ -187,9 +187,9 @@ export default function Header() {
                                 onClick={fecharBusca}
                                 className="flex items-center gap-3 px-4 py-2.5 transition hover:bg-background"
                             >
-                                {livro.capa_url ? (
+                                {mediaUrl(livro.capa_url) ? (
                                     <Image
-                                        src={livro.capa_url}
+                                        src={mediaUrl(livro.capa_url)!}
                                         alt={livro.titulo}
                                         width={28}
                                         height={42}
@@ -227,7 +227,7 @@ export default function Header() {
     }
 
     return (
-        <header className="sticky top-0 z-40 flex items-center justify-between gap-2 border-b-2 border-azul-900 bg-background/95 p-2.5 backdrop-blur-sm sm:p-3 md:gap-4 md:p-4">
+        <header className="sticky top-0 z-40 flex shrink-0 items-center justify-between gap-2 border-b-2 border-azul-900 bg-background/95 p-2.5 backdrop-blur-sm sm:p-3 md:gap-4 md:p-4">
             <Link href="/" className="flex min-w-0 items-center sm:min-w-40 lg:min-w-56 xl:min-w-72">
                 <Image
                     src="/assets/images/Vector.svg"

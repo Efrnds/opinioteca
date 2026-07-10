@@ -15,6 +15,7 @@ import {
     livroPrecisaCadastro,
     registrarLivroUsuario,
 } from "@/lib/livro-cadastro";
+import { mediaUrl } from "@/lib/media";
 import { textoContemLink } from "@/lib/texto";
 import { TEMPLATES_RESENHA } from "@/lib/templates-resenha";
 import type { TemplateResenha } from "@/types/template";
@@ -118,10 +119,10 @@ function CapaHero({
               ? { w: 96, h: 144, className: "h-36 w-24" }
               : { w: 64, h: 96, className: "h-24 w-16" };
 
-    if (dados.capa_url) {
+    if (mediaUrl(dados.capa_url)) {
         return (
             <Image
-                src={dados.capa_url}
+                src={mediaUrl(dados.capa_url)!}
                 alt={dados.titulo}
                 width={dims.w}
                 height={dims.h}
@@ -782,9 +783,9 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                                                 }
                                                                                 className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-background"
                                                                             >
-                                                                                {livro.capa_url ? (
+                                                                                {mediaUrl(livro.capa_url) ? (
                                                                                     <Image
-                                                                                        src={livro.capa_url}
+                                                                                        src={mediaUrl(livro.capa_url)!}
                                                                                         alt={livro.titulo}
                                                                                         width={32}
                                                                                         height={48}

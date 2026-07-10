@@ -139,9 +139,9 @@ function PesquisaConteudo() {
                                 href={hrefLivroPesquisa(livro)}
                                 className="flex items-center gap-3 rounded-xl px-3 py-3 transition hover:bg-background"
                             >
-                                {livro.capa_url ? (
+                                {mediaUrl(livro.capa_url) ? (
                                     <Image
-                                        src={livro.capa_url}
+                                        src={mediaUrl(livro.capa_url)!}
                                         alt={livro.titulo}
                                         width={40}
                                         height={60}

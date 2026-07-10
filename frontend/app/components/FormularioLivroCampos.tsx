@@ -1,6 +1,7 @@
 "use client";
 
 import type { CategoriaLivro, DadosLivroForm } from "@/lib/livro-cadastro";
+import { mediaUrl } from "@/lib/media";
 import Image from "next/image";
 
 const inputRetangularClassName =
@@ -110,9 +111,9 @@ export default function FormularioLivroCampos({
 
             {exibirCamposCompletos && (
                 <div className="flex gap-3">
-                    {dados.capa_url ? (
+                    {mediaUrl(dados.capa_url) ? (
                         <Image
-                            src={dados.capa_url}
+                            src={mediaUrl(dados.capa_url)!}
                             alt={dados.titulo || "Capa"}
                             width={56}
                             height={84}

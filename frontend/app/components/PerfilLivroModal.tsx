@@ -1,6 +1,7 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { mediaUrl } from "@/lib/media";
 import type { AvaliacaoFeed } from "@/types/avaliacao";
 import type { DiarioRegistro } from "@/types/diario";
 import type { StatusEstante } from "@/types/estante";
@@ -63,9 +64,9 @@ export default function PerfilLivroModal({
                 </DialogHeader>
 
                 <div className="flex gap-4 rounded-2xl bg-background p-3">
-                    {livro.capa_url ? (
+                    {mediaUrl(livro.capa_url) ? (
                         <Image
-                            src={livro.capa_url}
+                            src={mediaUrl(livro.capa_url)!}
                             alt={livro.titulo}
                             width={96}
                             height={144}

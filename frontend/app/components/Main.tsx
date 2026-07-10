@@ -34,7 +34,8 @@ export default function Main({ children }: { children: React.ReactNode }) {
             className={cn(
                 // gap === px at each step → equal gutters between columns and page edges
                 "flex min-w-0 flex-1 gap-2 px-2 sm:gap-3 sm:px-3 lg:gap-4 lg:px-4 xl:gap-6 xl:px-6 2xl:gap-8 2xl:px-8",
-                isMensagens && "h-[calc(100dvh-4rem)] min-h-0 overflow-hidden",
+                // Fill remaining space under Header; never grow the page on /mensagens
+                isMensagens && "min-h-0 overflow-hidden",
             )}
         >
             <aside className={sidebarClass}>
@@ -46,13 +47,14 @@ export default function Main({ children }: { children: React.ReactNode }) {
                     "min-w-0 flex-1 px-0 py-3 sm:py-4 lg:py-5",
                     // Clear fixed FABs on mobile / tablet (< lg)
                     !isMensagens && "pb-20 lg:pb-5",
-                    isMensagens && "flex min-h-0 flex-col overflow-hidden py-2 sm:py-3 lg:py-3",
+                    // flex-1 child + min-h-0 (not h-full) so py does not clip the composer
+                    isMensagens && "flex min-h-0 flex-col overflow-hidden py-2",
                 )}
             >
                 <div
                     className={cn(
                         "mx-auto flex w-full min-w-0 flex-col gap-3 sm:gap-4",
-                        isMensagens && "h-full min-h-0",
+                        isMensagens && "min-h-0 flex-1 gap-0 overflow-hidden",
                         !isMensagens && !isConfiguracoes && "max-w-2xl xl:max-w-3xl",
                         isConfiguracoes && "max-w-5xl xl:max-w-6xl 2xl:max-w-7xl",
                     )}
