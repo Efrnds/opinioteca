@@ -47,7 +47,7 @@ export default function NotificacoesPage() {
                     <span className="hidden sm:inline">Marcar tudo como lido</span>
                 </button>
             </div>
-            <hr className="border-gray-300" />
+            <hr className="border-cinza-200" />
             <div className="px-4 py-4 sm:px-6 sm:py-5">
                 <NotificacoesLista />
             </div>

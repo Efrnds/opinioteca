@@ -662,7 +662,7 @@ func (repositorio Usuarios) DeixarSeguir(IDSeguido, IDSeguidor uint64) error {
 // BuscarSeguidores é a função responsável por buscar os seguidores de um usuário específico do banco de dados, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual
+		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual, u.assinatura_id, u.assinatura_expira_em, u.status
 		FROM usuarios u
 		INNER JOIN seguidores s ON u.id = s.id_seguidor
 		WHERE s.id_seguido = $1 AND u.status = 'ativo'
@@ -677,6 +677,7 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 	for linhas.Next() {
 		var usuario modelos.Usuario
 		var image sql.NullString
+		var assinaturaExpira sql.NullTime
 		if erro = linhas.Scan(
 			&usuario.ID,
 			&usuario.Nome,
@@ -684,11 +685,18 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 			&image,
 			&usuario.RankConfiabilidade,
 			&usuario.SequenciaAtual,
+			&usuario.AssinaturaID,
+			&assinaturaExpira,
+			&usuario.Status,
 		); erro != nil {
 			return nil, erro
 		}
 		if image.Valid {
 			usuario.Image = image.String
+		}
+		if assinaturaExpira.Valid {
+			t := assinaturaExpira.Time
+			usuario.AssinaturaExpiraEm = &t
 		}
 		usuarios = append(usuarios, usuario)
 	}
@@ -699,7 +707,7 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 // BuscarSeguindo é a função responsável por buscar os usuários que um usuário específico está seguindo, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
-		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual
+		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual, u.assinatura_id, u.assinatura_expira_em, u.status
 		FROM usuarios u
 		INNER JOIN seguidores s ON u.id = s.id_seguido
 		WHERE s.id_seguidor = $1 AND u.status = 'ativo'
@@ -714,6 +722,7 @@ func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario,
 	for linhas.Next() {
 		var usuario modelos.Usuario
 		var image sql.NullString
+		var assinaturaExpira sql.NullTime
 		if erro = linhas.Scan(
 			&usuario.ID,
 			&usuario.Nome,
@@ -721,11 +730,18 @@ func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario,
 			&image,
 			&usuario.RankConfiabilidade,
 			&usuario.SequenciaAtual,
+			&usuario.AssinaturaID,
+			&assinaturaExpira,
+			&usuario.Status,
 		); erro != nil {
 			return nil, erro
 		}
 		if image.Valid {
 			usuario.Image = image.String
+		}
+		if assinaturaExpira.Valid {
+			t := assinaturaExpira.Time
+			usuario.AssinaturaExpiraEm = &t
 		}
 		usuarios = append(usuarios, usuario)
 	}

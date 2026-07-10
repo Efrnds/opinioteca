@@ -26,8 +26,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AlterarNickModal from "../../components/AlterarNickModal";
 import AdicionarLivroEstanteModal from "../../components/AdicionarLivroEstanteModal";
-import BadgeTop from "../../components/BadgeTop";
 import BadgeRank from "../../components/BadgeRank";
+import BadgeTop from "../../components/BadgeTop";
 import EstatisticasLeitura from "../../components/EstatisticasLeitura";
 import PlanoUpgradeModal from "../../components/PlanoUpgradeModal";
 import { useAuthGate } from "../../components/AuthGateProvider";
@@ -57,6 +57,14 @@ function extrairLivroID(avaliacao: Partial<AvaliacaoFeed> & { livro_id?: number 
         return Number(avaliacao.livro_id);
     }
     return 0;
+}
+
+function normalizarUsuarioLista(raw: unknown): UsuarioPublico {
+    const u = (raw ?? {}) as UsuarioPublico & { image_url?: string };
+    return {
+        ...u,
+        image: u.image || u.image_url || undefined,
+    };
 }
 
 function normalizarAvaliacoes(
@@ -95,6 +103,8 @@ function normalizarAvaliacoes(
                 assinaturaId: usuarioOriginal?.assinaturaId ?? perfil.assinaturaId,
                 temPlanoTop: usuarioOriginal?.temPlanoTop ?? perfil.plano?.temPlanoTop,
                 temPlanoPro: usuarioOriginal?.temPlanoPro ?? perfil.plano?.temPlanoPro,
+                rankConfiabilidade:
+                    usuarioOriginal?.rankConfiabilidade ?? perfil.rankConfiabilidade ?? 0,
             },
             livro: {
                 id: Number(livroOriginal?.id ?? livroDoMapa?.id ?? livroID),
@@ -117,7 +127,7 @@ function estanteParaPerfil(item: EstanteItem): LivroPerfilItem {
         paginas: item.livro.paginas,
         porcentagem: item.porcentagem_atual,
         status: item.status,
-        temResenha: item.tem_resenha,
+        temAvaliacao: item.tem_avaliacao,
     };
 }
 
@@ -276,8 +286,8 @@ export default function PerfilNickPage() {
         if (cache) {
             setPerfil(cache.perfil);
             setAvaliacoes(cache.avaliacoes);
-            setSeguidores(cache.seguidores);
-            setSeguindo(cache.seguindo);
+            setSeguidores(cache.seguidores.map(normalizarUsuarioLista));
+            setSeguindo(cache.seguindo.map(normalizarUsuarioLista));
             setDiario(cache.diario);
             setHistorico(cache.historico);
             setEstatisticas(cache.estatisticas ?? null);
@@ -323,7 +333,7 @@ export default function PerfilNickPage() {
             }
 
             if (!resAvaliacoes.ok && resAvaliacoes.status !== 403) {
-                setErro(dataAvaliacoes.erro || "Não foi possível carregar as resenhas.");
+                setErro(dataAvaliacoes.erro || "Não foi possível carregar as avaliações.");
                 return;
             }
 
@@ -384,8 +394,12 @@ export default function PerfilNickPage() {
                     ? (dataDiario as DiarioResposta)
                     : { sequencia_atual: 0, semana: [] };
             const avaliacoesNorm = normalizarAvaliacoes(avaliacoesRaw, perfilData, nick, livrosPorID);
-            const seguidoresData = Array.isArray(dataSeguidores) ? dataSeguidores : [];
-            const seguindoData = Array.isArray(dataSeguindo) ? dataSeguindo : [];
+            const seguidoresData = Array.isArray(dataSeguidores)
+                ? dataSeguidores.map(normalizarUsuarioLista)
+                : [];
+            const seguindoData = Array.isArray(dataSeguindo)
+                ? dataSeguindo.map(normalizarUsuarioLista)
+                : [];
 
             setPerfil(perfilData);
             setAvaliacoes(avaliacoesNorm);
@@ -416,12 +430,6 @@ export default function PerfilNickPage() {
     useEffect(() => {
         carregarDados();
     }, [carregarDados]);
-
-    useEffect(() => {
-        if (abaAtiva === "livros" && nick && estante.length === 0 && !carregandoEstante) {
-            void carregarEstante(nick);
-        }
-    }, [abaAtiva, nick, estante.length, carregandoEstante, carregarEstante]);
 
     useEffect(() => {
         if (abaAtiva === "diario" && nick && session?.accessToken && !estatisticas && !carregandoEstatisticas) {
@@ -603,22 +611,9 @@ export default function PerfilNickPage() {
     }
 
     if (perfil.perfilPrivado && !ehMeuPerfil) {
-        const avatar = mediaUrl(perfil.image);
         return (
             <Box className="flex flex-col items-center gap-4 py-10 text-center">
-                {avatar ? (
-                    <Image
-                        src={avatar}
-                        alt={perfil.nick}
-                        width={96}
-                        height={96}
-                        className="h-24 w-24 rounded-full object-cover"
-                    />
-                ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-azul-200 font-gabarito-bold text-3xl text-azul-800">
-                        {perfil.nick.charAt(0).toUpperCase()}
-                    </div>
-                )}
+                <AvatarUsuario image={perfil.image} nome={perfil.nome} nick={perfil.nick} size={96} className="h-24 w-24" />
                 <h1 className="font-gabarito-bold text-2xl text-azul-900">@{perfil.nick}</h1>
                 <p className="font-gabarito-regular text-cinza-700">Este perfil é privado.</p>
                 <p className="max-w-sm font-gabarito-regular text-sm text-cinza-600">
@@ -727,7 +722,7 @@ export default function PerfilNickPage() {
                     }}
                 />
 
-                <div className="px-4 pb-4">
+                <div className="px-4 py-4">
                     <div className="relative z-10 -mt-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div className="flex min-w-0 flex-1 gap-2">
                             {ehMeuPerfil ? (
@@ -762,9 +757,6 @@ export default function PerfilNickPage() {
                                     <BadgeTop plano={perfil.plano} assinaturaId={perfil.assinaturaId} />
                                     <BadgeRank rank={perfil.rankConfiabilidade} ocultarSeZero={false} />
                                 </p>
-                                {perfil.nome && perfil.nome !== perfil.nick ? (
-                                    <p className="truncate font-gabarito-regular text-sm text-cinza-700">{perfil.nome}</p>
-                                ) : null}
                             </div>
                         </div>
                         {!ehMeuPerfil && (
@@ -833,24 +825,15 @@ export default function PerfilNickPage() {
 
 
 
-                    <div className="mt-4 grid grid-cols-2 rounded-xl border border-gray-200 bg-white sm:grid-cols-4">
+                    <div className="mt-4 grid grid-cols-3 rounded-xl border border-gray-200 bg-white">
                         <div className="py-3 text-center">
                             <p className="font-gabarito-bold text-2xl text-azul-600">{avaliacoes.length}</p>
-                            <p className="font-gabarito-regular text-xs text-cinza-700">Resenhas</p>
-                        </div>
-                        <div
-                            className="border-l border-gray-200 py-3 text-center sm:border-l"
-                            title="Rank de confiabilidade: upvotes (+1) e downvotes (−1) nas resenhas"
-                        >
-                            <p className="font-gabarito-bold text-2xl text-azul-600">
-                                {perfil.rankConfiabilidade ?? 0}
-                            </p>
-                            <p className="font-gabarito-regular text-xs text-cinza-700">Confiabilidade</p>
+                            <p className="font-gabarito-regular text-xs text-cinza-700">Avaliações</p>
                         </div>
                         <button
                             type="button"
                             onClick={() => setListaAberta("seguidores")}
-                            className="cursor-pointer border-t border-gray-200 py-3 text-center transition hover:bg-background active:bg-background sm:border-t-0 sm:border-l"
+                            className="cursor-pointer border-x border-gray-200 py-3 text-center transition hover:bg-background active:bg-background"
                         >
                             <p className="font-gabarito-bold text-2xl text-azul-600">{seguidores.length}</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">Seguidores</p>
@@ -858,7 +841,7 @@ export default function PerfilNickPage() {
                         <button
                             type="button"
                             onClick={() => setListaAberta("seguindo")}
-                            className="cursor-pointer border-t border-l border-gray-200 py-3 text-center transition hover:bg-background active:bg-background sm:border-t-0"
+                            className="cursor-pointer py-3 text-center transition hover:bg-background active:bg-background"
                         >
                             <p className="font-gabarito-bold text-2xl text-azul-600">{seguindo.length}</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">Seguindo</p>
@@ -890,7 +873,7 @@ export default function PerfilNickPage() {
                 <>
                     {avaliacoes.length === 0 ? (
                         <Box className="text-center">
-                            <p className="font-gabarito-bold text-xl text-azul-900">Nenhuma resenha ainda</p>
+                            <p className="font-gabarito-bold text-xl text-azul-900">Nenhuma avaliação ainda</p>
                             <p className="mt-1 font-gabarito-regular text-cinza-700">
                                 Esse perfil ainda não publicou avaliações.
                             </p>

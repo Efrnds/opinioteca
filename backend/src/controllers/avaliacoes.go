@@ -186,7 +186,7 @@ func CriarAvaliacao(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.TemplateID != nil && *req.TemplateID > 0 && !modelos.TemPlanoTop(usuario) {
-		respostas.Erro(w, http.StatusForbidden, errors.New("Templates de resenha disponíveis no OpinioTop"))
+		respostas.Erro(w, http.StatusForbidden, errors.New("Templates de avaliação disponíveis no OpinioTop"))
 		return
 	}
 
@@ -373,7 +373,7 @@ func AtualizarAvaliacao(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !modelos.TemPlanoTop(usuario) {
-		respostas.Erro(w, http.StatusForbidden, errors.New("Edição de resenhas disponível no OpinioTop"))
+		respostas.Erro(w, http.StatusForbidden, errors.New("Edição de avaliações disponível no OpinioTop"))
 		return
 	}
 

@@ -30,7 +30,7 @@ export const RELATORIO_TABS: RelatorioTab[] = [
         label: "Avaliações",
         titulo: "Relatório de avaliações",
         descricao:
-            "Resumo das resenhas publicadas no período: volume, média de notas, distribuição e listagem detalhada.",
+            "Resumo das avaliações publicadas no período: volume, média de notas, distribuição e listagem detalhada.",
         endpoint: "/api/admin/relatorios/pdf/avaliacoes",
     },
     {

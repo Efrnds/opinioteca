@@ -13,7 +13,7 @@ type TemplateEstrutura struct {
 	Texto     string `json:"texto"`
 }
 
-// Template representa um modelo de resenha.
+// Template representa um modelo de avaliação.
 type Template struct {
 	ID                     uint64            `json:"id"`
 	Nome                   string            `json:"nome"`
@@ -26,8 +26,8 @@ type Template struct {
 	AssinaturaMinimaCodigo string            `json:"assinatura_minima_codigo,omitempty"`
 }
 
-// TemplateResenha formato público para seleção na resenha.
-type TemplateResenha struct {
+// TemplateAvaliacao formato público para seleção na avaliação.
+type TemplateAvaliacao struct {
 	ID        uint64 `json:"id"`
 	Nome      string `json:"nome"`
 	Descricao string `json:"descricao"`
@@ -44,8 +44,8 @@ type TemplatePayload struct {
 	Ordem              *int   `json:"ordem"`
 }
 
-func (t *Template) ParaResenha() TemplateResenha {
-	return TemplateResenha{
+func (t *Template) ParaAvaliacao() TemplateAvaliacao {
+	return TemplateAvaliacao{
 		ID:        t.ID,
 		Nome:      t.Nome,
 		Descricao: t.Estrutura.Descricao,

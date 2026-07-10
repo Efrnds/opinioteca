@@ -9,9 +9,9 @@ import { Sparkles } from "lucide-react";
 import Link from "next/link";
 
 const RECURSOS: Record<RecursoPlano, { titulo: string; descricao: string; plano: "opiniopro" | "opiniotop" }> = {
-    templatesResenha: {
-        titulo: "Templates de resenha",
-        descricao: "Seis modelos prontos em português para começar sua resenha com estrutura e estilo.",
+    templatesAvaliacao: {
+        titulo: "Templates de avaliação",
+        descricao: "Seis modelos prontos em português para começar sua avaliação com estrutura e estilo.",
         plano: "opiniotop",
     },
     estatisticasLeitura: {
@@ -19,8 +19,8 @@ const RECURSOS: Record<RecursoPlano, { titulo: string; descricao: string; plano:
         descricao: "Páginas lidas, livros finalizados e dias com leitura no último mês.",
         plano: "opiniotop",
     },
-    edicaoResenhas: {
-        titulo: "Editar resenhas",
+    edicaoAvaliacoes: {
+        titulo: "Editar avaliações",
         descricao: "Ajuste nota e texto depois de publicar, sem precisar apagar e reescrever.",
         plano: "opiniotop",
     },

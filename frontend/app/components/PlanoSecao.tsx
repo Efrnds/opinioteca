@@ -6,11 +6,11 @@ import { formatarPreco, rotuloValidadePlano } from "@/types/plano";
 import { Check, Crown, Sparkles } from "lucide-react";
 
 const FEATURES_TOP = [
-    "6 templates de resenha em português",
+    "6 templates de avaliação em português",
     "Badge TOP no perfil e posts",
     "Estatísticas de leitura do mês",
     "Histórico de leitura completo",
-    "Editar resenhas após publicar",
+    "Editar avaliações após publicar",
 ];
 
 const FEATURES_PRO = [

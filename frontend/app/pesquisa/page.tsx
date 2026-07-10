@@ -3,11 +3,12 @@
 import type { PesquisaResultado } from "@/types/pesquisa";
 import { mediaUrl } from "@/lib/media";
 import { hrefLivroPesquisa, keyLivroPesquisa } from "@/types/pesquisa";
-import { BookOpen, Loader2, User } from "lucide-react";
+import { BookOpen, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import AvatarUsuario from "../components/AvatarUsuario";
 import Box from "../components/Box";
 
 type Aba = "usuarios" | "livros";
@@ -105,19 +106,13 @@ function PesquisaConteudo() {
                                 href={`/perfil/${usuario.nick}`}
                                 className="flex items-center gap-3 rounded-xl px-3 py-3 transition hover:bg-background"
                             >
-                                {usuario.image ? (
-                                    <Image
-                                        src={mediaUrl(usuario.image)!}
-                                        alt={usuario.nome}
-                                        width={48}
-                                        height={48}
-                                        className="h-12 w-12 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-azul-100">
-                                        <User className="h-5 w-5 text-azul-600" />
-                                    </div>
-                                )}
+                                <AvatarUsuario
+                                    image={usuario.image}
+                                    nome={usuario.nome}
+                                    nick={usuario.nick}
+                                    size={48}
+                                    className="h-12 w-12"
+                                />
                                 <div className="min-w-0">
                                     <p className="truncate font-gabarito-bold text-base text-azul-900">{usuario.nome}</p>
                                     <p className="truncate font-gabarito-regular text-sm text-cinza-700">@{usuario.nick}</p>

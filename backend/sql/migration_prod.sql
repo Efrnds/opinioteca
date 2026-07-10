@@ -47,7 +47,7 @@ BEGIN
 END $$;
 
 -- -----------------------------------------------------------------------------
--- 2) Avaliações: spoiler e mídia (imagem/GIF na resenha)
+-- 2) Avaliações: spoiler e mídia (imagem/GIF na avaliação)
 -- -----------------------------------------------------------------------------
 ALTER TABLE avaliacoes
     ADD COLUMN IF NOT EXISTS contem_spoiler BOOLEAN NOT NULL DEFAULT FALSE;

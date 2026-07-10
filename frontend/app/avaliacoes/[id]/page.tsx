@@ -40,13 +40,13 @@ export default function AvaliacaoPage() {
             }
 
             if (!res.ok) {
-                setErro(data.erro || "Não foi possível carregar a resenha.");
+                setErro(data.erro || "Não foi possível carregar a avaliação.");
                 return;
             }
 
             setPost(normalizarPostFeed(data as AvaliacaoFeed));
         } catch {
-            setErro("Não foi possível carregar a resenha.");
+            setErro("Não foi possível carregar a avaliação.");
         } finally {
             setCarregando(false);
         }
@@ -103,7 +103,7 @@ export default function AvaliacaoPage() {
         return (
             <Box className="flex flex-col gap-4 text-center">
                 <div className="self-start">{botaoVoltar}</div>
-                <p className="font-gabarito-bold text-2xl text-azul-900">Resenha não encontrada</p>
+                <p className="font-gabarito-bold text-2xl text-azul-900">Avaliação não encontrada</p>
                 <p className="font-gabarito-regular text-sm text-cinza-700">
                     Esta avaliação pode ter sido removida ou não está mais disponível.
                 </p>
@@ -115,7 +115,7 @@ export default function AvaliacaoPage() {
         return (
             <Box className="flex flex-col gap-4">
                 {botaoVoltar}
-                <p className="font-gabarito-bold text-lg text-red-600">{erro || "Não foi possível carregar a resenha."}</p>
+                <p className="font-gabarito-bold text-lg text-red-600">{erro || "Não foi possível carregar a avaliação."}</p>
                 <button
                     type="button"
                     onClick={() => void carregar()}

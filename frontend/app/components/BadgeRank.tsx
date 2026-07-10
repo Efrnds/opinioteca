@@ -9,7 +9,7 @@ type BadgeRankProps = {
     compact?: boolean;
 };
 
-/** Badge do Rank de Confiabilidade (votos em resenhas: +1 upvote / −1 downvote). */
+/** Badge do Rank de Confiabilidade (votos em avaliações: +1 upvote / −1 downvote). */
 export default function BadgeRank({
     rank,
     ocultarSeZero = true,
@@ -26,7 +26,7 @@ export default function BadgeRank({
                 compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]",
                 className,
             )}
-            title="Rank de confiabilidade: baseado nos votos das suas resenhas"
+            title="Rank de confiabilidade: baseado nos votos das suas avaliações"
         >
             <ShieldCheck className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} aria-hidden />
             <span>{valor}</span>

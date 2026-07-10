@@ -639,7 +639,7 @@ export default function PostCard({
                                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-azul-900 transition hover:bg-azul-50"
                                         >
                                             <Pencil className="h-4 w-4" />
-                                            Editar resenha
+                                            Editar avaliação
                                         </button>
                                     )}
                                     {podeDenunciar && (
@@ -715,7 +715,7 @@ export default function PostCard({
                 ativo={ocultarSpoiler}
                 mensagem={
                     ehProprioPost
-                        ? "Você marcou esta resenha como spoiler"
+                        ? "Você marcou esta avaliação como spoiler"
                         : "Esta avaliação contém spoiler"
                 }
             >
@@ -726,7 +726,7 @@ export default function PostCard({
                                 {textoLocal}
                             </p>
                         )}
-                        <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" expandido comLightbox={midiaComLightbox} />
+                        <ComentarioMidia url={post.anexo_url} alt="Imagem da avaliação" expandido comLightbox={midiaComLightbox} />
                     </div>
                 ) : (
                     <Link
@@ -738,7 +738,7 @@ export default function PostCard({
                                 {textoLocal}
                             </p>
                         )}
-                        <ComentarioMidia url={post.anexo_url} alt="Imagem da resenha" expandido comLightbox={midiaComLightbox} />
+                        <ComentarioMidia url={post.anexo_url} alt="Imagem da avaliação" expandido comLightbox={midiaComLightbox} />
                     </Link>
                 )}
             </SpoilerGuard>
@@ -750,7 +750,7 @@ export default function PostCard({
                     type="button"
                     onClick={() => handleVoto("upvote")}
                     disabled={votando || ehProprioPost}
-                    title={ehProprioPost ? "Você não pode votar na sua própria resenha" : "Upvote"}
+                    title={ehProprioPost ? "Você não pode votar na sua própria avaliação" : "Upvote"}
                     className={`flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-50 ${
                         meuVoto === "upvote" ? "text-azul-600" : ""
                     }`}
@@ -766,7 +766,7 @@ export default function PostCard({
                     type="button"
                     onClick={() => handleVoto("downvote")}
                     disabled={votando || ehProprioPost}
-                    title={ehProprioPost ? "Você não pode votar na sua própria resenha" : "Downvote"}
+                    title={ehProprioPost ? "Você não pode votar na sua própria avaliação" : "Downvote"}
                     className={`flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-50 ${
                         meuVoto === "downvote" ? "text-red-600" : ""
                     }`}
@@ -853,7 +853,7 @@ export default function PostCard({
                 <PlanoUpgradeModal
                     open={upgradeEditarAberto}
                     onClose={() => setUpgradeEditarAberto(false)}
-                    recurso="edicaoResenhas"
+                    recurso="edicaoAvaliacoes"
                 />
             </>
         )}

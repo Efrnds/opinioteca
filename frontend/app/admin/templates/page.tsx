@@ -83,7 +83,7 @@ export default function AdminTemplatesPage() {
     return (
         <>
             <AdminPageHeader
-                titulo="Templates de Resenha"
+                titulo="Templates de Avaliação"
                 acao={<AdminNovoButton label="Novo Template" onClick={abrirNovo} />}
             />
 

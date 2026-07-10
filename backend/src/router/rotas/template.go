@@ -9,7 +9,7 @@ var rotasTemplates = []Rota{
 	{
 		URI:                "/templates",
 		Metodo:             http.MethodGet,
-		Funcao:             controllers.ListarTemplatesResenha,
+		Funcao:             controllers.ListarTemplatesAvaliacao,
 		RequerAutenticacao: false,
 	},
 }

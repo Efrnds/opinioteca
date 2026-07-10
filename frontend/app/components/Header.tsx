@@ -5,12 +5,13 @@ import { itemAtivo, itensMenu } from "@/lib/nav";
 import type { PesquisaResultado } from "@/types/pesquisa";
 import { hrefLivroPesquisa, keyLivroPesquisa } from "@/types/pesquisa";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Loader2, LogOut, Menu, Search, User } from "lucide-react";
+import { BookOpen, Loader2, LogOut, Menu, Search } from "lucide-react";
 import { encerrarSessaoCompleta } from "@/lib/session-cleanup";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import AvatarUsuario from "./AvatarUsuario";
 import { useWebSocket } from "./WebSocketProvider";
 
 export default function Header() {
@@ -150,19 +151,13 @@ export default function Header() {
                                 onClick={fecharBusca}
                                 className="flex items-center gap-3 px-4 py-2.5 transition hover:bg-background"
                             >
-                                {usuario.image ? (
-                                    <Image
-                                        src={mediaUrl(usuario.image)!}
-                                        alt={usuario.nome}
-                                        width={32}
-                                        height={32}
-                                        className="h-8 w-8 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-azul-100">
-                                        <User className="h-4 w-4 text-azul-600" />
-                                    </div>
-                                )}
+                                <AvatarUsuario
+                                    image={usuario.image}
+                                    nome={usuario.nome}
+                                    nick={usuario.nick}
+                                    size={32}
+                                    className="h-8 w-8"
+                                />
                                 <div className="min-w-0">
                                     <p className="truncate font-gabarito-bold text-sm text-azul-900">
                                         {usuario.nome}
@@ -227,7 +222,7 @@ export default function Header() {
     }
 
     return (
-        <header className="sticky top-0 z-40 flex shrink-0 items-center justify-between gap-2 border-b-2 border-azul-900 bg-background/95 p-2.5 backdrop-blur-sm sm:p-3 md:gap-4 md:p-4">
+        <header className="sticky top-0 z-40 flex shrink-0 items-center justify-between gap-2 px-2 sm:gap-3 sm:px-3 lg:gap-4 lg:px-4 xl:gap-6 xl:px-6 2xl:gap-8 2xl:px-8 py-2.5 border-b-2 border-azul-900 bg-background/95 backdrop-blur-sm ">
             <Link href="/" className="flex min-w-0 items-center sm:min-w-40 lg:min-w-56 xl:min-w-72">
                 <Image
                     src="/assets/images/Vector.svg"

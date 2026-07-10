@@ -245,12 +245,12 @@ export default function Feed() {
                 {abas}
                 <div className="rounded-2xl bg-white p-8 text-center">
                     <p className="font-gabarito-bold text-2xl text-azul-900">
-                        {aba === "seguindo" ? "Nenhuma resenha de quem você segue" : "Nenhuma resenha ainda"}
+                        {aba === "seguindo" ? "Nenhuma avaliação de quem você segue" : "Nenhuma avaliação ainda"}
                     </p>
                     <p className="mt-2 font-gabarito-regular text-cinza-700">
                         {aba === "seguindo"
-                            ? "Siga leitores para ver as resenhas deles aqui."
-                            : "Seja o primeiro a publicar uma resenha na opinioteca."}
+                            ? "Siga leitores para ver as avaliações deles aqui."
+                            : "Seja o primeiro a publicar uma avaliação na opinioteca."}
                     </p>
                 </div>
             </div>

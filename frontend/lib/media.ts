@@ -7,6 +7,11 @@ export function mediaUrl(url?: string | null): string | undefined {
     try {
         const parsed = new URL(url);
         if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+            // Preferir same-origin /uploads/... (proxy em app/uploads) — evita CORS no canvas
+            // e 404 quando o browser pede o arquivo na porta do Next sem proxy.
+            if (parsed.pathname.startsWith("/uploads/")) {
+                return `${parsed.pathname}${parsed.search}`;
+            }
             return `${parsed.pathname}${parsed.search}`;
         }
         // Capas do Google Books frequentemente vêm em http; normaliza para https.

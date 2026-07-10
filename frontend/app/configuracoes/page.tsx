@@ -43,12 +43,11 @@ import {
 } from "@/lib/tema";
 import {
     type PreferenciasAcessibilidade,
-    aplicarPreferenciasAcessibilidadeNoDocumento,
-    lerPreferenciasAcessibilidade,
-    salvarPreferenciasAcessibilidade,
 } from "@/lib/acessibilidade";
 import { cn } from "@/lib/utils";
 import Box from "../components/Box";
+import { useAcessibilidade } from "../components/AcessibilidadeProvider";
+import AvatarUsuario from "../components/AvatarUsuario";
 import { useConfiguracoes } from "../components/ConfiguracoesProvider";
 import MetaLeituraCard from "../components/MetaLeituraCard";
 import OpinioWrappedModal from "../components/OpinioWrappedModal";
@@ -480,13 +479,12 @@ function ContaSecao() {
                                 valor={avatarSrc ? undefined : "Nenhuma foto"}
                                 trailing={
                                     avatarSrc ? (
-                                        <Image
-                                            src={avatarSrc}
-                                            alt=""
-                                            width={36}
-                                            height={36}
-                                            unoptimized
-                                            className="mt-0.5 h-9 w-9 shrink-0 rounded-full object-cover"
+                                        <AvatarUsuario
+                                            image={perfil?.image ?? session?.user?.image ?? undefined}
+                                            nome={nomeExibido}
+                                            nick={nickExibido}
+                                            size={36}
+                                            className="mt-0.5 h-9 w-9 shrink-0"
                                         />
                                     ) : (
                                         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-azul-100 font-gabarito-bold text-sm text-azul-800">
@@ -1305,16 +1303,7 @@ function PrivacidadeSecao() {
 
 function AcessibilidadeSecao() {
     const router = useRouter();
-    const [prefs, setPrefs] = useState<PreferenciasAcessibilidade>(() => lerPreferenciasAcessibilidade());
-
-    function atualizar(parcial: Partial<PreferenciasAcessibilidade>) {
-        setPrefs((anterior) => {
-            const proximo = { ...anterior, ...parcial };
-            aplicarPreferenciasAcessibilidadeNoDocumento(proximo);
-            salvarPreferenciasAcessibilidade(proximo);
-            return proximo;
-        });
-    }
+    const { prefs, atualizar } = useAcessibilidade();
 
     return (
         <div className="flex flex-col gap-4">

@@ -13,7 +13,7 @@ export type EstanteItem = {
     status: StatusEstante;
     porcentagem_atual: number;
     adicionado_em: string;
-    tem_resenha: boolean;
+    tem_avaliacao: boolean;
 };
 
 export type EstanteResposta = {

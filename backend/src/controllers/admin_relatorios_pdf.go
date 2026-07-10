@@ -175,7 +175,7 @@ func AdminRelatorioPDFAvaliacoes(w http.ResponseWriter, r *http.Request) {
 
 	doc := pdf.Novo(pdf.Meta{
 		Titulo:      "Relatório de avaliações",
-		Descricao:   "Resumo das resenhas publicadas no período: volume, média de notas, distribuição e listagem detalhada.",
+		Descricao:   "Resumo das avaliações publicadas no período: volume, média de notas, distribuição e listagem detalhada.",
 		Filtros:     filtros,
 		NomeArquivo: "relatorio-avaliacoes.pdf",
 	})

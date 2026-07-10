@@ -1,4 +1,4 @@
-export type TemplateResenha = {
+export type TemplateAvaliacao = {
     id: number;
     nome: string;
     descricao: string;
@@ -31,7 +31,7 @@ export type TemplateAdminPayload = {
     ordem?: number;
 };
 
-export function templateParaResenha(template: TemplateAdmin): TemplateResenha {
+export function templateParaAvaliacao(template: TemplateAdmin): TemplateAvaliacao {
     return {
         id: template.id,
         nome: template.nome,

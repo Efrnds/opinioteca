@@ -1,16 +1,15 @@
 "use client";
 
-import { mediaUrl } from "@/lib/media";
 import { itemAtivo, itensMenu } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, MoreHorizontal } from "lucide-react";
 import { encerrarSessaoCompleta } from "@/lib/session-cleanup";
 import { useSession } from "next-auth/react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import AvatarUsuario from "./AvatarUsuario";
 import Box from "./Box";
 import NovaAvaliacaoModal from "./NovaAvaliacaoModal";
 import { useWebSocket } from "./WebSocketProvider";
@@ -84,10 +83,10 @@ export default function MenuEsquerdo() {
                 <button
                     type="button"
                     onClick={() => setModalAberto(true)}
-                    aria-label="Nova Resenha"
+                    aria-label="Nova Avaliação"
                     className="flex w-full shrink-0 items-center justify-center rounded-full bg-azul-600 py-2 text-azul-600-foreground transition hover:bg-azul-700"
                 >
-                    <span className="font-gabarito-bold text-base xl:text-lg">Nova Resenha</span>
+                    <span className="font-gabarito-bold text-base xl:text-lg">Nova Avaliação</span>
                 </button>
             </Box>
 
@@ -95,19 +94,13 @@ export default function MenuEsquerdo() {
 
             <Box ref={contaRef} className="relative flex w-full shrink-0 items-center justify-between gap-2 !p-2.5 xl:!p-3">
                 <Link href="/perfil" className="flex min-w-0 items-center gap-2">
-                    {session?.user?.image ? (
-                        <Image
-                            src={mediaUrl(session.user.image)!}
-                            alt="Avatar"
-                            width={49}
-                            height={49}
-                            className="aspect-square h-10 w-10 shrink-0 rounded-full object-cover xl:h-11 xl:w-11"
-                        />
-                    ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 font-gabarito-bold text-lg text-azul-900 xl:h-11 xl:w-11 xl:text-xl">
-                            {nick.charAt(0).toUpperCase()}
-                        </div>
-                    )}
+                    <AvatarUsuario
+                        image={session?.user?.image}
+                        nome={session?.user?.name ?? undefined}
+                        nick={nick}
+                        size={44}
+                        className="h-10 w-10 xl:h-11 xl:w-11"
+                    />
                     <span className="truncate font-gabarito-bold text-base text-azul-900 xl:text-lg">{nick}</span>
                 </Link>
 

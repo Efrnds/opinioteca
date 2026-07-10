@@ -6,7 +6,7 @@ import type { EstanteItem } from "@/types/estante";
 import { dadosDeLivroBusca } from "@/lib/livro-cadastro";
 import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
-import ConviteResenhaModal from "@/app/components/ConviteResenhaModal";
+import ConviteAvaliacaoModal from "@/app/components/ConviteAvaliacaoModal";
 import EstanteCarousel from "@/app/components/EstanteCarousel";
 import NovaAvaliacaoModal from "@/app/components/NovaAvaliacaoModal";
 import { AnimatePresence, motion } from "framer-motion";
@@ -144,7 +144,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const [porcentagem, setPorcentagem] = useState(0);
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
-    const [conviteResenhaAberto, setConviteResenhaAberto] = useState(false);
+    const [conviteAvaliacaoAberto, setConviteAvaliacaoAberto] = useState(false);
     const [livroConcluido, setLivroConcluido] = useState<EstanteItem["livro"] | null>(null);
     const [avaliacaoAberta, setAvaliacaoAberta] = useState(false);
 
@@ -178,7 +178,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             setLivroSelecionado(null);
             setPorcentagem(0);
             setErro("");
-            setConviteResenhaAberto(false);
+            setConviteAvaliacaoAberto(false);
             setLivroConcluido(null);
             setAvaliacaoAberta(false);
         }
@@ -279,9 +279,9 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
 
             window.dispatchEvent(new Event("diario:refresh"));
 
-            if (porcentagem >= 100 && !livroSelecionado.tem_resenha) {
+            if (porcentagem >= 100 && !livroSelecionado.tem_avaliacao) {
                 setLivroConcluido(livroSelecionado.livro);
-                setConviteResenhaAberto(true);
+                setConviteAvaliacaoAberto(true);
                 setPasso(1);
                 setLivroSelecionado(null);
                 setPorcentagem(0);
@@ -609,15 +609,15 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                 </DialogContent>
             </Dialog>
 
-            <ConviteResenhaModal
-                open={conviteResenhaAberto}
+            <ConviteAvaliacaoModal
+                open={conviteAvaliacaoAberto}
                 livro={livroConcluido}
                 onAceitar={() => {
-                    setConviteResenhaAberto(false);
+                    setConviteAvaliacaoAberto(false);
                     setAvaliacaoAberta(true);
                 }}
                 onDispensar={() => {
-                    setConviteResenhaAberto(false);
+                    setConviteAvaliacaoAberto(false);
                     setLivroConcluido(null);
                     onClose();
                 }}

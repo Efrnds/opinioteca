@@ -17,8 +17,8 @@ import {
 } from "@/lib/livro-cadastro";
 import { mediaUrl } from "@/lib/media";
 import { textoContemLink } from "@/lib/texto";
-import { TEMPLATES_RESENHA } from "@/lib/templates-resenha";
-import type { TemplateResenha } from "@/types/template";
+import { TEMPLATES_AVALIACAO } from "@/lib/templates-avaliacao";
+import type { TemplateAvaliacao } from "@/types/template";
 import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -50,7 +50,7 @@ type Passo = 1 | 2 | 3 | 4;
 const PASSOS = [
     { id: 1 as const, rotulo: "Livro" },
     { id: 2 as const, rotulo: "Nota" },
-    { id: 3 as const, rotulo: "Resenha" },
+    { id: 3 as const, rotulo: "Avaliação" },
     { id: 4 as const, rotulo: "Publicar" },
 ];
 
@@ -220,7 +220,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
     const [templateSelecionado, setTemplateSelecionado] = useState<number | null>(null);
-    const [templatesResenha, setTemplatesResenha] = useState<TemplateResenha[]>(TEMPLATES_RESENHA);
+    const [templatesAvaliacao, setTemplatesAvaliação] = useState<TemplateAvaliacao[]>(TEMPLATES_AVALIACAO);
     const [upgradeTemplatesAberto, setUpgradeTemplatesAberto] = useState(false);
     const inputImagemId = useId();
     const buscaRef = useRef(busca);
@@ -253,7 +253,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             .then((res) => (res.ok ? res.json() : null))
             .then((data) => {
                 if (Array.isArray(data) && data.length > 0) {
-                    setTemplatesResenha(data as TemplateResenha[]);
+                    setTemplatesAvaliação(data as TemplateAvaliacao[]);
                 }
             })
             .catch(() => {});
@@ -278,7 +278,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             limparAnexo();
             setShowGifPicker(false);
             setTemplateSelecionado(null);
-            setTemplatesResenha(TEMPLATES_RESENHA);
+            setTemplatesAvaliação(TEMPLATES_AVALIACAO);
             setErro("");
             setEstante([]);
         }
@@ -517,21 +517,21 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
         irPara(3);
     }
 
-    function validarPassoResenha(): boolean {
+    function validarPassoAvaliacao(): boolean {
         const textoFinal = texto.trim();
         if (textoFinal && textoContemLink(textoFinal)) {
-            setErro("Links não são permitidos na resenha.");
+            setErro("Links não são permitidos na avaliação.");
             return false;
         }
         if (!textoFinal && !arquivoImagem && !anexoUrlDireto) {
-            setErro("Escreva a resenha ou anexe uma imagem.");
+            setErro("Escreva a avaliação ou anexe uma imagem.");
             return false;
         }
         return true;
     }
 
-    function avancarDaResenha() {
-        if (!validarPassoResenha()) return;
+    function avancarDaAvaliacao() {
+        if (!validarPassoAvaliacao()) return;
         irPara(4);
     }
 
@@ -563,7 +563,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     async function confirmarPublicacao() {
         setErro("");
 
-        if (!dadosLivro || !validarPassoLivro() || !validarPassoNota() || !validarPassoResenha()) {
+        if (!dadosLivro || !validarPassoLivro() || !validarPassoNota() || !validarPassoAvaliacao()) {
             return;
         }
 
@@ -596,7 +596,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             const data = await res.json();
 
             if (!res.ok) {
-                setErro(data.erro || "Não foi possível publicar a resenha.");
+                setErro(data.erro || "Não foi possível publicar a avaliação.");
                 return;
             }
 
@@ -604,7 +604,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             window.dispatchEvent(new CustomEvent("livro:registrado", { detail: { livroId } }));
             onClose();
         } catch (err) {
-            setErro(err instanceof Error ? err.message : "Não foi possível publicar a resenha.");
+            setErro(err instanceof Error ? err.message : "Não foi possível publicar a avaliação.");
         } finally {
             setEnviando(false);
         }
@@ -613,7 +613,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const notaExibida = notaHover || nota;
     const precisaCompletar = dadosLivro ? livroPrecisaCompletar(dadosLivro) : false;
     const exibirFormularioLivro = !!dadosLivro && (modoManual || precisaCompletar || livroPrecisaCadastro(dadosLivro));
-    const templateAtivo = templatesResenha.find((t) => t.id === templateSelecionado) ?? null;
+    const templateAtivo = templatesAvaliacao.find((t) => t.id === templateSelecionado) ?? null;
 
     const tituloPasso =
         passo === 1
@@ -621,7 +621,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             : passo === 2
               ? "Qual a sua nota?"
               : passo === 3
-                ? "Escreva sua resenha"
+                ? "Escreva sua avaliação"
                 : "Tudo certo?";
 
     const subtituloPasso =
@@ -631,7 +631,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
               ? "Dê estrelas e, se quiser, use um modelo OpinioTop."
               : passo === 3
                 ? "Conte o que achou. Marque spoiler se precisar."
-                : "Confira o resumo e publique sua resenha.";
+                : "Confira o resumo e publique sua avaliação.";
 
     const mostrarRodape = passo > 1 || exibirFormularioLivro;
 
@@ -652,7 +652,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                         <div className="relative z-10 flex shrink-0 flex-col gap-4 px-5 pb-2 pt-5 sm:px-7 sm:pt-6">
                             <div className="pr-8">
                                 <p className="font-gabarito-medium text-[11px] uppercase tracking-[0.18em] text-azul-600">
-                                    Nova resenha
+                                    Nova avaliação
                                 </p>
                                 <DialogTitle className="mt-1 font-gabarito-bold text-2xl leading-tight text-azul-900 sm:text-[1.75rem]">
                                     {tituloPasso}
@@ -898,13 +898,13 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
 
                                             <div className="w-full max-w-sm">
                                                 <p className="mb-1 font-gabarito-bold text-sm text-azul-900">
-                                                    Modelos de resenha
+                                                    Modelos de avaliação
                                                 </p>
                                                 <p className="mb-3 font-gabarito-regular text-xs text-cinza-700">
                                                     Opcional. Escolha um ponto de partida e edite depois.
                                                 </p>
                                                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                                    {templatesResenha.map((template) => {
+                                                    {templatesAvaliacao.map((template) => {
                                                         const selecionado = templateSelecionado === template.id;
                                                         const bloqueado = !temTop;
                                                         return (
@@ -994,19 +994,19 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                 <Switch
                                                     checked={contemSpoiler}
                                                     onCheckedChange={setContemSpoiler}
-                                                    aria-label="Marcar resenha como contendo spoiler"
+                                                    aria-label="Marcar avaliação como contendo spoiler"
                                                 />
                                             </div>
 
                                             <div>
                                                 <label
-                                                    htmlFor="texto-resenha"
+                                                    htmlFor="texto-avaliacao"
                                                     className="mb-2 block font-gabarito-bold text-sm text-azul-900"
                                                 >
-                                                    Sua resenha
+                                                    Sua avaliação
                                                 </label>
                                                 <textarea
-                                                    id="texto-resenha"
+                                                    id="texto-avaliacao"
                                                     value={texto}
                                                     onChange={(e) => {
                                                         setTexto(e.target.value);
@@ -1138,7 +1138,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                             GIF
                                                         </button>
                                                         <span className="font-gabarito-regular text-xs text-cinza-600">
-                                                            Texto + imagem/GIF na mesma resenha
+                                                            Texto + imagem/GIF na mesma avaliação
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1156,7 +1156,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                             >
                                                 <div className="bg-gradient-to-br from-azul-600 to-azul-800 px-5 py-4 text-white">
                                                     <p className="font-gabarito-medium text-[11px] uppercase tracking-[0.16em] text-white/70">
-                                                        Resumo da resenha
+                                                        Resumo da avaliação
                                                     </p>
                                                     <p className="mt-1 font-gabarito-bold text-lg">Pronto para publicar</p>
                                                 </div>
@@ -1190,7 +1190,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                             </p>
                                                         ) : (
                                                             <p className="mt-3 font-gabarito-regular text-xs text-cinza-700">
-                                                                Resenha só com imagem ou GIF
+                                                                Avaliação só com imagem ou GIF
                                                             </p>
                                                         )}
 
@@ -1270,7 +1270,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                     {passo === 3 && (
                                         <Button
                                             type="button"
-                                            onClick={avancarDaResenha}
+                                            onClick={avancarDaAvaliacao}
                                             className="flex-1 rounded-full bg-azul-600 py-6 font-gabarito-bold text-base hover:bg-azul-700"
                                         >
                                             Continuar
@@ -1290,7 +1290,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                     Publicando...
                                                 </>
                                             ) : (
-                                                "Publicar resenha"
+                                                "Publicar avaliação"
                                             )}
                                         </Button>
                                     )}
@@ -1303,7 +1303,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             <PlanoUpgradeModal
                 open={upgradeTemplatesAberto}
                 onClose={() => setUpgradeTemplatesAberto(false)}
-                recurso="templatesResenha"
+                recurso="templatesAvaliacao"
             />
         </>
     );

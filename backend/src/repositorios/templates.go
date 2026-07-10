@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 )
 
-// Templates repositório de modelos de resenha.
+// Templates repositório de modelos de avaliação.
 type Templates struct {
 	db *sql.DB
 }
@@ -91,7 +91,7 @@ func (repositorio Templates) ListarAdminPaginado(limite, offset int) ([]modelos.
 	return templates, total, nil
 }
 
-// ListarAtivos retorna templates ativos para uso na resenha.
+// ListarAtivos retorna templates ativos para uso na avaliação.
 func (repositorio Templates) ListarAtivos() ([]modelos.Template, error) {
 	linhas, erro := repositorio.db.Query(selectTemplatesBase+` WHERE t.ativo = TRUE ORDER BY t.ordem, t.id`)
 	if erro != nil {

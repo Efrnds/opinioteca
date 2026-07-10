@@ -62,7 +62,7 @@ function SlideDecorations({
     variant?: SlideDef["decorVariant"];
 }) {
     return (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden ">
             {/* mesh orbs */}
             <div className="absolute -left-16 -top-20 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
             <div className="absolute -right-20 top-24 h-64 w-64 rounded-full bg-orange-400/25 blur-3xl" />
@@ -559,8 +559,8 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
         <>
             {dados?.disponivel ? <WrappedShareCard ref={cardRef} dados={dados} nick={nick} tema={temaShare} /> : null}
 
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md" role="dialog">
-                <div className="relative mx-auto flex h-full w-full max-w-md flex-col overflow-hidden bg-[#060816] shadow-2xl">
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md py-5 sm:py-6 lg:py-7 xl:py-8 2xl:py-9" role="dialog">
+                <div className="relative mx-auto flex h-full w-full max-w-md flex-col rounded-lg overflow-hidden bg-[#060816] shadow-2xl">
                     <button
                         type="button"
                         onClick={onClose}

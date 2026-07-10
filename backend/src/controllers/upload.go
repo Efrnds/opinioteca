@@ -8,6 +8,7 @@ import (
 	"backend/src/respostas"
 	"backend/src/upload"
 	"errors"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -18,7 +19,21 @@ type uploadResposta struct {
 	URL string `json:"url"`
 }
 
-func arquivoEhGIF(header *multipart.FileHeader) bool {
+func arquivoEhGIF(arquivo multipart.File, header *multipart.FileHeader) bool {
+	if arquivo != nil {
+		var cabecalho [6]byte
+		n, erro := arquivo.Read(cabecalho[:])
+		_, _ = arquivo.Seek(0, io.SeekStart)
+		if erro == nil || erro == io.EOF {
+			if n >= 6 {
+				magic := string(cabecalho[:6])
+				if magic == "GIF87a" || magic == "GIF89a" {
+					return true
+				}
+			}
+		}
+	}
+
 	if strings.EqualFold(filepath.Ext(header.Filename), ".gif") {
 		return true
 	}
@@ -39,7 +54,7 @@ func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if arquivoEhGIF(header) {
+	if arquivoEhGIF(arquivo, header) {
 		usuarioID, erroAuth := auth.ExtrairUsuarioID(r)
 		if erroAuth != nil {
 			respostas.Erro(w, http.StatusUnauthorized, errors.New("Faça login para enviar GIF como foto de perfil"))

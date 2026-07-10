@@ -8,7 +8,7 @@ export default function NotificationBell() {
 
     return (
         <div
-            className="relative flex rounded-full bg-white p-2 transition hover:bg-cinza-50"
+            className="relative flex rounded-full bg-superficie p-2 transition hover:bg-cinza-100"
             aria-label="Notificações"
         >
             <Bell className="h-5 w-5 text-azul-900" />

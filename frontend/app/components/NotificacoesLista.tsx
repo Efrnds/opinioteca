@@ -10,13 +10,12 @@ import {
     tituloExibicaoNotificacao,
 } from "@/lib/notificacoes";
 import { notificacaoEhMensagem } from "@/lib/ws/types";
-import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import type { Notificacao } from "@/types/notificacao";
 import { Loader2 } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import AvatarUsuario from "./AvatarUsuario";
 import { useWebSocket } from "./WebSocketProvider";
 
 type Ator = { nick: string; image?: string };
@@ -35,10 +34,13 @@ function useAtores(notificacoes: Notificacao[]) {
             try {
                 const res = await fetch(`/api/usuarios/id/${id}`);
                 if (res.ok) {
-                    const u = (await res.json()) as { nick?: string; image?: string };
+                    const u = (await res.json()) as { nick?: string; image?: string; image_url?: string };
                     setAtores(prev => ({
                         ...prev,
-                        [id]: { nick: u.nick ?? nomeDoTituloNotificacao(n.titulo), image: u.image },
+                        [id]: {
+                            nick: u.nick ?? nomeDoTituloNotificacao(n.titulo),
+                            image: u.image || u.image_url,
+                        },
                     }));
                 }
             } catch {
@@ -119,34 +121,19 @@ export default function NotificacoesLista() {
                                 onClick={() => abrirNotificacao(notif)}
                                 className={cn(
                                     "flex w-full items-center justify-between gap-4 rounded-xl border-2 px-4 py-3 text-left transition hover:opacity-90",
-                                    !notificacaoEstaLida(notif.lida) ? "border-azul-600 bg-[#EAF1FF]" : "border-gray-300 bg-white",
+                                    !notificacaoEstaLida(notif.lida)
+                                        ? "border-azul-600 bg-azul-50"
+                                        : "border-cinza-300 bg-superficie",
                                 )}
                             >
                                 <div className="flex min-w-0 items-center gap-3">
-                                    {avatar ? (
-                                        <Image
-                                            src={mediaUrl(avatar)!}
-                                            alt={nick}
-                                            width={40}
-                                            height={40}
-                                            className="h-10 w-10 shrink-0 rounded-full object-cover"
-                                        />
-                                    ) : (
-                                        <div
-                                            className={cn(
-                                                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-gabarito-bold text-sm",
-                                                !notificacaoEstaLida(notif.lida) ? "bg-azul-600 text-white" : "bg-gray-200 text-gray-600",
-                                            )}
-                                        >
-                                            {nick.charAt(0).toUpperCase()}
-                                        </div>
-                                    )}
+                                    <AvatarUsuario image={avatar} nome={nick} nick={nick} size={40} className="h-10 w-10 shrink-0" />
                                     <span
                                         className={cn(
                                             "truncate text-base",
                                             !notificacaoEstaLida(notif.lida)
                                                 ? "font-gabarito-bold text-azul-600"
-                                                : "font-gabarito-regular text-gray-500",
+                                                : "font-gabarito-regular text-cinza-500",
                                         )}
                                     >
                                         {nick}
@@ -157,7 +144,7 @@ export default function NotificacoesLista() {
                                         "shrink-0 text-base",
                                         !notif.lida
                                             ? "font-gabarito-bold text-azul-600"
-                                            : "font-gabarito-regular text-gray-500",
+                                            : "font-gabarito-regular text-cinza-500",
                                     )}
                                 >
                                     {acao}

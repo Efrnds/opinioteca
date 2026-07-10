@@ -101,6 +101,10 @@ html[data-tema="claro"] {
 html[data-tema="escuro"] {
   --azul-900: #E8EAED;
   --azul-800: #c5cdd8;
+  /* Tons claros de accent viram superfícies escuras tingidas (evita “cards brancos”). */
+  --azul-200: color-mix(in oklab, var(--azul-600) 42%, #1a2332);
+  --azul-100: color-mix(in oklab, var(--azul-600) 28%, #1a2332);
+  --azul-50: color-mix(in oklab, var(--azul-600) 18%, #1a2332);
   --cinza-700: #9ca3af;
   --cinza-600: #8b95a5;
   --cinza-500: #7a8494;
@@ -268,6 +272,15 @@ html[data-tema="custom"] .bg-white\/60 {
   background-color: color-mix(in oklab, var(--superficie) 60%, transparent);
 }
 
+html[data-tema="escuro"] .bg-white\/90,
+html[data-tema="escuro"] .bg-white\/95,
+html[data-tema="leitor"] .bg-white\/90,
+html[data-tema="leitor"] .bg-white\/95,
+html[data-tema="custom"] .bg-white\/90,
+html[data-tema="custom"] .bg-white\/95 {
+  background-color: color-mix(in oklab, var(--superficie) 92%, transparent);
+}
+
 /*
  * Hovers no escuro: superfície um pouco mais clara (muted), nunca flash branco
  * nem hover:bg-background (mais escuro que o card).
@@ -282,6 +295,7 @@ html[data-tema="escuro"] .hover\:bg-azul-50\/40:hover,
 html[data-tema="escuro"] .hover\:bg-azul-50\/60:hover,
 html[data-tema="escuro"] .hover\:bg-azul-50\/80:hover,
 html[data-tema="escuro"] .hover\:bg-azul-100:hover,
+html[data-tema="escuro"] .hover\:bg-cinza-50:hover,
 html[data-tema="escuro"] .hover\:bg-cinza-100:hover,
 html[data-tema="escuro"] .bg-gray-50,
 html[data-tema="escuro"] .hover\:bg-gray-50:hover,
@@ -293,10 +307,27 @@ html[data-tema="escuro"] .bg-cinza-100\/80 {
   background-color: var(--muted);
 }
 
+html[data-tema="escuro"] .bg-azul-50\/40,
+html[data-tema="escuro"] .bg-azul-50\/50,
+html[data-tema="escuro"] .bg-azul-50\/60,
+html[data-tema="escuro"] .bg-azul-50\/70,
+html[data-tema="escuro"] .bg-azul-50\/80 {
+  background-color: color-mix(in oklab, var(--azul-50) 85%, transparent);
+}
+
 html[data-tema="escuro"] .text-black,
 html[data-tema="leitor"] .text-black,
 html[data-tema="custom"] .text-black {
   color: var(--foreground);
+}
+
+html[data-tema="escuro"] .text-gray-400,
+html[data-tema="escuro"] .text-gray-500,
+html[data-tema="escuro"] .text-gray-600,
+html[data-tema="leitor"] .text-gray-400,
+html[data-tema="leitor"] .text-gray-500,
+html[data-tema="leitor"] .text-gray-600 {
+  color: var(--muted-foreground);
 }
 
 html[data-tema="escuro"] .border-gray-200,

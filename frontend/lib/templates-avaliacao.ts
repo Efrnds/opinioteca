@@ -1,11 +1,11 @@
-export type TemplateResenha = {
+export type TemplateAvaliacao = {
     id: number;
     nome: string;
     descricao: string;
     texto: string;
 };
 
-export const TEMPLATES_RESENHA: TemplateResenha[] = [
+export const TEMPLATES_AVALIACAO: TemplateAvaliacao[] = [
     {
         id: 1,
         nome: "Emoção pura",

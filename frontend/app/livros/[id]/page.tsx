@@ -214,7 +214,7 @@ export default function LivroPage() {
                 <div className="grid grid-cols-3 rounded-xl bg-background p-2">
                     <div className="text-center">
                         <p className="font-gabarito-bold text-xl text-azul-600">{avaliacoes.length}</p>
-                        <p className="font-gabarito-bold text-[10px] text-azul-600">Resenhas</p>
+                        <p className="font-gabarito-bold text-[10px] text-azul-600">Avaliações</p>
                     </div>
                     <div className="border-x border-gray-300 text-center">
                         <p className="font-gabarito-bold text-xl text-amber-500">{mediaAvaliacoes.toFixed(2)}</p>

@@ -1,12 +1,18 @@
 "use client";
 
-import { ehAvatarGif, podeExibirAvatarGif } from "@/lib/avatar";
+import {
+    ehAvatarGif,
+    gerarStillClient,
+    limparCachePreviewAvatar,
+    podeExibirAvatarGif,
+} from "@/lib/avatar";
 import { mediaUrl } from "@/lib/media";
 import { enviarImagemAvatar, validarArquivoImagem } from "@/lib/upload";
 import { Camera, Loader2, Lock } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useReducaoMovimentoPreferida } from "./AcessibilidadeProvider";
 import PlanoUpgradeModal from "./PlanoUpgradeModal";
 import { usePlano } from "./PlanoProvider";
 
@@ -40,10 +46,32 @@ export default function AvatarPerfilEditavel({
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
     const [ctaGifAberto, setCtaGifAberto] = useState(false);
+    const [stillClient, setStillClient] = useState<string | null>(null);
+    const reducaoMovimentoAtiva = useReducaoMovimentoPreferida();
 
     const inicial = nome?.charAt(0).toUpperCase() || nick.charAt(0).toUpperCase();
     const avatarEhGif = Boolean(image && ehAvatarGif(image));
-    const exibirImagem = Boolean(image && podeExibirAvatarGif(image, undefined, undefined, temPro));
+    const src = mediaUrl(image);
+    const podeGifPorPlano = Boolean(image && podeExibirAvatarGif(image, undefined, undefined, temPro));
+    const bloquearAnimacao = avatarEhGif && (reducaoMovimentoAtiva || !podeGifPorPlano);
+    const exibirAnimado = Boolean(src && avatarEhGif && !bloquearAnimacao);
+
+    useEffect(() => {
+        if (!bloquearAnimacao || !src || !avatarEhGif) {
+            setStillClient(null);
+            return;
+        }
+
+        let cancelado = false;
+        limparCachePreviewAvatar();
+        void gerarStillClient(src).then((dataUrl) => {
+            if (!cancelado && dataUrl) setStillClient(dataUrl);
+        });
+
+        return () => {
+            cancelado = true;
+        };
+    }, [bloquearAnimacao, src, avatarEhGif]);
 
     async function handleArquivo(arquivo: File) {
         if (arquivoEhGif(arquivo) && !temPro) {
@@ -86,6 +114,59 @@ export default function AvatarPerfilEditavel({
         }
     }
 
+    function renderAvatar() {
+        if (exibirAnimado && src) {
+            return (
+                <Image
+                    src={src}
+                    alt={nome}
+                    width={96}
+                    height={96}
+                    unoptimized={avatarEhGif}
+                    className="h-24 w-24 rounded-full border-4 border-white object-cover"
+                />
+            );
+        }
+
+        if (bloquearAnimacao) {
+            if (stillClient) {
+                return (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={stillClient}
+                        alt={nome}
+                        width={96}
+                        height={96}
+                        className="h-24 w-24 rounded-full border-4 border-white object-cover"
+                    />
+                );
+            }
+            return (
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
+                    {inicial}
+                </div>
+            );
+        }
+
+        if (src && !avatarEhGif) {
+            return (
+                <Image
+                    src={src}
+                    alt={nome}
+                    width={96}
+                    height={96}
+                    className="h-24 w-24 rounded-full border-4 border-white object-cover"
+                />
+            );
+        }
+
+        return (
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
+                {inicial}
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col items-start gap-1">
             <label
@@ -93,20 +174,7 @@ export default function AvatarPerfilEditavel({
                 className="group relative h-24 w-24 shrink-0 cursor-pointer"
                 title="Alterar foto de perfil"
             >
-                {exibirImagem ? (
-                    <Image
-                        src={mediaUrl(image)!}
-                        alt={nome}
-                        width={96}
-                        height={96}
-                        unoptimized={avatarEhGif}
-                        className="h-24 w-24 rounded-full border-4 border-white object-cover"
-                    />
-                ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-gray-200 font-gabarito-bold text-3xl text-azul-900">
-                        {inicial}
-                    </div>
-                )}
+                {renderAvatar()}
                 <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
                     {enviando ? (
                         <Loader2 className="h-6 w-6 animate-spin text-white" />

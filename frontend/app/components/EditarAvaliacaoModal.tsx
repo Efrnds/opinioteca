@@ -46,7 +46,7 @@ export default function EditarAvaliacaoModal({
             return;
         }
         if (!textoFinal) {
-            setErro("O texto da resenha é obrigatório.");
+            setErro("O texto da avaliação é obrigatório.");
             return;
         }
 
@@ -79,7 +79,7 @@ export default function EditarAvaliacaoModal({
         <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
             <DialogContent className="gap-4 sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle className="font-gabarito-bold text-xl text-azul-900">Editar resenha</DialogTitle>
+                    <DialogTitle className="font-gabarito-bold text-xl text-azul-900">Editar avaliação</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div>
@@ -105,11 +105,11 @@ export default function EditarAvaliacaoModal({
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="editar-texto-resenha" className="mb-2 block font-gabarito-bold text-sm text-azul-900">
-                            Texto da resenha
+                        <label htmlFor="editar-texto-avaliacao" className="mb-2 block font-gabarito-bold text-sm text-azul-900">
+                            Texto da avaliação
                         </label>
                         <textarea
-                            id="editar-texto-resenha"
+                            id="editar-texto-avaliacao"
                             value={texto}
                             onChange={(e) => setTexto(e.target.value)}
                             rows={6}

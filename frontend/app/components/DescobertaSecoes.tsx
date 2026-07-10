@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import AvatarUsuario from "./AvatarUsuario";
 import Box from "./Box";
 import BadgeRank from "./BadgeRank";
 import MomentumCarousel, { type MomentumCarouselApi } from "./MomentumCarousel";
@@ -41,6 +42,8 @@ function CapaLivro({
         <Link
             href={`/livros/${livro.id}`}
             title={livro.titulo}
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
             onClick={carousel?.impedirCliqueSeArrastou}
             className={cn(
                 "group flex shrink-0 flex-col",
@@ -218,7 +221,6 @@ function SecaoUsuariosSugeridos({ variante }: { variante: Variante }) {
             ) : (
                 <ul className={cn("flex flex-col", lateral ? "gap-1.5" : "gap-3")}>
                     {usuarios.map((u) => {
-                        const avatar = mediaUrl(u.image);
                         const jaSegue = seguindo.has(u.nick);
                         return (
                             <li key={u.id} className="flex items-center gap-1.5">
@@ -226,25 +228,13 @@ function SecaoUsuariosSugeridos({ variante }: { variante: Variante }) {
                                     href={`/perfil/${u.nick}`}
                                     className="flex min-w-0 flex-1 items-center gap-1.5"
                                 >
-                                    <div
-                                        className={cn(
-                                            "relative shrink-0 overflow-hidden rounded-full bg-azul-200",
-                                            lateral ? "h-7 w-7" : "h-11 w-11",
-                                        )}
-                                    >
-                                        {avatar ? (
-                                            <Image src={avatar} alt="" fill unoptimized className="object-cover" />
-                                        ) : (
-                                            <span
-                                                className={cn(
-                                                    "flex h-full items-center justify-center font-gabarito-bold text-azul-700",
-                                                    lateral && "text-xs",
-                                                )}
-                                            >
-                                                {u.nick.slice(0, 1).toUpperCase()}
-                                            </span>
-                                        )}
-                                    </div>
+                                    <AvatarUsuario
+                                        image={u.image}
+                                        nome={u.nome}
+                                        nick={u.nick}
+                                        size={lateral ? 28 : 44}
+                                        className={lateral ? "h-7 w-7" : "h-11 w-11"}
+                                    />
                                     <div className="min-w-0">
                                         <p
                                             className={cn(
@@ -322,7 +312,7 @@ function SecaoCriticosEmAlta({ variante }: { variante: Variante }) {
             </div>
             {!lateral && (
                 <p className="font-gabarito-regular text-sm text-cinza-700">
-                    Rank de confiabilidade com base nos votos das resenhas (upvote +1, downvote −1).
+                    Rank de confiabilidade com base nos votos das avaliações (upvote +1, downvote −1).
                 </p>
             )}
             {carregando ? (
@@ -336,7 +326,6 @@ function SecaoCriticosEmAlta({ variante }: { variante: Variante }) {
             ) : (
                 <ul className={cn("flex flex-col", lateral ? "gap-1.5" : "gap-3")}>
                     {usuarios.map((u, index) => {
-                        const avatar = mediaUrl(u.image);
                         return (
                             <li key={u.id}>
                                 <Link
@@ -351,25 +340,13 @@ function SecaoCriticosEmAlta({ variante }: { variante: Variante }) {
                                     >
                                         {index + 1}
                                     </span>
-                                    <div
-                                        className={cn(
-                                            "relative shrink-0 overflow-hidden rounded-full bg-azul-200",
-                                            lateral ? "h-7 w-7" : "h-11 w-11",
-                                        )}
-                                    >
-                                        {avatar ? (
-                                            <Image src={avatar} alt="" fill unoptimized className="object-cover" />
-                                        ) : (
-                                            <span
-                                                className={cn(
-                                                    "flex h-full items-center justify-center font-gabarito-bold text-azul-700",
-                                                    lateral && "text-xs",
-                                                )}
-                                            >
-                                                {u.nick.slice(0, 1).toUpperCase()}
-                                            </span>
-                                        )}
-                                    </div>
+                                    <AvatarUsuario
+                                        image={u.image}
+                                        nome={u.nome}
+                                        nick={u.nick}
+                                        size={lateral ? 28 : 44}
+                                        className={lateral ? "h-7 w-7" : "h-11 w-11"}
+                                    />
                                     <div className="min-w-0 flex-1">
                                         <p
                                             className={cn(
@@ -411,7 +388,7 @@ export default function DescobertaSecoes({
     mostrarTitulo = true,
 }: DescobertaSecoesProps) {
     const lateral = variante === "lateral";
-    const limiteLivros = lateral ? 4 : 12;
+    const limiteLivros = lateral ? 4 : 20;
 
     return (
         <div className={cn("flex w-full min-w-0 flex-col", lateral ? "gap-2" : "gap-6", className)}>
@@ -438,11 +415,6 @@ export default function DescobertaSecoes({
             <SecaoLivros
                 titulo="Livros em alta"
                 url={`/api/descoberta/livros/em-alta?limite=${limiteLivros}`}
-                variante={variante}
-            />
-            <SecaoLivros
-                titulo="Recentemente adicionados"
-                url={`/api/descoberta/livros/recentes?limite=${limiteLivros}`}
                 variante={variante}
             />
             <SecaoCriticosEmAlta variante={variante} />

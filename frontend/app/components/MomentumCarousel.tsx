@@ -1,13 +1,15 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion, useMotionValue, type PanInfo } from "framer-motion";
+import { animate, motion, useMotionValue, type PanInfo } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
     useCallback,
     useEffect,
     useLayoutEffect,
     useRef,
     useState,
+    type WheelEvent,
     type ReactNode,
 } from "react";
 
@@ -42,20 +44,26 @@ export default function MomentumCarousel({
     children,
 }: MomentumCarouselProps) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const trackRef = useRef<HTMLDivElement>(null);
     const [arrastando, setArrastando] = useState(false);
     const [dragConstraints, setDragConstraints] = useState({ left: 0, right: 0 });
+    const [overflowPx, setOverflowPx] = useState(0);
     const x = useMotionValue(0);
+    const animacaoRef = useRef<ReturnType<typeof animate> | null>(null);
     const bloquearCliqueRef = useRef(false);
     const limparBloqueioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const atualizarConstraints = useCallback(() => {
         const container = containerRef.current;
-        if (!container || itemCount === 0) {
+        const track = trackRef.current;
+        if (!container || !track || itemCount === 0) {
             setDragConstraints({ left: 0, right: 0 });
+            setOverflowPx(0);
             return;
         }
-        const totalWidth = itemCount * itemWidth + (itemCount - 1) * gap;
+        const totalWidth = track.scrollWidth;
         const overflow = Math.max(0, totalWidth - container.clientWidth);
+        setOverflowPx(overflow);
         setDragConstraints({ left: -overflow, right: 0 });
 
         const atual = x.get();
@@ -72,10 +80,12 @@ export default function MomentumCarousel({
 
     useEffect(() => {
         const container = containerRef.current;
-        if (!container) return;
+        const track = trackRef.current;
+        if (!container || !track) return;
 
         const observer = new ResizeObserver(() => atualizarConstraints());
         observer.observe(container);
+        observer.observe(track);
         return () => observer.disconnect();
     }, [atualizarConstraints]);
 
@@ -83,6 +93,9 @@ export default function MomentumCarousel({
         return () => {
             if (limparBloqueioTimerRef.current) {
                 clearTimeout(limparBloqueioTimerRef.current);
+            }
+            if (animacaoRef.current) {
+                animacaoRef.current.stop();
             }
         };
     }, []);
@@ -145,11 +158,45 @@ export default function MomentumCarousel({
         },
     };
 
+    function moverPorPagina(direcao: -1 | 1) {
+        const container = containerRef.current;
+        if (!container || overflowPx <= 0) return;
+        const passo = Math.max(itemWidth + gap, Math.round(container.clientWidth * 0.82));
+        const alvo = x.get() - direcao * passo;
+        const minimo = -overflowPx;
+        const destino = Math.max(minimo, Math.min(0, alvo));
+        if (animacaoRef.current) {
+            animacaoRef.current.stop();
+        }
+        animacaoRef.current = animate(x, destino, {
+            type: "spring",
+            stiffness: 340,
+            damping: 36,
+            mass: 0.8,
+        });
+    }
+
+    function onWheel(e: WheelEvent<HTMLDivElement>) {
+        if (overflowPx <= 0) return;
+        const predominanteX = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+        const delta = predominanteX ? e.deltaX : e.deltaY;
+        if (Math.abs(delta) < 1) return;
+        e.preventDefault();
+        const minimo = -overflowPx;
+        const proximo = x.get() - delta * 0.9;
+        x.set(Math.max(minimo, Math.min(0, proximo)));
+    }
+
     return (
-        <div ref={containerRef} className={cn("relative overflow-hidden", className)}>
+        <div
+            ref={containerRef}
+            className={cn("relative overflow-hidden", className)}
+            onWheel={onWheel}
+        >
             <motion.div
+                ref={trackRef}
                 className={cn(
-                    "flex cursor-grab touch-pan-y active:cursor-grabbing",
+                    "flex cursor-grab touch-pan-y select-none active:cursor-grabbing",
                     trackClassName,
                 )}
                 style={{ x, gap }}
@@ -169,6 +216,26 @@ export default function MomentumCarousel({
             >
                 {children(api)}
             </motion.div>
+            {overflowPx > 0 ? (
+                <>
+                    <button
+                        type="button"
+                        onClick={() => moverPorPagina(-1)}
+                        className="absolute left-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-cinza-200 bg-white/90 p-1.5 text-azul-900 shadow-sm transition hover:bg-white md:inline-flex"
+                        aria-label="Voltar carrossel"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => moverPorPagina(1)}
+                        className="absolute right-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-cinza-200 bg-white/90 p-1.5 text-azul-900 shadow-sm transition hover:bg-white md:inline-flex"
+                        aria-label="Avançar carrossel"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </button>
+                </>
+            ) : null}
         </div>
     );
 }

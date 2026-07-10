@@ -16,7 +16,7 @@ export type LivroPerfilItem = {
     paginas?: number;
     porcentagem: number;
     status: StatusEstante;
-    temResenha: boolean;
+    temAvaliacao: boolean;
 };
 
 type PerfilLivroModalProps = {
@@ -95,7 +95,7 @@ export default function PerfilLivroModal({
                 </div>
 
                 <div className="space-y-2">
-                    <h4 className="font-gabarito-bold text-base text-azul-900">Resenha</h4>
+                    <h4 className="font-gabarito-bold text-base text-azul-900">Avaliação</h4>
                     {avaliacao ? (
                         <div className="rounded-xl border border-gray-200 bg-white p-3">
                             <p className="font-gabarito-bold text-azul-600">
@@ -107,7 +107,7 @@ export default function PerfilLivroModal({
                             </p>
                         </div>
                     ) : (
-                        <p className="font-gabarito-regular text-sm text-cinza-700">Você ainda não publicou resenha desse livro.</p>
+                        <p className="font-gabarito-regular text-sm text-cinza-700">Você ainda não publicou uma avaliação desse livro.</p>
                     )}
                 </div>
 
@@ -116,7 +116,7 @@ export default function PerfilLivroModal({
                         <h4 className="font-gabarito-bold text-base text-azul-900">Atualizar status</h4>
                         {avaliacao ? (
                             <p className="font-gabarito-regular text-sm text-cinza-700">
-                                Como você já publicou uma resenha, este livro permanece como <strong>lido</strong>.
+                                Como você já publicou uma avaliação, este livro permanece como <strong>lido</strong>.
                             </p>
                         ) : (
                             <div className="flex flex-wrap gap-2">

@@ -15,8 +15,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ListarTemplatesResenha retorna modelos ativos para a criação de resenhas.
-func ListarTemplatesResenha(w http.ResponseWriter, r *http.Request) {
+// ListarTemplatesAvaliacao retorna modelos ativos para a criação de avaliações.
+func ListarTemplatesAvaliacao(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -31,9 +31,9 @@ func ListarTemplatesResenha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resultado := make([]modelos.TemplateResenha, 0, len(templates))
+	resultado := make([]modelos.TemplateAvaliacao, 0, len(templates))
 	for _, template := range templates {
-		resultado = append(resultado, template.ParaResenha())
+		resultado = append(resultado, template.ParaAvaliacao())
 	}
 	respostas.JSON(w, http.StatusOK, resultado)
 }
@@ -213,7 +213,7 @@ func AdminExcluirTemplate(w http.ResponseWriter, r *http.Request) {
 		}
 		respostas.JSON(w, http.StatusOK, map[string]any{
 			"inativado": true,
-			"mensagem":  "Template inativado porque está em uso em resenhas.",
+			"mensagem":  "Template inativado porque está em uso em avaliações.",
 		})
 		return
 	}

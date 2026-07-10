@@ -201,7 +201,7 @@ export default function BannerPerfil({
         <div className={`relative ${reposicionando ? "z-20" : "z-0"}`}>
             <div
                 ref={containerRef}
-                className={`relative h-32 w-full overflow-hidden ${
+                className={`relative h-32 w-full overflow-hidden rounded-2xl ${
                     reposicionando ? "cursor-grab active:cursor-grabbing touch-none" : ""
                 }`}
                 onPointerDown={onPointerDown}

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import AvisoAssinaturaExpirando from "./AvisoAssinaturaExpirando";
 import MenuDireito from "./MenuDireito";
 import MenuEsquerdo from "./MenuEsquerdo";
-import NovaResenhaFlutuante from "./NovaResenhaFlutuante";
+import NovaAvaliacaoFlutuante from "./NovaAvaliacaoFlutuante";
 import StreakFlutuante from "./StreakFlutuante";
 import { usePlano } from "./PlanoProvider";
 
@@ -68,7 +68,7 @@ export default function Main({ children }: { children: React.ReactNode }) {
             ) : null}
 
             {!isMensagens && !modoZen ? <StreakFlutuante /> : null}
-            {!isMensagens && !modoZen ? <NovaResenhaFlutuante /> : null}
+            {!isMensagens && !modoZen ? <NovaAvaliacaoFlutuante /> : null}
         </main>
     );
 }

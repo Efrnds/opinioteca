@@ -19,7 +19,7 @@ type EstanteItem struct {
 	Status           string       `json:"status"`
 	PorcentagemAtual float64      `json:"porcentagem_atual"`
 	AdicionadoEm     time.Time    `json:"adicionado_em"`
-	TemResenha       bool         `json:"tem_resenha"`
+	TemAvaliacao       bool         `json:"tem_avaliacao"`
 }
 
 type EstanteResposta struct {

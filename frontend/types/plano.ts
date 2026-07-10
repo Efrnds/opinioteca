@@ -38,9 +38,9 @@ export type RecursoPlano =
     | "gifAvatar"
     | "opinioWrapped"
     | "temasCustom"
-    | "templatesResenha"
+    | "templatesAvaliacao"
     | "estatisticasLeitura"
-    | "edicaoResenhas"
+    | "edicaoAvaliacoes"
     | "historicoLeitura";
 
 export const PLANO_BADGE: Record<CodigoPlano, { rotulo: string; cor: string }> = {

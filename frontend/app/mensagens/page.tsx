@@ -27,7 +27,6 @@ import {
     Send,
     Smile,
     Trash2,
-    User,
     X,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -47,6 +46,7 @@ import {
 } from "react";
 import Box from "../components/Box";
 import DenunciarModal from "../components/DenunciarModal";
+import AvatarUsuario from "../components/AvatarUsuario";
 import { useWebSocket } from "../components/WebSocketProvider";
 
 type UsuarioMinimo = {
@@ -857,19 +857,13 @@ function MensagensConteudo() {
                                         onClick={() => setChatAtivo(conversa.usuario_id)}
                                         className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left transition hover:bg-background"
                                     >
-                                        {conversa.image ? (
-                                            <Image
-                                                src={mediaUrl(conversa.image)!}
-                                                alt={conversa.nome}
-                                                width={40}
-                                                height={40}
-                                                className="h-10 w-10 rounded-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-azul-100 font-gabarito-bold text-azul-900">
-                                                {conversa.nome.charAt(0).toUpperCase()}
-                                            </div>
-                                        )}
+                                        <AvatarUsuario
+                                            image={conversa.image}
+                                            nome={conversa.nome}
+                                            nick={conversa.nick}
+                                            size={40}
+                                            className="h-10 w-10"
+                                        />
                                         <div className="min-w-0 flex-1">
                                             <p className="flex items-center gap-1 truncate font-gabarito-bold text-sm text-azul-900">
                                                 {conversa.fixada && <span aria-label="Fixada">📌</span>}
@@ -941,19 +935,13 @@ function MensagensConteudo() {
                                 >
                                     <ArrowLeft className="h-5 w-5" />
                                 </button>
-                                {conversaAtiva.image ? (
-                                    <Image
-                                        src={mediaUrl(conversaAtiva.image)!}
-                                        alt={conversaAtiva.nome}
-                                        width={40}
-                                        height={40}
-                                        className="h-10 w-10 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-azul-100 font-gabarito-bold text-azul-900">
-                                        {conversaAtiva.nome.charAt(0).toUpperCase()}
-                                    </div>
-                                )}
+                                <AvatarUsuario
+                                    image={conversaAtiva.image}
+                                    nome={conversaAtiva.nome}
+                                    nick={conversaAtiva.nick}
+                                    size={40}
+                                    className="h-10 w-10"
+                                />
                                 <div>
                                     <p className="font-gabarito-bold text-base text-azul-900">{conversaAtiva.nome}</p>
                                     <p className="font-gabarito-regular text-xs text-cinza-700">
@@ -1408,19 +1396,13 @@ function MensagensConteudo() {
                                     onClick={() => selecionarUsuarioModal(usuario)}
                                     className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition hover:bg-background"
                                 >
-                                    {usuario.image ? (
-                                        <Image
-                                            src={mediaUrl(usuario.image)!}
-                                            alt={usuario.nome}
-                                            width={36}
-                                            height={36}
-                                            className="h-9 w-9 rounded-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-azul-100">
-                                            <User className="h-4 w-4 text-azul-600" />
-                                        </div>
-                                    )}
+                                    <AvatarUsuario
+                                        image={usuario.image}
+                                        nome={usuario.nome}
+                                        nick={usuario.nick}
+                                        size={36}
+                                        className="h-9 w-9"
+                                    />
                                     <div className="min-w-0">
                                         <p className="truncate font-gabarito-bold text-sm text-azul-900">
                                             {usuario.nome}

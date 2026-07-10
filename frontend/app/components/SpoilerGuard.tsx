@@ -38,7 +38,7 @@ export default function SpoilerGuard({ ativo, children, mensagem }: SpoilerGuard
                     type="button"
                     onClick={() => setRevelado(true)}
                     aria-label="Revelar conteúdo com spoiler"
-                    className="rounded-full bg-white px-5 py-2.5 font-gabarito-bold text-sm text-azul-900 shadow-md transition hover:bg-azul-50"
+                    className="rounded-full bg-superficie px-5 py-2.5 font-gabarito-bold text-sm text-azul-900 shadow-md transition hover:bg-azul-50"
                 >
                     Ver mesmo assim
                 </button>

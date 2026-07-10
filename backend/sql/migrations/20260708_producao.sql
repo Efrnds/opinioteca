@@ -1,6 +1,6 @@
 -- Migração única de produção (2026-07-08)
 -- Consolida: configuracoes_descoberta, planos_assinatura, opiniopro_features,
---            templates_resenha, templates_admin, usuario_estante
+--            templates_avaliacao, templates_admin, usuario_estante
 --
 -- Idempotente: seguro em bancos parcialmente migrados (IF NOT EXISTS, ON CONFLICT).
 -- Não necessário em instalação nova via sql.sql.
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS usuario_meta_leitura (
 );
 
 -- =============================================================================
--- 4. Templates de resenha (seed + colunas admin + corpo completo)
+-- 4. Templates de avaliação (seed + colunas admin + corpo completo)
 -- =============================================================================
 
 ALTER TABLE templates
@@ -170,7 +170,7 @@ Leitores que buscam [experiência] e toleram [tom/ritmo].
 SELECT setval(pg_get_serial_sequence('templates', 'id'), COALESCE((SELECT MAX(id) FROM templates), 1));
 
 -- =============================================================================
--- 5. Estante pessoal + backfill a partir do diário e resenhas
+-- 5. Estante pessoal + backfill a partir do diário e avaliações
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS usuario_estante (

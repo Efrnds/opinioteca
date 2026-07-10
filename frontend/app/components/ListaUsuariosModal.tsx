@@ -11,6 +11,7 @@ export type UsuarioListaItem = {
     nome: string;
     nick: string;
     image?: string;
+    image_url?: string;
     assinaturaId?: number;
     temPlanoTop?: boolean;
     temPlanoPro?: boolean;
@@ -49,7 +50,7 @@ export default function ListaUsuariosModal({ open, onClose, titulo, usuarios, va
                                     className="flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-background active:bg-background"
                                 >
                                     <AvatarUsuario
-                                        image={usuario.image}
+                                        image={usuario.image || usuario.image_url}
                                         nome={usuario.nome}
                                         nick={usuario.nick}
                                         assinaturaId={usuario.assinaturaId}

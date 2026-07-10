@@ -108,7 +108,7 @@ export default function TemplateFormModal({ open, template, onClose, onSalvo }: 
                                 {editando ? "Editar Template" : "Novo Template"}
                             </h2>
                             <p className="mt-1 font-gabarito-regular text-sm text-cinza-600">
-                                Modelos aparecem na criação de resenhas para assinantes do plano mínimo
+                                Modelos aparecem na criação de avaliações para assinantes do plano mínimo
                                 configurado.
                             </p>
 
@@ -143,7 +143,7 @@ export default function TemplateFormModal({ open, template, onClose, onSalvo }: 
                                         value={texto}
                                         onChange={(e) => setTexto(e.target.value)}
                                         rows={12}
-                                        placeholder="Texto que preenche a resenha ao selecionar o modelo…"
+                                        placeholder="Texto que preenche a avaliação ao selecionar o modelo…"
                                         className="resize-y rounded-xl border border-cinza-200 px-4 py-3 font-gabarito-regular text-sm leading-relaxed outline-none focus:border-azul-600"
                                     />
                                 </label>

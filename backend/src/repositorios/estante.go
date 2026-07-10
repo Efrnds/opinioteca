@@ -66,11 +66,11 @@ func (repositorio Estante) Listar(usuarioID uint64) ([]modelos.EstanteItem, erro
 			&item.Livro.CapaURL,
 			&item.Livro.Paginas,
 			&item.PorcentagemAtual,
-			&item.TemResenha,
+			&item.TemAvaliacao,
 		); erro != nil {
 			return nil, erro
 		}
-		if item.TemResenha {
+		if item.TemAvaliacao {
 			item.Status = "lido"
 			item.PorcentagemAtual = 100
 		}

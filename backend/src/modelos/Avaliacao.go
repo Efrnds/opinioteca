@@ -95,10 +95,10 @@ func (req *CriarAvaliacaoRequest) Preparar() error {
 		return errors.New("A nota deve ser entre 1 e 5!")
 	}
 	if req.Texto != "" && textoContemLink(req.Texto) {
-		return errors.New("Links não são permitidos em resenhas")
+		return errors.New("Links não são permitidos em avaliações")
 	}
 	if req.Texto == "" && req.AnexoURL == "" {
-		return errors.New("Informe o texto da resenha ou anexe uma imagem")
+		return errors.New("Informe o texto da avaliação ou anexe uma imagem")
 	}
 
 	return nil
