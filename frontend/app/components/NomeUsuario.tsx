@@ -1,4 +1,5 @@
 import type { PlanoStatus } from "@/types/plano";
+import BadgeRank from "./BadgeRank";
 import BadgeTop from "./BadgeTop";
 
 type NomeUsuarioProps = {
@@ -8,6 +9,7 @@ type NomeUsuarioProps = {
     plano?: PlanoStatus;
     temPlanoTop?: boolean;
     temPlanoPro?: boolean;
+    rankConfiabilidade?: number | null;
     mostrarNick?: boolean;
     className?: string;
     nomeClassName?: string;
@@ -22,6 +24,7 @@ export default function NomeUsuario({
     plano,
     temPlanoTop,
     temPlanoPro,
+    rankConfiabilidade,
     mostrarNick = true,
     className = "",
     nomeClassName = "",
@@ -33,6 +36,7 @@ export default function NomeUsuario({
             <span className={`inline-flex flex-wrap items-center gap-1.5 ${className}`}>
                 <span className={nomeClassName}>{nome}</span>
                 <BadgeTop assinaturaId={assinaturaId} plano={plano} temPlanoTop={temPlanoTop} temPlanoPro={temPlanoPro} />
+                <BadgeRank rank={rankConfiabilidade} compact />
                 {mostrarNick && nick ? (
                     <span className={nickClassName}>
                         @{nick}
@@ -47,6 +51,7 @@ export default function NomeUsuario({
             <p className={`flex flex-wrap items-center gap-1.5 ${nomeClassName}`}>
                 <span>{nome}</span>
                 <BadgeTop assinaturaId={assinaturaId} plano={plano} temPlanoTop={temPlanoTop} temPlanoPro={temPlanoPro} />
+                <BadgeRank rank={rankConfiabilidade} compact />
             </p>
             {mostrarNick && nick ? (
                 <p className={nickClassName}>@{nick}</p>

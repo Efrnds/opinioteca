@@ -125,3 +125,43 @@ func (repositorio Descoberta) UsuariosSugeridos(viewerID uint64, limite int) ([]
 	}
 	return usuarios, nil
 }
+
+// UsuariosPorRank lista críticos públicos ordenados pelo rank de confiabilidade.
+func (repositorio Descoberta) UsuariosPorRank(limite int) ([]modelos.Usuario, error) {
+	if limite <= 0 || limite > 50 {
+		limite = 12
+	}
+
+	cols := colunasUsuario(repositorio.db)
+	partes := strings.Split(cols, ", ")
+	for i, p := range partes {
+		partes[i] = "u." + p
+	}
+	selectCols := strings.Join(partes, ", ")
+
+	linhas, erro := repositorio.db.Query(
+		fmt.Sprintf(`SELECT %s
+		 FROM usuarios u
+		 LEFT JOIN usuario_configuracoes c ON c.usuario_id = u.id
+		 WHERE u.status = 'ativo'
+		   AND u.rank_confiabilidade > 0
+		   AND COALESCE(c.visibilidade_perfil, 'publico') = 'publico'
+		 ORDER BY u.rank_confiabilidade DESC, u.id ASC
+		 LIMIT $1`, selectCols),
+		limite,
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	usuarios := make([]modelos.Usuario, 0)
+	for linhas.Next() {
+		var usuario modelos.Usuario
+		if erro = scanUsuario(linhas, &usuario, repositorio.db); erro != nil {
+			return nil, erro
+		}
+		usuarios = append(usuarios, usuario)
+	}
+	return usuarios, nil
+}

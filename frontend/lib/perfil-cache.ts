@@ -13,6 +13,7 @@ export type PerfilCacheUsuario = {
     email?: string;
     assinaturaId?: number;
     plano?: PlanoStatus;
+    rankConfiabilidade?: number;
     perfilPrivado?: boolean;
     contaApagada?: boolean;
     podeMensagem?: boolean;

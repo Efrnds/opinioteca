@@ -34,6 +34,7 @@ const ConfiguracoesContext = createContext<ConfiguracoesContextValue | null>(nul
 function preferenciaDeConfig(config: ConfiguracaoUsuario) {
     return {
         tema: config.tema ?? "claro",
+        daltonismoTipo: config.daltonismoTipo ?? "deuteranopia",
         corDestaque: config.corDestaque ?? "azul",
         corFundoTexto: config.corFundoTexto ?? null,
         corSuperficie: config.corSuperficie ?? null,

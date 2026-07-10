@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Link from "next/link";
 import BadgeTop from "./BadgeTop";
+import BadgeRank from "./BadgeRank";
 import AvatarUsuario from "./AvatarUsuario";
 
 export type UsuarioListaItem = {
@@ -13,6 +14,7 @@ export type UsuarioListaItem = {
     assinaturaId?: number;
     temPlanoTop?: boolean;
     temPlanoPro?: boolean;
+    rankConfiabilidade?: number;
     plano?: { temPlanoPro?: boolean; temPlanoTop?: boolean };
 };
 
@@ -63,6 +65,7 @@ export default function ListaUsuariosModal({ open, onClose, titulo, usuarios, va
                                                 temPlanoPro={usuario.temPlanoPro ?? usuario.plano?.temPlanoPro}
                                                 assinaturaId={usuario.assinaturaId}
                                             />
+                                            <BadgeRank rank={usuario.rankConfiabilidade} compact />
                                         </p>
                                         <p className="truncate font-gabarito-regular text-sm text-cinza-700">
                                             @{usuario.nick}

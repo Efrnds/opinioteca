@@ -18,7 +18,7 @@ const colunasConfig = `
 	usuario_id, ocultar_spoilers_padrao, mostrar_streak,
 	notif_seguidor, notif_comentario, notif_votos, notif_mensagens,
 	mensagem_de, streak_visivel_para, historico_visivel_para, visibilidade_perfil,
-	tema, cor_destaque, cor_fundo_texto, cor_superficie, cor_texto, cor_hover,
+	tema, daltonismo_tipo, cor_destaque, cor_fundo_texto, cor_superficie, cor_texto, cor_hover,
 	atualizado_em`
 
 func scanConfig(scanner interface {
@@ -39,6 +39,7 @@ func scanConfig(scanner interface {
 		&c.HistoricoVisivelPara,
 		&c.VisibilidadePerfil,
 		&c.Tema,
+		&c.DaltonismoTipo,
 		&c.CorDestaque,
 		&fundo,
 		&superficie,
@@ -67,6 +68,9 @@ func scanConfig(scanner interface {
 	}
 	if c.Tema == "" {
 		c.Tema = modelos.TemaClaro
+	}
+	if c.DaltonismoTipo == "" {
+		c.DaltonismoTipo = modelos.DaltonismoDeuteranopia
 	}
 	if c.CorDestaque == "" {
 		c.CorDestaque = modelos.CorDestaquePadrao
@@ -129,13 +133,14 @@ func (repositorio Configuracoes) Atualizar(usuarioID uint64, c modelos.Configura
 			historico_visivel_para = $9,
 			visibilidade_perfil = $10,
 			tema = $11,
-			cor_destaque = $12,
-			cor_fundo_texto = $13,
-			cor_superficie = $14,
-			cor_texto = $15,
-			cor_hover = $16,
-			atualizado_em = $17
-		 WHERE usuario_id = $18`,
+			daltonismo_tipo = $12,
+			cor_destaque = $13,
+			cor_fundo_texto = $14,
+			cor_superficie = $15,
+			cor_texto = $16,
+			cor_hover = $17,
+			atualizado_em = $18
+		 WHERE usuario_id = $19`,
 		c.OcultarSpoilersPadrao,
 		c.MostrarStreak,
 		c.NotifSeguidor,
@@ -147,6 +152,7 @@ func (repositorio Configuracoes) Atualizar(usuarioID uint64, c modelos.Configura
 		c.HistoricoVisivelPara,
 		c.VisibilidadePerfil,
 		c.Tema,
+		c.DaltonismoTipo,
 		c.CorDestaque,
 		nullableHex(c.CorFundoTexto),
 		nullableHex(c.CorSuperficie),

@@ -25,16 +25,13 @@ export default function Main({ children }: { children: React.ReactNode }) {
     const mostrarAvisoAssinatura = !isMensagens && !isAdmin && !isConfiguracoes;
     const { modoZen } = usePlano();
 
-    // Sticky below header + gap (--layout-sticky-top); viewport height matches that offset
     const sidebarClass =
-        "layout-sidebar sticky top-[var(--layout-sticky-top)] hidden h-[calc(100dvh-var(--layout-sticky-top))] max-h-[calc(100dvh-var(--layout-sticky-top))] shrink-0 flex-col overflow-y-auto overscroll-contain py-3 lg:flex lg:w-56 xl:w-64 xl:py-4 2xl:w-72";
+        "sticky top-[var(--layout-sticky-top)] hidden h-[calc(100dvh-var(--layout-sticky-top))] max-h-[calc(100dvh-var(--layout-sticky-top))] shrink-0 flex-col overflow-y-auto overscroll-contain lg:flex lg:w-56 lg:pt-3 lg:pb-3 xl:w-64 xl:pt-4 xl:pb-4 2xl:w-72";
 
     return (
         <main
             className={cn(
-                // gap === px at each step → equal gutters between columns and page edges
                 "flex min-w-0 flex-1 gap-2 px-2 sm:gap-3 sm:px-3 lg:gap-4 lg:px-4 xl:gap-6 xl:px-6 2xl:gap-8 2xl:px-8",
-                // Fill remaining space under Header; never grow the page on /mensagens
                 isMensagens && "min-h-0 overflow-hidden",
             )}
         >
@@ -44,7 +41,7 @@ export default function Main({ children }: { children: React.ReactNode }) {
 
             <section
                 className={cn(
-                    "min-w-0 flex-1 px-0 py-3 sm:py-4 lg:py-5",
+                    "min-w-0 flex-1 px-0 py-3 sm:py-4 lg:pt-3 lg:pb-5 xl:pt-4",
                     // Clear fixed FABs on mobile / tablet (< lg)
                     !isMensagens && "pb-20 lg:pb-5",
                     // flex-1 child + min-h-0 (not h-full) so py does not clip the composer

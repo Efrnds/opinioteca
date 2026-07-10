@@ -1,6 +1,7 @@
 export type NivelPrivacidade = "todos" | "seguidores" | "ninguem";
 export type VisibilidadePerfil = "publico" | "privado";
-export type TemaAparencia = "claro" | "escuro" | "leitor" | "custom";
+export type TemaAparencia = "claro" | "escuro" | "leitor" | "custom" | "daltonismo";
+export type DaltonismoTipo = "protanopia" | "deuteranopia" | "tritanopia" | "acromatopsia";
 export type CorDestaquePreset = "azul" | "verde" | "rosa" | "roxo" | "laranja" | "amarelo";
 
 export type ConfiguracaoUsuario = {
@@ -16,6 +17,7 @@ export type ConfiguracaoUsuario = {
     historicoVisivelPara: NivelPrivacidade;
     visibilidadePerfil: VisibilidadePerfil;
     tema: TemaAparencia;
+    daltonismoTipo: DaltonismoTipo;
     corDestaque: string;
     corFundoTexto: string | null;
     corSuperficie: string | null;
@@ -36,6 +38,7 @@ export const CONFIG_PADRAO: ConfiguracaoUsuario = {
     historicoVisivelPara: "todos",
     visibilidadePerfil: "publico",
     tema: "claro",
+    daltonismoTipo: "deuteranopia",
     corDestaque: "azul",
     corFundoTexto: null,
     corSuperficie: null,

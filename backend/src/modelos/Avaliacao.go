@@ -40,14 +40,15 @@ type CriarAvaliacaoResposta struct {
 }
 
 type UsuarioFeed struct {
-	ID           uint64 `json:"id"`
-	Nome         string `json:"nome"`
-	Nick         string `json:"nick"`
-	Image        string `json:"image,omitempty"`
-	AssinaturaID uint64 `json:"assinaturaId,omitempty"`
-	TemPlanoTop  bool   `json:"temPlanoTop,omitempty"`
-	TemPlanoPro  bool   `json:"temPlanoPro,omitempty"`
-	ContaApagada bool   `json:"contaApagada,omitempty"`
+	ID                 uint64 `json:"id"`
+	Nome               string `json:"nome"`
+	Nick               string `json:"nick"`
+	Image              string `json:"image,omitempty"`
+	AssinaturaID       uint64 `json:"assinaturaId,omitempty"`
+	TemPlanoTop        bool   `json:"temPlanoTop,omitempty"`
+	TemPlanoPro        bool   `json:"temPlanoPro,omitempty"`
+	RankConfiabilidade int    `json:"rankConfiabilidade"`
+	ContaApagada       bool   `json:"contaApagada,omitempty"`
 }
 
 type LivroFeed struct {

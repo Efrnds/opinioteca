@@ -24,4 +24,10 @@ var rotasDescoberta = []Rota{
 		Funcao:             controllers.DescobertaUsuariosSugeridos,
 		RequerAutenticacao: true,
 	},
+	{
+		URI:                "/descoberta/usuarios/rank",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.DescobertaUsuariosPorRank,
+		RequerAutenticacao: false,
+	},
 }

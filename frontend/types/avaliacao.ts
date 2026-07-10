@@ -4,6 +4,17 @@ export type ContadoresVoto = {
     score: number;
 };
 
+export type UsuarioAvaliacao = {
+    id: number;
+    nome: string;
+    nick: string;
+    image?: string;
+    assinaturaId?: number;
+    temPlanoTop?: boolean;
+    temPlanoPro?: boolean;
+    rankConfiabilidade?: number;
+};
+
 export type AvaliacaoFeed = {
     id: number;
     nota: number;
@@ -11,15 +22,7 @@ export type AvaliacaoFeed = {
     contem_spoiler?: boolean;
     anexo_url?: string;
     criado_em: string;
-    usuario: {
-        id: number;
-        nome: string;
-        nick: string;
-        image?: string;
-        assinaturaId?: number;
-        temPlanoTop?: boolean;
-        temPlanoPro?: boolean;
-    };
+    usuario: UsuarioAvaliacao;
     livro: {
         id: number;
         titulo: string;
@@ -40,13 +43,5 @@ export type ComentarioAvaliacao = {
     criado_em: string;
     votos: number;
     voto_usuario?: string;
-    usuario: {
-        id: number;
-        nome: string;
-        nick: string;
-        image?: string;
-        assinaturaId?: number;
-        temPlanoTop?: boolean;
-        temPlanoPro?: boolean;
-    };
+    usuario: UsuarioAvaliacao;
 };

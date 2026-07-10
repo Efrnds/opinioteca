@@ -77,3 +77,24 @@ func DescobertaUsuariosSugeridos(w http.ResponseWriter, r *http.Request) {
 	}
 	respostas.JSON(w, http.StatusOK, publicos)
 }
+
+func DescobertaUsuariosPorRank(w http.ResponseWriter, r *http.Request) {
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	usuarios, erro := repositorios.NovoRepositorioDeDescoberta(db).UsuariosPorRank(limiteDaQuery(r, 12))
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	publicos := make([]any, 0, len(usuarios))
+	for _, u := range usuarios {
+		publicos = append(publicos, u.ListarPublico())
+	}
+	respostas.JSON(w, http.StatusOK, publicos)
+}

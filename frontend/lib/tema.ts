@@ -1,9 +1,10 @@
-import type { CorDestaquePreset, TemaAparencia } from "@/types/configuracao";
+import type { CorDestaquePreset, DaltonismoTipo, TemaAparencia } from "@/types/configuracao";
 
 export const TEMA_STORAGE_KEY = "opinioteca-tema";
 
 export type PreferenciaTema = {
     tema: TemaAparencia;
+    daltonismoTipo: DaltonismoTipo;
     corDestaque: string;
     corFundoTexto: string | null;
     corSuperficie: string | null;
@@ -32,6 +33,11 @@ export const OPCOES_TEMA: { id: TemaAparencia; label: string; descricao: string;
     { id: "escuro", label: "Escuro", descricao: "Fundos escuros e texto claro" },
     { id: "leitor", label: "Modo leitor", descricao: "Papel creme, contraste suave para leitura longa" },
     {
+        id: "daltonismo",
+        label: "Daltonismo",
+        descricao: "Paletas adaptadas para tipos de daltonismo",
+    },
+    {
         id: "custom",
         label: "Personalizado",
         descricao: "Suas cores de fundo, superfície e hover",
@@ -57,7 +63,47 @@ const FUNDO_POR_TEMA: Record<TemaAparencia, string> = {
     claro: "#E8EAED",
     escuro: "#0F1419",
     leitor: "#EDE6D9",
+    daltonismo: "#E8EAED",
     custom: FUNDO_CUSTOM_PADRAO,
+};
+
+const PALETAS_DALTONISMO: Record<DaltonismoTipo, Record<"50" | "100" | "200" | "400" | "500" | "600" | "700", string>> = {
+    protanopia: {
+        "50": "#EEF4FF",
+        "100": "#DCE8FF",
+        "200": "#B7D0FF",
+        "400": "#3E75D5",
+        "500": "#2D5CB5",
+        "600": "#1D4D9E",
+        "700": "#173D7D",
+    },
+    deuteranopia: {
+        "50": "#EEF8F6",
+        "100": "#D5EEE9",
+        "200": "#A8DDD1",
+        "400": "#1D8F8C",
+        "500": "#117A77",
+        "600": "#0E6663",
+        "700": "#0A514E",
+    },
+    tritanopia: {
+        "50": "#FFF6EE",
+        "100": "#FFE6CF",
+        "200": "#FFD0A3",
+        "400": "#D2871F",
+        "500": "#B26F14",
+        "600": "#955C10",
+        "700": "#78490C",
+    },
+    acromatopsia: {
+        "50": "#F5F5F5",
+        "100": "#E8E8E8",
+        "200": "#D2D2D2",
+        "400": "#8A8A8A",
+        "500": "#767676",
+        "600": "#5F5F5F",
+        "700": "#4A4A4A",
+    },
 };
 
 export function ehHexCor(v: string): boolean {
@@ -349,6 +395,7 @@ export function tonsDestaque(hexBase: string, tema: TemaAparencia = "claro") {
 export function preferenciaPadrao(): PreferenciaTema {
     return {
         tema: "claro",
+        daltonismoTipo: "deuteranopia",
         corDestaque: "azul",
         corFundoTexto: null,
         corSuperficie: null,
@@ -358,8 +405,20 @@ export function preferenciaPadrao(): PreferenciaTema {
 }
 
 function normalizarTema(tema: string | undefined): TemaAparencia {
-    if (tema === "escuro" || tema === "leitor" || tema === "custom") return tema;
+    if (tema === "escuro" || tema === "leitor" || tema === "custom" || tema === "daltonismo") return tema;
     return "claro";
+}
+
+function normalizarTipoDaltonismo(tipo: string | undefined): DaltonismoTipo {
+    if (
+        tipo === "protanopia" ||
+        tipo === "deuteranopia" ||
+        tipo === "tritanopia" ||
+        tipo === "acromatopsia"
+    ) {
+        return tipo;
+    }
+    return "deuteranopia";
 }
 
 export function lerPreferenciaTema(): PreferenciaTema | null {
@@ -371,6 +430,7 @@ export function lerPreferenciaTema(): PreferenciaTema | null {
         if (!p?.tema || !p?.corDestaque) return null;
         return {
             tema: normalizarTema(p.tema),
+            daltonismoTipo: normalizarTipoDaltonismo(p.daltonismoTipo),
             corDestaque: p.corDestaque,
             corFundoTexto: p.corFundoTexto ?? null,
             corSuperficie: p.corSuperficie ?? null,
@@ -441,14 +501,16 @@ export function aplicarTemaNoDocumento(pref: PreferenciaTema) {
     const customAtivo = ehTemaCustom(tema);
     root.setAttribute("data-tema", tema);
 
+    const tipoDaltonismo = normalizarTipoDaltonismo(pref.daltonismoTipo);
     const hex = resolverHexDestaque(pref.corDestaque, tema);
-    // Tons derivados usam paleta escura só no tema escuro; custom parte do claro.
-    const temaTons: TemaAparencia = tema === "escuro" ? "escuro" : "claro";
-    const tons = tonsDestaque(hex, temaTons);
+    const tons =
+        tema === "daltonismo"
+            ? PALETAS_DALTONISMO[tipoDaltonismo]
+            : tonsDestaque(hex, tema === "escuro" ? "escuro" : "claro");
     for (const k of VARS_ACCENT) {
         root.style.setProperty(`--azul-${k}`, tons[k]);
     }
-    aplicarContrasteDestaque(root, hex, { ...pref, tema });
+    aplicarContrasteDestaque(root, tons["600"], { ...pref, tema, daltonismoTipo: tipoDaltonismo });
 
     if (!customAtivo) {
         limparOverridesCustom(root);

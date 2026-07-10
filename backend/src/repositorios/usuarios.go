@@ -820,6 +820,25 @@ func (repositorio Usuarios) AtualizarRank(tx *sql.Tx, usuarioID uint64, delta in
 	return erro
 }
 
+// RecalcularRanksFromVotos sincroniza rank_confiabilidade com a soma dos votos nas avaliações.
+// upvote = +1, downvote = -1, mínimo 0.
+func (repositorio Usuarios) RecalcularRanksFromVotos() error {
+	_, erro := repositorio.db.Exec(`
+		UPDATE usuarios u
+		SET rank_confiabilidade = GREATEST(0, COALESCE((
+			SELECT SUM(CASE
+				WHEN v.tipo_voto = 'upvote' THEN 1
+				WHEN v.tipo_voto = 'downvote' THEN -1
+				ELSE 0
+			END)
+			FROM voto_avaliacoes v
+			INNER JOIN avaliacoes a ON a.id = v.avaliacao_id
+			WHERE a.usuario_id = u.id
+		), 0))
+	`)
+	return erro
+}
+
 func (repositorio Usuarios) AtualizarSequencia(tx *sql.Tx, usuarioID uint64, sequencia int) error {
 	_, erro := tx.Exec(
 		`UPDATE usuarios

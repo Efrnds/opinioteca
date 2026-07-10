@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AlterarNickModal from "../../components/AlterarNickModal";
 import AdicionarLivroEstanteModal from "../../components/AdicionarLivroEstanteModal";
 import BadgeTop from "../../components/BadgeTop";
+import BadgeRank from "../../components/BadgeRank";
 import EstatisticasLeitura from "../../components/EstatisticasLeitura";
 import PlanoUpgradeModal from "../../components/PlanoUpgradeModal";
 import { useAuthGate } from "../../components/AuthGateProvider";
@@ -756,10 +757,14 @@ export default function PerfilNickPage() {
                                 />
                             )}
                             <div className="mt-auto min-w-0">
-                                <p className="flex min-w-0 items-center gap-1.5 font-gabarito-bold text-xl text-azul-900">
+                                <p className="flex min-w-0 flex-wrap items-center gap-1.5 font-gabarito-bold text-xl text-azul-900">
                                     <span className="truncate">{perfil.nick}</span>
                                     <BadgeTop plano={perfil.plano} assinaturaId={perfil.assinaturaId} />
+                                    <BadgeRank rank={perfil.rankConfiabilidade} ocultarSeZero={false} />
                                 </p>
+                                {perfil.nome && perfil.nome !== perfil.nick ? (
+                                    <p className="truncate font-gabarito-regular text-sm text-cinza-700">{perfil.nome}</p>
+                                ) : null}
                             </div>
                         </div>
                         {!ehMeuPerfil && (
@@ -828,15 +833,24 @@ export default function PerfilNickPage() {
 
 
 
-                    <div className="mt-4 grid grid-cols-3 rounded-xl border border-gray-200 bg-white">
+                    <div className="mt-4 grid grid-cols-2 rounded-xl border border-gray-200 bg-white sm:grid-cols-4">
                         <div className="py-3 text-center">
                             <p className="font-gabarito-bold text-2xl text-azul-600">{avaliacoes.length}</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">Resenhas</p>
                         </div>
+                        <div
+                            className="border-l border-gray-200 py-3 text-center sm:border-l"
+                            title="Rank de confiabilidade: upvotes (+1) e downvotes (−1) nas resenhas"
+                        >
+                            <p className="font-gabarito-bold text-2xl text-azul-600">
+                                {perfil.rankConfiabilidade ?? 0}
+                            </p>
+                            <p className="font-gabarito-regular text-xs text-cinza-700">Confiabilidade</p>
+                        </div>
                         <button
                             type="button"
                             onClick={() => setListaAberta("seguidores")}
-                            className="cursor-pointer border-x border-gray-200 py-3 text-center transition hover:bg-background active:bg-background"
+                            className="cursor-pointer border-t border-gray-200 py-3 text-center transition hover:bg-background active:bg-background sm:border-t-0 sm:border-l"
                         >
                             <p className="font-gabarito-bold text-2xl text-azul-600">{seguidores.length}</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">Seguidores</p>
@@ -844,7 +858,7 @@ export default function PerfilNickPage() {
                         <button
                             type="button"
                             onClick={() => setListaAberta("seguindo")}
-                            className="cursor-pointer py-3 text-center transition hover:bg-background active:bg-background"
+                            className="cursor-pointer border-t border-l border-gray-200 py-3 text-center transition hover:bg-background active:bg-background sm:border-t-0"
                         >
                             <p className="font-gabarito-bold text-2xl text-azul-600">{seguindo.length}</p>
                             <p className="font-gabarito-regular text-xs text-cinza-700">Seguindo</p>

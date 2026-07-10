@@ -33,6 +33,7 @@ export default function EstanteCarousel({
     const coresEmpty = coresTextoSobreFundo(
         resolverTomDestaque50({
             tema: (config.tema ?? "claro") as TemaAparencia,
+            daltonismoTipo: config.daltonismoTipo ?? "deuteranopia",
             corDestaque: config.corDestaque ?? "azul",
             corFundoTexto: config.corFundoTexto ?? null,
             corSuperficie: config.corSuperficie ?? null,

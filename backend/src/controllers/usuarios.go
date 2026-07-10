@@ -167,6 +167,8 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 		"nome":               publico.Nome,
 		"nick":               publico.Nick,
 		"image":              publico.Image,
+		"banner":             publico.Banner,
+		"bannerPosicao":      publico.BannerPosicao,
 		"assinaturaId":       publico.AssinaturaID,
 		"plano":              publico.Plano,
 		"rankConfiabilidade": publico.RankConfiabilidade,

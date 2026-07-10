@@ -3,6 +3,7 @@
 import {
     OPCOES_PRIVACIDADE,
     type ConfiguracaoUsuario,
+    type DaltonismoTipo,
     type NivelPrivacidade,
     type TemaAparencia,
     type VisibilidadePerfil,
@@ -40,6 +41,12 @@ import {
     resolverHexDestaque,
     resolverTomDestaque50,
 } from "@/lib/tema";
+import {
+    type PreferenciasAcessibilidade,
+    aplicarPreferenciasAcessibilidadeNoDocumento,
+    lerPreferenciasAcessibilidade,
+    salvarPreferenciasAcessibilidade,
+} from "@/lib/acessibilidade";
 import { cn } from "@/lib/utils";
 import Box from "../components/Box";
 import { useConfiguracoes } from "../components/ConfiguracoesProvider";
@@ -53,6 +60,7 @@ import packageJson from "../../package.json";
 const SECOES = [
     { id: "conta", rotulo: "Conta" },
     { id: "preferencias", rotulo: "Preferências" },
+    { id: "acessibilidade", rotulo: "Acessibilidade" },
     { id: "notificacoes", rotulo: "Notificações" },
     { id: "plano", rotulo: "Plano e assinatura" },
     { id: "privacidade", rotulo: "Privacidade" },
@@ -78,6 +86,29 @@ const PLANO_POR_ASSINATURA: Record<number, string> = {
     2: "OpinioTop",
     3: "OpinioPro",
 };
+
+const OPCOES_DALTONISMO: { value: DaltonismoTipo; label: string; descricao: string }[] = [
+    {
+        value: "deuteranopia",
+        label: "Deuteranopia (verde fraco)",
+        descricao: "Facilita distinção entre tons de verde e vermelho.",
+    },
+    {
+        value: "protanopia",
+        label: "Protanopia (vermelho fraco)",
+        descricao: "Reduz confusão entre vermelho e verde.",
+    },
+    {
+        value: "tritanopia",
+        label: "Tritanopia (azul/amarelo)",
+        descricao: "Ajusta contraste entre azuis e amarelos.",
+    },
+    {
+        value: "acromatopsia",
+        label: "Acromatopsia (baixo espectro)",
+        descricao: "Paleta em tons neutros de alto contraste.",
+    },
+];
 
 const selectClass =
     "w-full rounded-full border-2 border-cinza-400 bg-white px-4 py-2 font-gabarito-regular text-sm outline-none focus:border-azul-600";
@@ -748,6 +779,7 @@ function PreferenciasSecao() {
     const coresCardTemaAtivo = coresTextoSobreFundo(
         resolverTomDestaque50({
             tema: temaAtual,
+            daltonismoTipo: config.daltonismoTipo ?? "deuteranopia",
             corDestaque: config.corDestaque ?? "azul",
             corFundoTexto: config.corFundoTexto ?? null,
             corSuperficie: config.corSuperficie ?? null,
@@ -757,6 +789,7 @@ function PreferenciasSecao() {
     );
     const prefPreview = {
         tema: temaAtual,
+        daltonismoTipo: config.daltonismoTipo ?? "deuteranopia",
         corDestaque: config.corDestaque ?? "azul",
         corFundoTexto: config.corFundoTexto ?? null,
         corSuperficie: config.corSuperficie ?? null,
@@ -784,6 +817,7 @@ function PreferenciasSecao() {
     function prefCom(parcial: Partial<ConfiguracaoUsuario>) {
         return {
             tema: (parcial.tema ?? config.tema ?? "claro") as TemaAparencia,
+            daltonismoTipo: parcial.daltonismoTipo ?? config.daltonismoTipo ?? "deuteranopia",
             corDestaque: parcial.corDestaque ?? config.corDestaque ?? "azul",
             corFundoTexto:
                 parcial.corFundoTexto !== undefined ? parcial.corFundoTexto : (config.corFundoTexto ?? null),
@@ -853,6 +887,35 @@ function PreferenciasSecao() {
                         Tema e cor de destaque da interface.
                     </p>
                 </div>
+
+                {temaAtual === "daltonismo" ? (
+                    <div className="rounded-xl border border-cinza-200 p-3">
+                        <p className="font-gabarito-medium text-sm text-azul-900">Tipo de daltonismo</p>
+                        <p className="mt-0.5 font-gabarito-regular text-xs text-cinza-700">
+                            Escolha a paleta que melhora a diferenciação de cores para você.
+                        </p>
+                        <select
+                            className={`${selectClass} mt-2`}
+                            value={config.daltonismoTipo ?? "deuteranopia"}
+                            onChange={(e) =>
+                                void atualizar({
+                                    tema: "daltonismo",
+                                    daltonismoTipo: e.target.value as DaltonismoTipo,
+                                })
+                            }
+                        >
+                            {OPCOES_DALTONISMO.map((opcao) => (
+                                <option key={opcao.value} value={opcao.value}>
+                                    {opcao.label}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="mt-2 font-gabarito-regular text-xs text-cinza-700">
+                            {OPCOES_DALTONISMO.find((o) => o.value === (config.daltonismoTipo ?? "deuteranopia"))
+                                ?.descricao ?? "Paleta de acessibilidade ativa."}
+                        </p>
+                    </div>
+                ) : null}
 
                 <div>
                     <p className="mb-2 font-gabarito-medium text-sm text-azul-900">Tema</p>
@@ -1240,6 +1303,77 @@ function PrivacidadeSecao() {
     );
 }
 
+function AcessibilidadeSecao() {
+    const router = useRouter();
+    const [prefs, setPrefs] = useState<PreferenciasAcessibilidade>(() => lerPreferenciasAcessibilidade());
+
+    function atualizar(parcial: Partial<PreferenciasAcessibilidade>) {
+        setPrefs((anterior) => {
+            const proximo = { ...anterior, ...parcial };
+            aplicarPreferenciasAcessibilidadeNoDocumento(proximo);
+            salvarPreferenciasAcessibilidade(proximo);
+            return proximo;
+        });
+    }
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="rounded-xl border border-cinza-200 p-4">
+                <p className="font-gabarito-bold text-base text-azul-900">Tema para daltonismo</p>
+                <p className="mt-1 font-gabarito-regular text-sm text-cinza-700">
+                    O ajuste de paleta de daltonismo fica em Preferências para manter todos os temas no mesmo lugar.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => router.replace("/configuracoes?secao=preferencias")}
+                    className="mt-3 rounded-full border border-cinza-300 px-4 py-2 font-gabarito-bold text-sm text-azul-900 hover:bg-azul-50"
+                >
+                    Ir para Preferências (Tema)
+                </button>
+            </div>
+
+            <div className="rounded-xl border border-cinza-200 p-4">
+                <label className="flex flex-col gap-1.5">
+                    <span className="font-gabarito-medium text-sm text-azul-900">Tamanho da fonte</span>
+                    <select
+                        className={selectClass}
+                        value={prefs.tamanhoFonte}
+                        onChange={(e) => atualizar({ tamanhoFonte: e.target.value as PreferenciasAcessibilidade["tamanhoFonte"] })}
+                    >
+                        <option value="padrao">Padrão</option>
+                        <option value="grande">Grande</option>
+                        <option value="extra">Extra grande</option>
+                    </select>
+                </label>
+                <p className="mt-2 font-gabarito-regular text-sm text-cinza-700">
+                    Aumenta a legibilidade da interface inteira.
+                </p>
+            </div>
+
+            <div className="divide-y divide-cinza-200 rounded-xl border border-cinza-200 px-4 py-1">
+                <ToggleLinha
+                    label="Reduzir movimento"
+                    descricao="Diminui animações e transições para evitar desconforto visual."
+                    checked={prefs.reduzirMovimento}
+                    onChange={(v) => atualizar({ reduzirMovimento: v })}
+                />
+                <ToggleLinha
+                    label="Contraste alto"
+                    descricao="Reforça bordas e textos secundários para facilitar leitura."
+                    checked={prefs.altoContraste}
+                    onChange={(v) => atualizar({ altoContraste: v })}
+                />
+                <ToggleLinha
+                    label="Foco mais visível"
+                    descricao="Aumenta o contorno ao navegar por teclado."
+                    checked={prefs.focoVisivel}
+                    onChange={(v) => atualizar({ focoVisivel: v })}
+                />
+            </div>
+        </div>
+    );
+}
+
 function ConfiguracoesConteudo() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -1284,6 +1418,7 @@ function ConfiguracoesConteudo() {
                 ) : null}
                 {secao === "conta" && <ContaSecao />}
                 {secao === "preferencias" && <PreferenciasSecao />}
+                {secao === "acessibilidade" && <AcessibilidadeSecao />}
                 {secao === "notificacoes" && <NotificacoesSecao />}
                 {secao === "plano" && <PlanoSecao />}
                 {secao === "privacidade" && <PrivacidadeSecao />}

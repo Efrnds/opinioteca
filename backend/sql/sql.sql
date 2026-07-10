@@ -97,7 +97,9 @@
             CHECK (visibilidade_perfil IN ('publico', 'privado')),
 
         tema VARCHAR(20) NOT NULL DEFAULT 'claro'
-            CHECK (tema IN ('claro', 'escuro', 'leitor', 'custom')),
+            CHECK (tema IN ('claro', 'escuro', 'leitor', 'custom', 'daltonismo')),
+        daltonismo_tipo VARCHAR(20) NOT NULL DEFAULT 'deuteranopia'
+            CHECK (daltonismo_tipo IN ('protanopia', 'deuteranopia', 'tritanopia', 'acromatopsia')),
         cor_destaque VARCHAR(32) NOT NULL DEFAULT 'azul',
         cor_fundo_texto VARCHAR(32),
         cor_superficie VARCHAR(32),

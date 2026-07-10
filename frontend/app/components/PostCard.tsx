@@ -22,6 +22,7 @@ import { useAuthGate } from "./AuthGateProvider";
 import ComentarioComposer, { ComentarioMidia } from "./ComentarioComposer";
 import { useConfiguracoes } from "./ConfiguracoesProvider";
 import BadgeTop from "./BadgeTop";
+import BadgeRank from "./BadgeRank";
 import AvatarUsuario from "./AvatarUsuario";
 import DenunciarModal from "./DenunciarModal";
 import EditarAvaliacaoModal from "./EditarAvaliacaoModal";
@@ -137,6 +138,7 @@ export default function PostCard({
 
     const prefLivro: PreferenciaTema = {
         tema: (config.tema ?? "claro") as TemaAparencia,
+        daltonismoTipo: config.daltonismoTipo ?? "deuteranopia",
         corDestaque: config.corDestaque ?? "azul",
         corFundoTexto: config.corFundoTexto ?? null,
         corSuperficie: config.corSuperficie ?? null,
@@ -160,6 +162,7 @@ export default function PostCard({
 
     const [votos, setVotos] = useState(post?.votos ?? { upvotes: 0, downvotes: 0, score: 0 });
     const [meuVoto, setMeuVoto] = useState(post.meu_voto);
+    const [rankAutor, setRankAutor] = useState(usuario.rankConfiabilidade ?? 0);
     const [votando, setVotando] = useState(false);
     const [erroVoto, setErroVoto] = useState("");
     const [menuAberto, setMenuAberto] = useState(false);
@@ -202,7 +205,13 @@ export default function PostCard({
     useEffect(() => {
         setVotos(post.votos);
         setMeuVoto(post.meu_voto);
-    }, [post.votos, post.meu_voto]);
+        setRankAutor(post.usuario.rankConfiabilidade ?? 0);
+    }, [post.votos, post.meu_voto, post.usuario.rankConfiabilidade]);
+
+    function deltaRankDoVoto(anterior?: string, proximo?: string) {
+        const valor = (tipo?: string) => (tipo === "upvote" ? 1 : tipo === "downvote" ? -1 : 0);
+        return valor(proximo) - valor(anterior);
+    }
 
     useEffect(() => {
         return subscribe((tipo, payload) => {
@@ -256,6 +265,7 @@ export default function PostCard({
                 const { votos: novosVotos, meuVoto: novoMeuVoto } = extrairVotos(data);
                 setVotos(novosVotos);
                 setMeuVoto(novoMeuVoto);
+                setRankAutor((atual) => Math.max(0, atual + deltaRankDoVoto(meuVoto, undefined)));
             } else {
                 const res = await fetch(`/api/avaliacoes/${post.id}/voto`, {
                     method: "POST",
@@ -272,6 +282,7 @@ export default function PostCard({
                 const { votos: novosVotos, meuVoto: novoMeuVoto } = extrairVotos(data);
                 setVotos(novosVotos);
                 setMeuVoto(novoMeuVoto || tipo);
+                setRankAutor((atual) => Math.max(0, atual + deltaRankDoVoto(meuVoto, tipo)));
             }
         } catch {
             setErroVoto("Não foi possível registrar o voto.");
@@ -578,11 +589,14 @@ export default function PostCard({
                         <p className={`flex flex-wrap items-center gap-1.5 truncate font-gabarito-bold text-lg text-azul-900 ${contaApagada ? "" : "hover:underline"}`}>
                             <span>{contaApagada ? "Conta apagada" : usuario.nome}</span>
                             {!contaApagada ? (
-                                <BadgeTop
-                                    temPlanoTop={usuario.temPlanoTop}
-                                    temPlanoPro={usuario.temPlanoPro}
-                                    assinaturaId={usuario.assinaturaId}
-                                />
+                                <>
+                                    <BadgeTop
+                                        temPlanoTop={usuario.temPlanoTop}
+                                        temPlanoPro={usuario.temPlanoPro}
+                                        assinaturaId={usuario.assinaturaId}
+                                    />
+                                    <BadgeRank rank={rankAutor} compact />
+                                </>
                             ) : null}
                         </p>
                         {!contaApagada && (

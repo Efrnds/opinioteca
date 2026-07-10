@@ -15,10 +15,16 @@ const (
 	VisibilidadePrivado   = "privado"
 	DiasReativacaoConta   = 30
 
-	TemaClaro  = "claro"
-	TemaEscuro = "escuro"
-	TemaLeitor = "leitor"
-	TemaCustom = "custom"
+	TemaClaro      = "claro"
+	TemaEscuro     = "escuro"
+	TemaLeitor     = "leitor"
+	TemaCustom     = "custom"
+	TemaDaltonismo = "daltonismo"
+
+	DaltonismoProtanopia   = "protanopia"
+	DaltonismoDeuteranopia = "deuteranopia"
+	DaltonismoTritanopia   = "tritanopia"
+	DaltonismoAcromatopsia = "acromatopsia"
 
 	CorDestaquePadrao = "azul"
 )
@@ -52,6 +58,7 @@ type ConfiguracaoUsuario struct {
 	VisibilidadePerfil   string `json:"visibilidadePerfil"`
 
 	Tema          string  `json:"tema"`
+	DaltonismoTipo string `json:"daltonismoTipo"`
 	CorDestaque   string  `json:"corDestaque"`
 	CorFundoTexto *string `json:"corFundoTexto"`
 	CorSuperficie *string `json:"corSuperficie"`
@@ -75,6 +82,7 @@ func ConfiguracaoPadrao(usuarioID uint64) ConfiguracaoUsuario {
 		HistoricoVisivelPara:  PrivacidadeTodos,
 		VisibilidadePerfil:    VisibilidadePublico,
 		Tema:                  TemaClaro,
+		DaltonismoTipo:        DaltonismoDeuteranopia,
 		CorDestaque:           CorDestaquePadrao,
 	}
 }
@@ -84,7 +92,14 @@ func nivelPrivacidadeValido(v string) bool {
 }
 
 func temaValido(v string) bool {
-	return v == TemaClaro || v == TemaEscuro || v == TemaLeitor || v == TemaCustom
+	return v == TemaClaro || v == TemaEscuro || v == TemaLeitor || v == TemaCustom || v == TemaDaltonismo
+}
+
+func tipoDaltonismoValido(v string) bool {
+	return v == DaltonismoProtanopia ||
+		v == DaltonismoDeuteranopia ||
+		v == DaltonismoTritanopia ||
+		v == DaltonismoAcromatopsia
 }
 
 func CorHexValida(v string) bool {
@@ -124,10 +139,17 @@ func (c *ConfiguracaoUsuario) Preparar(permiteCustomPro bool) error {
 		c.Tema = TemaClaro
 	}
 	if !temaValido(c.Tema) {
-		return errors.New("tema inválido: use claro, escuro, leitor ou custom")
+		return errors.New("tema inválido: use claro, escuro, leitor, custom ou daltonismo")
 	}
 	if c.Tema == TemaCustom && !permiteCustomPro {
 		c.Tema = TemaClaro
+	}
+	if strings.TrimSpace(c.DaltonismoTipo) == "" {
+		c.DaltonismoTipo = DaltonismoDeuteranopia
+	}
+	c.DaltonismoTipo = strings.ToLower(strings.TrimSpace(c.DaltonismoTipo))
+	if !tipoDaltonismoValido(c.DaltonismoTipo) {
+		return errors.New("daltonismoTipo inválido: use protanopia, deuteranopia, tritanopia ou acromatopsia")
 	}
 
 	c.CorDestaque = strings.TrimSpace(c.CorDestaque)

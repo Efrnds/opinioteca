@@ -39,6 +39,7 @@ func (req *VotoRequest) Preparar() error {
 }
 
 func DeltaRank(tipoVoto string) int {
+	// Rank de confiabilidade do autor da avaliação: upvote +1, downvote -1 (piso 0 no UPDATE).
 	if tipoVoto == "upvote" {
 		return 1
 	}

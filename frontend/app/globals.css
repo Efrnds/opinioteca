@@ -161,6 +161,29 @@ html[data-tema="leitor"] {
   --logo-fill: #1B2432;
 }
 
+/* Daltonismo: base clara com paleta de destaque aplicada por JS conforme tipo selecionado. */
+html[data-tema="daltonismo"] {
+  --azul-900: #1B2432;
+  --azul-800: #000E33;
+  --cinza-700: #5b6470;
+  --cinza-600: #4f5865;
+  --cinza-500: #7b8593;
+  --cinza-300: #d1d5db;
+  --cinza-200: #e5e7eb;
+  --cinza-100: #f3f4f6;
+  --background: #E8EAED;
+  --superficie: #ffffff;
+  --fundo-texto: #ffffff;
+  --foreground: #171717;
+  --texto: #171717;
+  --card: #E8EAED;
+  --card-foreground: #171717;
+  --popover: #E8EAED;
+  --popover-foreground: #171717;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #171717;
+}
+
 /* Personalizado: base clara; overrides via JS (--background, --superficie, etc.). */
 html[data-tema="custom"] {
   --azul-900: #1B2432;
@@ -320,6 +343,47 @@ html[data-tema="leitor"] textarea::placeholder,
 html[data-tema="custom"] input::placeholder,
 html[data-tema="custom"] textarea::placeholder {
   color: var(--cinza-700);
+}
+
+/* Acessibilidade: controle de fonte, contraste, foco e movimento. */
+html[data-acess-font="grande"] {
+  font-size: 17px;
+}
+
+html[data-acess-font="extra"] {
+  font-size: 18px;
+}
+
+html[data-acess-contraste="alto"] {
+  --cinza-700: #374151;
+  --cinza-600: #1f2937;
+  --cinza-500: #4b5563;
+  --border: oklch(0.74 0 0);
+}
+
+html[data-acess-contraste="alto"] .text-cinza-700 {
+  color: #374151;
+}
+
+html[data-acess-contraste="alto"] .border-gray-200,
+html[data-acess-contraste="alto"] .border-gray-300,
+html[data-acess-contraste="alto"] .border-cinza-100,
+html[data-acess-contraste="alto"] .border-cinza-200 {
+  border-color: #6b7280;
+}
+
+html[data-acess-foco="alto"] :focus-visible {
+  outline: 3px solid var(--azul-600);
+  outline-offset: 2px;
+}
+
+html[data-acess-reduce-motion="true"] *,
+html[data-acess-reduce-motion="true"] *::before,
+html[data-acess-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 /*
@@ -712,20 +776,13 @@ html[data-tema="custom"] [data-admin] textarea::placeholder {
 }
 
 /*
- * Sticky side columns (lg+): clear the sticky header, then leave a gap.
- * Header @ lg: md:p-4 (2rem) + search (border-4 + p-2 + h-6 = 4.5rem) + border-b-2 (0.125rem).
- * Gap matches the lg column gutter (gap-4 / 1rem).
+ * Sticky side columns (lg+): clear the sticky header.
+ * Keep top alignment with the feed; vertical breathing room comes from each
+ * column internal padding (`py-*`), not from an extra sticky offset.
+ * Header @ lg: search row (~4.5rem) + border-b-2 (0.125rem) ~= 4.625rem.
  */
 :root {
-  --layout-header-height: 6.625rem;
-  --layout-sticky-gap: 1rem;
+  --layout-header-height: 4.625rem;
+  --layout-sticky-gap: 0rem;
   --layout-sticky-top: calc(var(--layout-header-height) + var(--layout-sticky-gap));
-}
-
-/* Short viewports: slightly denser page rhythm without nested scroll hell */
-@media (max-height: 900px) {
-  .layout-sidebar {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-  }
 }

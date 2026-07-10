@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Box from "./Box";
+import BadgeRank from "./BadgeRank";
 import MomentumCarousel, { type MomentumCarouselApi } from "./MomentumCarousel";
 
 type UsuarioSugerido = {
@@ -16,6 +17,7 @@ type UsuarioSugerido = {
     nome: string;
     nick: string;
     image?: string;
+    rankConfiabilidade?: number;
 };
 
 type Variante = "pagina" | "lateral";
@@ -246,11 +248,12 @@ function SecaoUsuariosSugeridos({ variante }: { variante: Variante }) {
                                     <div className="min-w-0">
                                         <p
                                             className={cn(
-                                                "truncate font-gabarito-bold text-azul-900",
+                                                "flex min-w-0 items-center gap-1 truncate font-gabarito-bold text-azul-900",
                                                 lateral && "text-xs leading-tight",
                                             )}
                                         >
-                                            {u.nome}
+                                            <span className="truncate">{u.nome}</span>
+                                            <BadgeRank rank={u.rankConfiabilidade} compact />
                                         </p>
                                         <p
                                             className={cn(
@@ -274,6 +277,119 @@ function SecaoUsuariosSugeridos({ variante }: { variante: Variante }) {
                                     <UserPlus className={lateral ? "h-3 w-3" : "h-4 w-4"} />
                                     {jaSegue ? "Seguindo" : "Seguir"}
                                 </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </Box>
+    );
+}
+
+function SecaoCriticosEmAlta({ variante }: { variante: Variante }) {
+    const [usuarios, setUsuarios] = useState<UsuarioSugerido[]>([]);
+    const [carregando, setCarregando] = useState(true);
+    const lateral = variante === "lateral";
+    const limite = lateral ? 5 : 12;
+
+    useEffect(() => {
+        fetch(`/api/descoberta/usuarios/rank?limite=${limite}`)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((data) => setUsuarios(Array.isArray(data) ? data : []))
+            .catch(() => setUsuarios([]))
+            .finally(() => setCarregando(false));
+    }, [limite]);
+
+    return (
+        <Box className={cn("flex flex-col", lateral ? "gap-1.5 !p-2.5" : "gap-4 !p-5")}>
+            <div className="flex items-baseline justify-between gap-2">
+                <h2
+                    className={cn(
+                        "font-gabarito-bold text-azul-900",
+                        lateral ? "text-sm" : "text-2xl",
+                    )}
+                >
+                    Críticos em alta
+                </h2>
+                {lateral && (
+                    <Link
+                        href="/explorar"
+                        className="shrink-0 font-gabarito-medium text-xs text-azul-600 hover:text-azul-800"
+                    >
+                        Ver mais
+                    </Link>
+                )}
+            </div>
+            {!lateral && (
+                <p className="font-gabarito-regular text-sm text-cinza-700">
+                    Rank de confiabilidade com base nos votos das resenhas (upvote +1, downvote −1).
+                </p>
+            )}
+            {carregando ? (
+                <p className={cn("font-gabarito-regular text-cinza-600", lateral && "text-xs")}>
+                    Carregando…
+                </p>
+            ) : usuarios.length === 0 ? (
+                <p className={cn("font-gabarito-regular text-cinza-600", lateral && "text-xs")}>
+                    Ainda sem críticos ranqueados.
+                </p>
+            ) : (
+                <ul className={cn("flex flex-col", lateral ? "gap-1.5" : "gap-3")}>
+                    {usuarios.map((u, index) => {
+                        const avatar = mediaUrl(u.image);
+                        return (
+                            <li key={u.id}>
+                                <Link
+                                    href={`/perfil/${u.nick}`}
+                                    className="flex min-w-0 items-center gap-1.5"
+                                >
+                                    <span
+                                        className={cn(
+                                            "w-5 shrink-0 text-center font-gabarito-bold text-cinza-500",
+                                            lateral ? "text-[10px]" : "text-sm",
+                                        )}
+                                    >
+                                        {index + 1}
+                                    </span>
+                                    <div
+                                        className={cn(
+                                            "relative shrink-0 overflow-hidden rounded-full bg-azul-200",
+                                            lateral ? "h-7 w-7" : "h-11 w-11",
+                                        )}
+                                    >
+                                        {avatar ? (
+                                            <Image src={avatar} alt="" fill unoptimized className="object-cover" />
+                                        ) : (
+                                            <span
+                                                className={cn(
+                                                    "flex h-full items-center justify-center font-gabarito-bold text-azul-700",
+                                                    lateral && "text-xs",
+                                                )}
+                                            >
+                                                {u.nick.slice(0, 1).toUpperCase()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p
+                                            className={cn(
+                                                "truncate font-gabarito-bold text-azul-900",
+                                                lateral && "text-xs leading-tight",
+                                            )}
+                                        >
+                                            {u.nome}
+                                        </p>
+                                        <p
+                                            className={cn(
+                                                "truncate font-gabarito-regular text-cinza-700",
+                                                lateral ? "text-[10px] leading-tight" : "text-sm",
+                                            )}
+                                        >
+                                            @{u.nick}
+                                        </p>
+                                    </div>
+                                    <BadgeRank rank={u.rankConfiabilidade} ocultarSeZero={false} compact={lateral} />
+                                </Link>
                             </li>
                         );
                     })}
@@ -329,6 +445,7 @@ export default function DescobertaSecoes({
                 url={`/api/descoberta/livros/recentes?limite=${limiteLivros}`}
                 variante={variante}
             />
+            <SecaoCriticosEmAlta variante={variante} />
             <SecaoUsuariosSugeridos variante={variante} />
         </div>
     );
