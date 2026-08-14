@@ -13,6 +13,7 @@ import { Pencil } from "lucide-react";
 import { getSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { ChangeEvent, FormEvent, useId, useState } from "react";
+import BotaoGoogleAuth from "./BotaoGoogleAuth";
 import { useAuthTransition } from "./AuthTransitionProvider";
 
 type AuthMode = "login" | "cadastro";
@@ -322,6 +323,12 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                     >
                         {mode === "login" ? (
                             <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                                <BotaoGoogleAuth callbackUrl={callbackUrl} />
+                                <div className="flex items-center gap-3">
+                                    <hr className="h-px flex-1 border-0 bg-cinza-300" />
+                                    <span className="text-sm text-cinza-700">ou</span>
+                                    <hr className="h-px flex-1 border-0 bg-cinza-300" />
+                                </div>
                                 <input
                                     type="text"
                                     placeholder="Nome de usuário"
@@ -376,6 +383,12 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                 onSubmit={handleCadastro}
                                 className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1"
                             >
+                                <BotaoGoogleAuth callbackUrl={callbackUrl} />
+                                <div className="flex items-center gap-3">
+                                    <hr className="h-px flex-1 border-0 bg-cinza-300" />
+                                    <span className="text-sm text-cinza-700">ou</span>
+                                    <hr className="h-px flex-1 border-0 bg-cinza-300" />
+                                </div>
                                 <div className="flex items-center justify-between gap-2">
                                     <p className="text-sm font-bold text-azul-900 px-2">Foto de perfil (opcional)</p>
                                     <div className="flex items-center gap-4">

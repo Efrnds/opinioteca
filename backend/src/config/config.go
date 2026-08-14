@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -19,6 +20,8 @@ var (
 	SecretKey []byte
 	// GoogleBooksAPIKey chave opcional da Google Books API
 	GoogleBooksAPIKey = ""
+	// GoogleClientID audience esperado ao validar id_token OAuth
+	GoogleClientID = ""
 	// UploadsDir pasta onde arquivos enviados são salvos
 	UploadsDir = ""
 	// APIPublicURL URL base pública da API (usada nas URLs de imagens)
@@ -48,6 +51,7 @@ func Carregar() {
 		log.Fatal("SECRET_KEY deve ter pelo menos 32 caracteres")
 	}
 	GoogleBooksAPIKey = os.Getenv("GOOGLE_BOOKS_API_KEY")
+	GoogleClientID = strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
 
 	APIPublicURL = os.Getenv("API_PUBLIC_URL")
 	if APIPublicURL == "" {

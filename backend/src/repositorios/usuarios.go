@@ -24,6 +24,9 @@ var (
 
 	schemaBannerPosicaoOnce sync.Once
 	schemaTemBannerPosicao  bool
+
+	schemaGoogleIDOnce sync.Once
+	schemaTemGoogleID  bool
 )
 
 // schemaTemInativadoEm detecta se a migration 20260708 já rodou (coluna inativado_em).
@@ -90,6 +93,22 @@ func schemaTemBannerPosicaoCol(db *sql.DB) bool {
 		schemaTemBannerPosicao = erro == nil && existe
 	})
 	return schemaTemBannerPosicao
+}
+
+func schemaTemGoogleIDCol(db *sql.DB) bool {
+	schemaGoogleIDOnce.Do(func() {
+		var existe bool
+		erro := db.QueryRow(`
+			SELECT EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_schema = current_schema()
+				  AND table_name = 'usuarios'
+				  AND column_name = 'google_id'
+			)`).Scan(&existe)
+		schemaTemGoogleID = erro == nil && existe
+	})
+	return schemaTemGoogleID
 }
 
 func colunasUsuario(db *sql.DB) string {
@@ -602,7 +621,7 @@ func (repositorio Usuarios) Segue(seguidorID, seguidoID uint64) (bool, error) {
 // BuscarPorEmail é a função responsável por buscar um usuário específico do banco de dados, com base no email fornecido, retornando o usuário e um erro, se houver.
 func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error) {
 	linha, erro := repositorio.db.Query(
-		"SELECT id, senha, status, is_admin FROM usuarios WHERE email = $1",
+		"SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(email) = LOWER($1)",
 		email)
 	if erro != nil {
 		return modelos.Usuario{}, erro
@@ -623,6 +642,120 @@ func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error
 	}
 
 	return usuario, nil
+}
+
+// BuscarPorEmailParaLogin retorna id/status/admin (+ inativado_em) pelo email.
+func (repositorio Usuarios) BuscarPorEmailParaLogin(email string) (modelos.Usuario, error) {
+	comInativado := schemaTemInativadoEm(repositorio.db)
+	query := "SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(email) = LOWER($1)"
+	if comInativado {
+		query = "SELECT id, senha, status, is_admin, inativado_em FROM usuarios WHERE LOWER(email) = LOWER($1)"
+	}
+	linha, erro := repositorio.db.Query(query, email)
+	if erro != nil {
+		return modelos.Usuario{}, erro
+	}
+	defer linha.Close()
+
+	var usuario modelos.Usuario
+	var inativadoEm sql.NullTime
+	if linha.Next() {
+		destinos := []any{&usuario.ID, &usuario.Senha, &usuario.Status, &usuario.IsAdmin}
+		if comInativado {
+			destinos = append(destinos, &inativadoEm)
+		}
+		if erro = linha.Scan(destinos...); erro != nil {
+			return modelos.Usuario{}, erro
+		}
+		if comInativado && inativadoEm.Valid && modelos.TempoJSONSeguro(inativadoEm.Time) {
+			t := inativadoEm.Time
+			usuario.InativadoEm = &t
+		}
+	}
+	return usuario, nil
+}
+
+// BuscarPorGoogleID localiza usuário pelo subject OAuth do Google.
+func (repositorio Usuarios) BuscarPorGoogleID(googleID string) (modelos.Usuario, error) {
+	if !schemaTemGoogleIDCol(repositorio.db) || strings.TrimSpace(googleID) == "" {
+		return modelos.Usuario{}, nil
+	}
+	comInativado := schemaTemInativadoEm(repositorio.db)
+	query := "SELECT id, senha, status, is_admin FROM usuarios WHERE google_id = $1"
+	if comInativado {
+		query = "SELECT id, senha, status, is_admin, inativado_em FROM usuarios WHERE google_id = $1"
+	}
+	linha, erro := repositorio.db.Query(query, googleID)
+	if erro != nil {
+		return modelos.Usuario{}, erro
+	}
+	defer linha.Close()
+
+	var usuario modelos.Usuario
+	var inativadoEm sql.NullTime
+	if linha.Next() {
+		destinos := []any{&usuario.ID, &usuario.Senha, &usuario.Status, &usuario.IsAdmin}
+		if comInativado {
+			destinos = append(destinos, &inativadoEm)
+		}
+		if erro = linha.Scan(destinos...); erro != nil {
+			return modelos.Usuario{}, erro
+		}
+		if comInativado && inativadoEm.Valid && modelos.TempoJSONSeguro(inativadoEm.Time) {
+			t := inativadoEm.Time
+			usuario.InativadoEm = &t
+		}
+	}
+	return usuario, nil
+}
+
+// VincularGoogleID associa o subject Google a uma conta existente.
+func (repositorio Usuarios) VincularGoogleID(usuarioID uint64, googleID string) error {
+	if !schemaTemGoogleIDCol(repositorio.db) {
+		return nil
+	}
+	_, erro := repositorio.db.Exec(
+		`UPDATE usuarios SET google_id = $1
+		 WHERE id = $2 AND (google_id IS NULL OR google_id = '' OR google_id = $1)`,
+		googleID, usuarioID,
+	)
+	return erro
+}
+
+// CriarOAuth cria usuário autenticado via Google (senha aleatória inutilizável).
+func (repositorio Usuarios) CriarOAuth(usuario modelos.Usuario, googleID string) (uint64, error) {
+	if !schemaTemGoogleIDCol(repositorio.db) || strings.TrimSpace(googleID) == "" {
+		return repositorio.Criar(usuario)
+	}
+
+	var id uint64
+	erro := repositorio.db.QueryRow(
+		`INSERT INTO usuarios (nome, nick, email, senha, status, image_url, google_id)
+		 VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), $7) RETURNING id`,
+		usuario.Nome,
+		usuario.Nick,
+		usuario.Email,
+		usuario.Senha,
+		"ativo",
+		usuario.Image,
+		googleID,
+	).Scan(&id)
+	if erro != nil {
+		return 0, erro
+	}
+
+	_ = NovoRepositorioDeConfiguracoes(repositorio.db).CriarPadrao(id)
+	return id, nil
+}
+
+// NickDisponivel indica se o nick (case insensitive) está livre.
+func (repositorio Usuarios) NickDisponivel(nick string) (bool, error) {
+	var existe bool
+	erro := repositorio.db.QueryRow(
+		`SELECT EXISTS(SELECT 1 FROM usuarios WHERE LOWER(nick) = LOWER($1))`,
+		nick,
+	).Scan(&existe)
+	return !existe, erro
 }
 
 // Seguir é a função responsável por permitir que um usuário siga outro usuário, com base nos IDs fornecidos, retornando um erro, se houver.

@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import {
     opiniotecaCookieNames,
     opiniotecaCookieOptions,
@@ -13,6 +14,68 @@ const SESSION_MAX_AGE_SEC = 60 * 60 * 6;
 const secureCookies = useSecureAuthCookies();
 const cookieNames = opiniotecaCookieNames(secureCookies);
 const cookieOpts = opiniotecaCookieOptions(secureCookies);
+
+type BackendLogin = {
+    token?: string;
+    isAdmin?: boolean;
+    usuario?: {
+        id?: number | string;
+        email?: string;
+        nome?: string;
+        nick?: string;
+        image?: string;
+        assinaturaId?: number;
+    };
+};
+
+function sessaoDoBackend(data: BackendLogin) {
+    const usuario = data.usuario;
+    const id = usuario?.id != null && String(usuario.id) !== "" ? String(usuario.id) : null;
+    if (!data.token || !id || !usuario?.nick) {
+        return null;
+    }
+    return {
+        sub: id,
+        id,
+        accessToken: data.token,
+        isAdmin: Boolean(data.isAdmin),
+        email: usuario.email ?? undefined,
+        name: usuario.nome ?? undefined,
+        nick: usuario.nick,
+        image: usuario.image ? mediaUrl(usuario.image) : undefined,
+        assinaturaId: usuario.assinaturaId ?? undefined,
+    };
+}
+
+async function loginGoogleNoBackend(idToken: string) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+    });
+
+    let data: BackendLogin & { erro?: string } = {};
+    try {
+        data = await res.json();
+    } catch {
+        throw new Error("Resposta inválida do servidor ao entrar com Google.");
+    }
+
+    if (!res.ok) {
+        throw new Error(
+            typeof data.erro === "string" ? data.erro : "Não foi possível entrar com Google.",
+        );
+    }
+
+    const sessao = sessaoDoBackend(data);
+    if (!sessao) {
+        throw new Error("Login Google incompleto.");
+    }
+    return sessao;
+}
+
+const googleId = process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID;
+const googleSecret = process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     /**
@@ -36,6 +99,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     useSecureCookies: secureCookies,
     providers: [
+        ...(googleId && googleSecret
+            ? [
+                  Google({
+                      clientId: googleId,
+                      clientSecret: googleSecret,
+                  }),
+              ]
+            : []),
         CredentialsProvider({
             name: "Credentials",
             credentials: {
@@ -54,18 +125,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 // Não use res.json() sem try: backend 500 / HTML quebra o authorize → 500 no Auth.js
                 // e o AuthModal chama /api/login de novo (aparece 500 depois CredentialsSignin/401).
-                let data: {
-                    token?: string;
-                    isAdmin?: boolean;
-                    usuario?: {
-                        id?: number | string;
-                        email?: string;
-                        nome?: string;
-                        nick?: string;
-                        image?: string;
-                        assinaturaId?: number;
-                    };
-                } | null = null;
+                let data: BackendLogin | null = null;
                 try {
                     data = await res.json();
                 } catch {
@@ -74,7 +134,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 if (res.ok && data?.token) {
                     const usuario = data.usuario;
-                    const id = usuario?.id != null && String(usuario.id) !== "" ? String(usuario.id) : null;
+                    const id =
+                        usuario?.id != null && String(usuario.id) !== "" ? String(usuario.id) : null;
                     if (!id || !usuario?.nick) {
                         return null;
                     }
@@ -98,7 +159,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
-        async jwt({ token, user, trigger, session }) {
+        async jwt({ token, user, account, trigger, session }) {
+            if (account?.provider === "google") {
+                if (!account.id_token) {
+                    throw new Error("Google não retornou id_token.");
+                }
+                const sessao = await loginGoogleNoBackend(account.id_token);
+                if (process.env.NODE_ENV === "development") {
+                    console.info("[auth] google ok", { id: sessao.id, nick: sessao.nick });
+                }
+                return sessao;
+            }
+
             // Login: objeto NOVO — nunca espalhar/mesclar o token anterior (campos órfãos vazavam identidade).
             if (user) {
                 return {
@@ -161,6 +233,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     pages: {
         signIn: "/",
+        error: "/",
     },
     session: {
         strategy: "jwt",

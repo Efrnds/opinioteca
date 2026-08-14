@@ -71,6 +71,7 @@
         banner_url VARCHAR(512),
         banner_posicao VARCHAR(32),
         inativado_em TIMESTAMP NULL,
+        google_id VARCHAR(255) UNIQUE,
         criadoEm TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 

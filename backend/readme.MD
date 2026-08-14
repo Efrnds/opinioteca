@@ -69,3 +69,13 @@ Checklist:
 4. Opcional no front: `NEXT_PUBLIC_WS_URL=wss://seu-dominio` só se o WS estiver em outro host
 
 Migração do banco (spoiler, mídia, etc.): `psql ... -f sql/migration_prod.sql`
+
+### Login com Google
+
+1. Rode a migration: `psql ... -f sql/migrations/20260813_google_oauth.sql`
+2. Configure `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` no backend (validação do `id_token`)
+3. No front: `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` (mesmos valores) + `AUTH_URL`
+4. No Google Cloud Console, authorized redirect URIs:
+   - `http://localhost:3000/api/auth/callback/google`
+   - `https://SEU_DOMINIO/api/auth/callback/google`
+5. Endpoint da API: `POST /login/google` com `{ "idToken": "..." }`

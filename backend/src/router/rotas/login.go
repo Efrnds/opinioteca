@@ -11,3 +11,10 @@ var rotaLogin = Rota{
 	Funcao:             controllers.Login,
 	RequerAutenticacao: false,
 }
+
+var rotaLoginGoogle = Rota{
+	URI:                "/login/google",
+	Metodo:             http.MethodPost,
+	Funcao:             controllers.LoginGoogle,
+	RequerAutenticacao: false,
+}

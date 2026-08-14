@@ -1,7 +1,7 @@
 import Landing from "./components/Landing";
 
 type HomeProps = {
-    searchParams: Promise<{ auth?: string; callbackUrl?: string }>;
+    searchParams: Promise<{ auth?: string; callbackUrl?: string; error?: string }>;
 };
 
 export default async function Home({ searchParams }: HomeProps) {
@@ -11,6 +11,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <Landing
             initialAuth={params.auth}
             callbackUrl={params.callbackUrl ?? "/home"}
+            authError={params.error}
         />
     );
 }
