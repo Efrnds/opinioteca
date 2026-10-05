@@ -1,6 +1,6 @@
 "use client";
 
-import AuthModal from "@/app/components/AuthModal";
+import AuthModal, { type AuthMode } from "@/app/components/AuthModal";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import {
@@ -12,8 +12,6 @@ import {
     useState,
     type ReactNode,
 } from "react";
-
-type AuthMode = "login" | "cadastro";
 
 type AuthGateContextValue = {
     abrirAuth: (mode?: AuthMode) => void;
@@ -36,7 +34,7 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
     }, [status]);
 
     const abrirAuth = useCallback((modo: AuthMode = "login") => {
-        setMode(modo);
+        setMode(modo === "recuperar" ? "login" : modo);
         setOpen(true);
     }, []);
 

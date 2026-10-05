@@ -5,9 +5,7 @@ import { signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import AuthModal from "./AuthModal";
-
-type AuthMode = "login" | "cadastro";
+import AuthModal, { type AuthMode } from "./AuthModal";
 
 type Citacao = {
     texto: string;
@@ -60,6 +58,10 @@ export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingP
     const trocarModo = useCallback(
         (mode: AuthMode) => {
             setModo(mode);
+            if (mode === "recuperar") {
+                // Não polui a URL com auth=recuperar
+                return;
+            }
             const params = new URLSearchParams();
             params.set("auth", mode);
             if (callbackUrl !== "/home") {

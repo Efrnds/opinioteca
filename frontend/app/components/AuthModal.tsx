@@ -15,7 +15,9 @@ import Image from "next/image";
 import { ChangeEvent, FormEvent, useId, useState } from "react";
 import { useAuthTransition } from "./AuthTransitionProvider";
 
-type AuthMode = "login" | "cadastro";
+export type AuthMode = "login" | "cadastro" | "recuperar";
+
+type RecuperarPasso = "email" | "codigo" | "senha" | "ok";
 
 type AuthModalProps = {
     open: boolean;
@@ -29,6 +31,18 @@ type AuthModalProps = {
 const inputClassName =
     "w-full px-4 py-1 border-2 border-cinza-300 rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
+const btnPrimario =
+    "cursor-pointer h-auto rounded-full px-6 py-3 font-gabarito-bold text-xl bg-azul-600 hover:bg-azul-600/90 border-4 border-azul-600";
+
+function tituloDoModo(mode: AuthMode, passo: RecuperarPasso) {
+    if (mode === "cadastro") return "Criar conta";
+    if (mode === "login") return "Entrar";
+    if (passo === "codigo") return "Código";
+    if (passo === "senha") return "Nova senha";
+    if (passo === "ok") return "Pronto!";
+    return "Recuperar senha";
+}
+
 export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackUrl }: AuthModalProps) {
     const { startAuthTransition, endAuthTransition } = useAuthTransition();
     const [nickLogin, setNickLogin] = useState("");
@@ -40,9 +54,32 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
     const [imagem, setImagem] = useState<File | null>(null);
     const [previewImagem, setPreviewImagem] = useState<string | null>(null);
     const [erro, setErro] = useState("");
+    const [info, setInfo] = useState("");
     const [podeReativar, setPodeReativar] = useState(false);
     const [carregando, setCarregando] = useState(false);
+    const [recuperarPasso, setRecuperarPasso] = useState<RecuperarPasso>("email");
+    const [emailRecuperar, setEmailRecuperar] = useState("");
+    const [codigoOtp, setCodigoOtp] = useState("");
+    const [novaSenha, setNovaSenha] = useState("");
+    const [confirmarNovaSenha, setConfirmarNovaSenha] = useState("");
     const inputImagemId = useId();
+
+    function limparFeedback() {
+        setErro("");
+        setInfo("");
+    }
+
+    function irPara(modeNext: AuthMode) {
+        limparFeedback();
+        setPodeReativar(false);
+        if (modeNext === "recuperar") {
+            setRecuperarPasso("email");
+            setCodigoOtp("");
+            setNovaSenha("");
+            setConfirmarNovaSenha("");
+        }
+        onSwitchMode(modeNext);
+    }
 
     function handleSelecionarImagem(e: ChangeEvent<HTMLInputElement>) {
         const arquivo = e.target.files?.[0];
@@ -87,7 +124,6 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
         return data.url as string;
     }
 
-    /** Limpa sessão anterior + storage; prepara cookie limpo antes do signIn. */
     async function prepararLoginLimpo() {
         limparStorageCliente();
         try {
@@ -98,7 +134,6 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
         await purgeCookiesAuth();
     }
 
-    /** Hard reload — descarta todo estado React/RSC/SessionProvider da conta anterior. */
     async function concluirLoginComSucesso() {
         const sessao = await getSession();
         if (process.env.NODE_ENV === "development") {
@@ -114,7 +149,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
 
     async function handleLogin(e: FormEvent) {
         e.preventDefault();
-        setErro("");
+        limparFeedback();
         setPodeReativar(false);
         setCarregando(true);
         startAuthTransition();
@@ -172,7 +207,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
     }
 
     async function handleReativar() {
-        setErro("");
+        limparFeedback();
         setCarregando(true);
         startAuthTransition();
         try {
@@ -210,7 +245,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
 
     async function handleCadastro(e: FormEvent) {
         e.preventDefault();
-        setErro("");
+        limparFeedback();
 
         if (password !== confirmarSenha) {
             setErro("As senhas não coincidem.");
@@ -221,7 +256,6 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
         startAuthTransition();
 
         try {
-            // Cadastro sem foto — upload exige sessão.
             const res = await fetch("/api/cadastro", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -252,7 +286,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 setCarregando(false);
                 endAuthTransition();
                 setErro("Conta criada, mas o login falhou. Tente entrar manualmente.");
-                onSwitchMode("login");
+                irPara("login");
                 return;
             }
 
@@ -267,7 +301,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                         });
                     }
                 } catch {
-                    // Conta já criada — segue login mesmo se a foto falhar.
+                    /* Conta já criada — segue login mesmo se a foto falhar. */
                 }
             }
 
@@ -279,10 +313,211 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
         }
     }
 
+    async function handleSolicitarCodigo(e: FormEvent) {
+        e.preventDefault();
+        limparFeedback();
+        setCarregando(true);
+        try {
+            const res = await fetch("/api/recuperar-senha/solicitar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: emailRecuperar }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setErro(
+                    typeof data.erro === "string" ? data.erro : "Não foi possível enviar o código.",
+                );
+                return;
+            }
+            setInfo(
+                typeof data.mensagem === "string"
+                    ? data.mensagem
+                    : "Se existir uma conta para este e-mail, enviamos um código de verificação.",
+            );
+            setRecuperarPasso("codigo");
+        } catch {
+            setErro("Não foi possível enviar o código.");
+        } finally {
+            setCarregando(false);
+        }
+    }
+
+    async function handleVerificarCodigo(e: FormEvent) {
+        e.preventDefault();
+        limparFeedback();
+        setCarregando(true);
+        try {
+            const res = await fetch("/api/recuperar-senha/verificar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: emailRecuperar, codigo: codigoOtp }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setErro(typeof data.erro === "string" ? data.erro : "Código inválido.");
+                return;
+            }
+            setRecuperarPasso("senha");
+        } catch {
+            setErro("Não foi possível validar o código.");
+        } finally {
+            setCarregando(false);
+        }
+    }
+
+    async function handleRedefinirSenha(e: FormEvent) {
+        e.preventDefault();
+        limparFeedback();
+        if (novaSenha !== confirmarNovaSenha) {
+            setErro("A senha e a confirmação não coincidem.");
+            return;
+        }
+        setCarregando(true);
+        try {
+            const res = await fetch("/api/recuperar-senha/redefinir", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: emailRecuperar,
+                    codigo: codigoOtp,
+                    senha: novaSenha,
+                    confirmarSenha: confirmarNovaSenha,
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setErro(typeof data.erro === "string" ? data.erro : "Não foi possível redefinir a senha.");
+                return;
+            }
+            setInfo(
+                typeof data.mensagem === "string"
+                    ? data.mensagem
+                    : "Senha redefinida com sucesso. Faça login com a nova senha.",
+            );
+            setRecuperarPasso("ok");
+            setPassword("");
+            setNovaSenha("");
+            setConfirmarNovaSenha("");
+        } catch {
+            setErro("Não foi possível redefinir a senha.");
+        } finally {
+            setCarregando(false);
+        }
+    }
+
+    function renderRecuperar() {
+        if (recuperarPasso === "ok") {
+            return (
+                <div className="flex flex-col gap-4">
+                    {info && <p className="text-sm text-center text-azul-900">{info}</p>}
+                    <Button type="button" onClick={() => irPara("login")} className={btnPrimario}>
+                        Ir para o login
+                    </Button>
+                </div>
+            );
+        }
+
+        if (recuperarPasso === "codigo") {
+            return (
+                <form onSubmit={handleVerificarCodigo} className="flex flex-col gap-4">
+                    {info && <p className="text-sm text-center text-azul-900">{info}</p>}
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="Código de 6 dígitos"
+                        value={codigoOtp}
+                        onChange={(e) => setCodigoOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        required
+                        maxLength={6}
+                        className={inputClassName}
+                    />
+                    {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
+                    <Button type="submit" disabled={carregando || codigoOtp.length !== 6} className={btnPrimario}>
+                        {carregando ? "Validando..." : "Validar código"}
+                    </Button>
+                    <p className="text-center text-sm">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                limparFeedback();
+                                setRecuperarPasso("email");
+                            }}
+                            className="text-azul-600 font-bold underline cursor-pointer"
+                        >
+                            Voltar
+                        </button>
+                    </p>
+                </form>
+            );
+        }
+
+        if (recuperarPasso === "senha") {
+            return (
+                <form onSubmit={handleRedefinirSenha} className="flex flex-col gap-4">
+                    <input
+                        type="password"
+                        placeholder="Nova senha"
+                        value={novaSenha}
+                        onChange={(e) => setNovaSenha(e.target.value)}
+                        required
+                        minLength={6}
+                        className={inputClassName}
+                    />
+                    <input
+                        type="password"
+                        placeholder="Confirmar nova senha"
+                        value={confirmarNovaSenha}
+                        onChange={(e) => setConfirmarNovaSenha(e.target.value)}
+                        required
+                        minLength={6}
+                        className={inputClassName}
+                    />
+                    {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
+                    <Button type="submit" disabled={carregando} className={btnPrimario}>
+                        {carregando ? "Salvando..." : "Redefinir senha"}
+                    </Button>
+                </form>
+            );
+        }
+
+        return (
+            <form onSubmit={handleSolicitarCodigo} className="flex flex-col gap-4">
+                <p className="text-sm text-center text-cinza-700">
+                    Informe o e-mail da conta. Enviaremos um código de verificação.
+                </p>
+                <input
+                    type="email"
+                    placeholder="Email"
+                    value={emailRecuperar}
+                    onChange={(e) => setEmailRecuperar(e.target.value)}
+                    required
+                    autoComplete="email"
+                    className={inputClassName}
+                />
+                {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
+                <Button type="submit" disabled={carregando} className={btnPrimario}>
+                    {carregando ? "Enviando..." : "Enviar código"}
+                </Button>
+                <p className="text-center text-sm">
+                    Lembrou a senha?{" "}
+                    <button
+                        type="button"
+                        onClick={() => irPara("login")}
+                        className="text-azul-600 font-bold underline cursor-pointer"
+                    >
+                        Entrar
+                    </button>
+                </p>
+            </form>
+        );
+    }
+
     return (
         <Dialog
             open={open}
-            onOpenChange={isOpen => {
+            onOpenChange={(isOpen) => {
                 if (!isOpen) {
                     onClose();
                 }
@@ -290,23 +525,18 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
         >
             <DialogContent className="bg-background sm:max-w-md gap-4">
                 <DialogHeader className="items-center text-center gap-4">
-                    <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.08, duration: 0.25 }}
-                    >
-                        <Image src="/assets/images/Vector.svg" width={80} height={65} alt="Logo da opinioteca" />
-                    </motion.div>
+                    <Image src="/assets/images/Vector.svg" width={80} height={65} alt="Logo da opinioteca" />
                     <DialogTitle className="font-gabarito-bold text-3xl text-azul-900">
                         <AnimatePresence mode="wait">
                             <motion.span
-                                key={mode}
+                                key={`${mode}-${recuperarPasso}`}
                                 initial={{ opacity: 0, y: 6 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -6 }}
-                                transition={{ duration: 0.2 }}
+                                transition={{ duration: 0.18 }}
+                                className="inline-block"
                             >
-                                {mode === "login" ? "Entrar" : "Criar conta"}
+                                {tituloDoModo(mode, recuperarPasso)}
                             </motion.span>
                         </AnimatePresence>
                     </DialogTitle>
@@ -314,7 +544,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
 
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={mode}
+                        key={`${mode}-${recuperarPasso}`}
                         initial={{ opacity: 0, x: mode === "login" ? -12 : 12 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: mode === "login" ? 12 : -12 }}
@@ -326,7 +556,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                     type="text"
                                     placeholder="Nome de usuário"
                                     value={nickLogin}
-                                    onChange={e => setNickLogin(e.target.value)}
+                                    onChange={(e) => setNickLogin(e.target.value)}
                                     required
                                     autoComplete="username"
                                     className={inputClassName}
@@ -335,7 +565,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                     type="password"
                                     placeholder="Senha"
                                     value={password}
-                                    onChange={e => setPassword(e.target.value)}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     required
                                     className={inputClassName}
                                 />
@@ -350,27 +580,31 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                         {carregando ? "Reativando..." : "Reativar conta"}
                                     </Button>
                                 )}
-                                <Button
-                                    type="submit"
-                                    disabled={carregando}
-                                    className="cursor-pointer h-auto rounded-full px-6 py-3 font-gabarito-bold text-xl bg-azul-600 hover:bg-azul-600/90 border-4 border-azul-600"
-                                >
+                                <Button type="submit" disabled={carregando} className={btnPrimario}>
                                     {carregando ? "Entrando..." : "Entrar"}
                                 </Button>
+                                <p className="text-center text-sm">
+                                    <button
+                                        type="button"
+                                        onClick={() => irPara("recuperar")}
+                                        className="text-azul-600 font-bold underline cursor-pointer"
+                                    >
+                                        Esqueci minha senha
+                                    </button>
+                                </p>
                                 <p className="text-center text-sm">
                                     Não tem conta?{" "}
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setErro("");
-                                            onSwitchMode("cadastro");
-                                        }}
+                                        onClick={() => irPara("cadastro")}
                                         className="text-azul-600 font-bold underline cursor-pointer"
                                     >
                                         Criar conta
                                     </button>
                                 </p>
                             </form>
+                        ) : mode === "recuperar" ? (
+                            renderRecuperar()
                         ) : (
                             <form
                                 onSubmit={handleCadastro}
@@ -421,7 +655,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                     type="text"
                                     placeholder="Nome"
                                     value={nome}
-                                    onChange={e => setNome(e.target.value)}
+                                    onChange={(e) => setNome(e.target.value)}
                                     required
                                     className={inputClassName}
                                 />
@@ -429,7 +663,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                     type="text"
                                     placeholder="Nick"
                                     value={nick}
-                                    onChange={e => setNick(e.target.value)}
+                                    onChange={(e) => setNick(e.target.value)}
                                     required
                                     className={inputClassName}
                                 />
@@ -437,7 +671,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                     type="email"
                                     placeholder="Email"
                                     value={email}
-                                    onChange={e => setEmail(e.target.value)}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     required
                                     className={inputClassName}
                                 />
@@ -445,7 +679,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                     type="password"
                                     placeholder="Senha"
                                     value={password}
-                                    onChange={e => setPassword(e.target.value)}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     required
                                     className={inputClassName}
                                 />
@@ -453,26 +687,19 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                     type="password"
                                     placeholder="Confirmar senha"
                                     value={confirmarSenha}
-                                    onChange={e => setConfirmarSenha(e.target.value)}
+                                    onChange={(e) => setConfirmarSenha(e.target.value)}
                                     required
                                     className={inputClassName}
                                 />
                                 {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
-                                <Button
-                                    type="submit"
-                                    disabled={carregando}
-                                    className="h-auto rounded-full px-6 py-3 font-gabarito-bold text-xl bg-azul-600 hover:bg-azul-600/90 border-4 border-azul-600 cursor-pointer"
-                                >
+                                <Button type="submit" disabled={carregando} className={btnPrimario}>
                                     {carregando ? "Criando..." : "Criar conta"}
                                 </Button>
                                 <p className="text-center text-sm">
                                     Já tem conta?{" "}
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setErro("");
-                                            onSwitchMode("login");
-                                        }}
+                                        onClick={() => irPara("login")}
                                         className="text-azul-600 font-bold underline cursor-pointer"
                                     >
                                         Entrar
