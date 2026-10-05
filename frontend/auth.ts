@@ -6,6 +6,7 @@ import {
     opiniotecaCookieOptions,
     useSecureAuthCookies,
 } from "@/lib/auth-cookies";
+import { headersLoginBackend, ipClienteDosHeaders } from "@/lib/login-client-ip";
 import { mediaUrl } from "@/lib/media";
 
 /** Alinhado ao JWT do backend (6h). Sessões longas deixavam identidade “fantasma” em browsers compartilhados. */
@@ -48,9 +49,10 @@ function sessaoDoBackend(data: BackendLogin) {
 }
 
 async function loginGoogleNoBackend(idToken: string) {
+    const clientIp = await ipClienteDosHeaders();
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login/google`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headersLoginBackend(clientIp),
         body: JSON.stringify({ idToken }),
     });
 
@@ -114,9 +116,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
+                const clientIp = await ipClienteDosHeaders();
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: headersLoginBackend(clientIp),
                     body: JSON.stringify({
                         nick: credentials?.nick,
                         senha: credentials?.password,

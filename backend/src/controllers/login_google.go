@@ -41,14 +41,14 @@ func LoginGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !security.LoginPermitido(r) {
+	if !security.LoginPermitido(r, "google") {
 		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
 		return
 	}
 
 	perfil, erro := googleoauth.VerificarIDToken(payload.IDToken, config.GoogleClientID)
 	if erro != nil {
-		security.RegistrarFalhaLogin(r)
+		security.RegistrarFalhaLogin(r, "google")
 		respostas.Erro(w, http.StatusUnauthorized, erro)
 		return
 	}
@@ -112,7 +112,7 @@ func LoginGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	security.RegistrarSucessoLogin(r)
+	security.RegistrarSucessoLogin(r, "google")
 	respostas.JSON(w, http.StatusOK, modelos.LoginResposta{
 		Token:   token,
 		IsAdmin: usuarioCompleto.IsAdmin,

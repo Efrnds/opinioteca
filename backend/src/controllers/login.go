@@ -35,7 +35,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !security.LoginPermitido(r) {
+	if !security.LoginPermitido(r, credenciais.Nick) {
 		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
 		return
 	}
@@ -55,13 +55,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if usuarioSalvoNoBanco.ID == 0 {
-		security.RegistrarFalhaLogin(r)
+		security.RegistrarFalhaLogin(r, credenciais.Nick)
 		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
 		return
 	}
 
 	if erro = security.VerificarSenha(usuarioSalvoNoBanco.Senha, credenciais.Senha); erro != nil {
-		security.RegistrarFalhaLogin(r)
+		security.RegistrarFalhaLogin(r, credenciais.Nick)
 		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
 		return
 	}
@@ -92,7 +92,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	security.RegistrarSucessoLogin(r)
+	security.RegistrarSucessoLogin(r, credenciais.Nick)
 	respostas.JSON(w, http.StatusOK, modelos.LoginResposta{
 		Token:   token,
 		IsAdmin: usuarioCompleto.IsAdmin,
