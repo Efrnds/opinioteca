@@ -30,6 +30,18 @@ type DiarioResposta struct {
 	Semana         []DiaSemana `json:"semana"`
 }
 
+type DiaAtividadeLeitura struct {
+	Dia       string `json:"dia"`
+	Paginas   int    `json:"paginas"`
+	Registros int    `json:"registros"`
+}
+
+type DiarioAtividadeResposta struct {
+	Dias          []DiaAtividadeLeitura `json:"dias"`
+	PeriodoInicio string                `json:"periodo_inicio"`
+	PeriodoFim    string                `json:"periodo_fim"`
+}
+
 type DiarioHistoricoItem struct {
 	ID                 uint64    `json:"id"`
 	LivroID            uint64    `json:"livro_id"`

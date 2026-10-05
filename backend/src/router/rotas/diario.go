@@ -31,6 +31,12 @@ var rotasDiario = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
+		URI:                "/diario/{nick}/atividade",
+		Metodo:             http.MethodGet,
+		Funcao:             controllers.BuscarAtividadeDiario,
+		RequerAutenticacao: true,
+	},
+	{
 		URI:                "/diario/{nick}/wrapped",
 		Metodo:             http.MethodGet,
 		Funcao:             controllers.BuscarOpinioWrapped,

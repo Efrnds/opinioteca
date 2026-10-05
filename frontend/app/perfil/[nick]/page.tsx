@@ -14,11 +14,17 @@ import {
     updatePerfilCache,
     type PerfilCacheUsuario,
 } from "@/lib/perfil-cache";
-import type { DiarioHistoricoResposta, DiarioResposta, EstatisticasLeituraResposta } from "@/types/diario";
+import type { DiarioAtividadeResposta, DiarioHistoricoResposta, DiarioResposta, EstatisticasLeituraResposta } from "@/types/diario";
 import type { EstanteItem, EstanteResposta, StatusEstante } from "@/types/estante";
 import { ROTULOS_STATUS_ESTANTE } from "@/types/estante";
 import type { LivroPublico } from "@/types/livro";
-import { Book, ChevronLeft, Flag, Loader2, Mail, MoreVertical, Plus, UserCheck, UserPlus } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Book, ChevronDown, ChevronLeft, Flag, Loader2, Mail, MoreVertical, Plus, UserCheck, UserPlus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +35,7 @@ import AdicionarLivroEstanteModal from "../../components/AdicionarLivroEstanteMo
 import BadgeRank from "../../components/BadgeRank";
 import BadgeTop from "../../components/BadgeTop";
 import EstatisticasLeitura from "../../components/EstatisticasLeitura";
+import HeatmapLeitura from "../../components/HeatmapLeitura";
 import PlanoUpgradeModal from "../../components/PlanoUpgradeModal";
 import { useAuthGate } from "../../components/AuthGateProvider";
 import AvatarPerfilEditavel from "../../components/AvatarPerfilEditavel";
@@ -46,8 +53,10 @@ type UsuarioPublico = PerfilCacheUsuario;
 
 type AbaPerfil = "avaliacoes" | "diario" | "livros";
 type ListaPerfil = "seguidores" | "seguindo" | null;
+type VisaoDiario = "semana" | "ano";
 
 const historicoVazio: DiarioHistoricoResposta = { registros: [], livros: [] };
+const FALLBACK_SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
 
 function extrairLivroID(avaliacao: Partial<AvaliacaoFeed> & { livro_id?: number }) {
     if (avaliacao.livro?.id) {
@@ -167,6 +176,9 @@ export default function PerfilNickPage() {
     const [alterarNickAberto, setAlterarNickAberto] = useState(false);
     const [listaAberta, setListaAberta] = useState<ListaPerfil>(null);
     const [denunciarPerfilAberto, setDenunciarPerfilAberto] = useState(false);
+    const [visaoDiario, setVisaoDiario] = useState<VisaoDiario>("semana");
+    const [atividadeAno, setAtividadeAno] = useState<DiarioAtividadeResposta | null>(null);
+    const [carregandoAtividade, setCarregandoAtividade] = useState(false);
     const menuOpcoesRef = useRef<HTMLDivElement | null>(null);
 
     const meuNick = session?.user?.nick?.toLowerCase();
@@ -184,14 +196,12 @@ export default function PerfilNickPage() {
             return usuario.nick.toLowerCase() === meuNick;
         });
 
+    // Backend já retorna domingo → sábado (padrão BR).
     const semanaExpandida = useMemo(() => {
         const base = diario?.semana ?? [];
-        const ordemSegundaDomingo = [1, 2, 3, 4, 5, 6, 0];
-        const fallback = ["S", "T", "Q", "Q", "S", "S", "D"];
-
-        return ordemSegundaDomingo.map((indice, indexFallback) => ({
-            dia: base[indice]?.dia ?? fallback[indexFallback],
-            leu: !!base[indice]?.leu,
+        return FALLBACK_SEMANA.map((fallback, index) => ({
+            dia: base[index]?.dia ?? fallback,
+            leu: !!base[index]?.leu,
         }));
     }, [diario]);
 
@@ -270,6 +280,27 @@ export default function PerfilNickPage() {
             setEstatisticas(null);
         } finally {
             setCarregandoEstatisticas(false);
+        }
+    }, [session?.accessToken]);
+
+    const carregarAtividadeAno = useCallback(async (nickAlvo: string) => {
+        if (!session?.accessToken) {
+            setAtividadeAno(null);
+            return;
+        }
+        setCarregandoAtividade(true);
+        try {
+            const res = await fetch(`/api/diario/${encodeURIComponent(nickAlvo)}/atividade`);
+            if (!res.ok) {
+                setAtividadeAno(null);
+                return;
+            }
+            const data = (await res.json()) as DiarioAtividadeResposta;
+            setAtividadeAno(data);
+        } catch {
+            setAtividadeAno(null);
+        } finally {
+            setCarregandoAtividade(false);
         }
     }, [session?.accessToken]);
 
@@ -436,6 +467,40 @@ export default function PerfilNickPage() {
             void carregarEstatisticas(nick);
         }
     }, [abaAtiva, nick, session?.accessToken, estatisticas, carregandoEstatisticas, carregarEstatisticas]);
+
+    useEffect(() => {
+        if (
+            abaAtiva === "diario" &&
+            visaoDiario === "ano" &&
+            nick &&
+            session?.accessToken &&
+            !atividadeAno &&
+            !carregandoAtividade
+        ) {
+            void carregarAtividadeAno(nick);
+        }
+    }, [
+        abaAtiva,
+        visaoDiario,
+        nick,
+        session?.accessToken,
+        atividadeAno,
+        carregandoAtividade,
+        carregarAtividadeAno,
+    ]);
+
+    useEffect(() => {
+        setAtividadeAno(null);
+        setVisaoDiario("semana");
+    }, [nick]);
+
+    useEffect(() => {
+        function onRefresh() {
+            setAtividadeAno(null);
+        }
+        window.addEventListener("diario:refresh", onRefresh);
+        return () => window.removeEventListener("diario:refresh", onRefresh);
+    }, []);
 
     useEffect(() => {
         if (!menuOpcoesAberto) return;
@@ -910,27 +975,57 @@ export default function PerfilNickPage() {
                     {ehMeuPerfil ? <MetaLeituraCard /> : null}
 
                     <div className="flex min-w-0 items-center justify-between gap-2">
-                        <h2 className="truncate font-gabarito-bold text-lg text-azul-900 sm:text-xl">Semana de leitura</h2>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className="group flex min-w-0 items-center gap-1 rounded-lg outline-none transition hover:bg-azul-50 focus-visible:ring-2 focus-visible:ring-azul-600">
+                                <h2 className="truncate font-gabarito-bold text-lg text-azul-900 sm:text-xl">
+                                    {visaoDiario === "semana" ? "Semana de leitura" : "Ano de leitura"}
+                                </h2>
+                                <ChevronDown className="h-4 w-4 shrink-0 text-azul-600 transition group-data-popup-open:rotate-180" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="min-w-44">
+                                <DropdownMenuItem
+                                    onClick={() => setVisaoDiario("semana")}
+                                    className={visaoDiario === "semana" ? "bg-accent" : undefined}
+                                >
+                                    Semana de leitura
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => setVisaoDiario("ano")}
+                                    className={visaoDiario === "ano" ? "bg-accent" : undefined}
+                                >
+                                    Ano de leitura
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         <p className="shrink-0 font-gabarito-bold text-lg text-[#ed2d00] sm:text-xl">
                             {diario?.sequencia_atual ?? 0} <span className="text-xl sm:text-2xl">🔥</span>
                         </p>
                     </div>
 
-                    <div className="grid w-full min-w-0 grid-cols-7 gap-1 sm:gap-2 md:gap-3">
-                        {semanaExpandida.map((dia, index) => (
-                            <div key={`${dia.dia}-${index}`} className="flex min-w-0 flex-col items-center gap-1 sm:gap-2">
-                                <div
-                                    className={`flex aspect-square w-full max-w-12 items-center justify-center rounded-full ${dia.leu ? "bg-azul-800" : "bg-azul-200"
-                                        }`}
-                                >
-                                    <Book className={`h-4 w-4 sm:h-5 sm:w-5 ${dia.leu ? "text-azul-200" : "text-azul-400"}`} />
+                    {visaoDiario === "semana" ? (
+                        <div className="grid w-full min-w-0 grid-cols-7 gap-1 sm:gap-2 md:gap-3">
+                            {semanaExpandida.map((dia, index) => (
+                                <div key={`${dia.dia}-${index}`} className="flex min-w-0 flex-col items-center gap-1 sm:gap-2">
+                                    <div
+                                        className={`flex aspect-square w-full max-w-12 items-center justify-center rounded-full ${dia.leu ? "bg-azul-800" : "bg-azul-200"
+                                            }`}
+                                    >
+                                        <Book className={`h-4 w-4 sm:h-5 sm:w-5 ${dia.leu ? "text-azul-200" : "text-azul-400"}`} />
+                                    </div>
+                                    <p className={`font-gabarito-bold text-xs sm:text-sm ${dia.leu ? "text-azul-800" : "text-azul-400"}`}>
+                                        {dia.dia}
+                                    </p>
                                 </div>
-                                <p className={`font-gabarito-bold text-xs sm:text-sm ${dia.leu ? "text-azul-800" : "text-azul-400"}`}>
-                                    {dia.dia}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <HeatmapLeitura
+                            dias={atividadeAno?.dias ?? []}
+                            periodoInicio={atividadeAno?.periodo_inicio ?? ""}
+                            periodoFim={atividadeAno?.periodo_fim ?? ""}
+                            carregando={carregandoAtividade}
+                        />
+                    )}
 
                     <div className="space-y-2">
                         <h3 className="font-gabarito-bold text-base text-azul-900">Últimos registros</h3>

@@ -29,7 +29,7 @@ type AuthModalProps = {
 };
 
 const inputClassName =
-    "w-full px-4 py-1 border-2 border-cinza-300 rounded-full outline-none focus:border-azul-600 font-gabarito-regular bg-white";
+    "w-full px-4 py-1 border-2 border-cinza-300 rounded-full outline-none focus:outline-none focus-visible:outline-none focus:border-azul-600 font-gabarito-regular bg-white";
 
 const btnPrimario =
     "cursor-pointer h-auto rounded-full px-6 py-3 font-gabarito-bold text-xl bg-azul-600 hover:bg-azul-600/90 border-4 border-azul-600";
@@ -583,13 +583,14 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                 <Button type="submit" disabled={carregando} className={btnPrimario}>
                                     {carregando ? "Entrando..." : "Entrar"}
                                 </Button>
+                                <div className="flex w-full justify-between">
                                 <p className="text-center text-sm">
                                     <button
                                         type="button"
                                         onClick={() => irPara("recuperar")}
                                         className="text-azul-600 font-bold underline cursor-pointer"
                                     >
-                                        Esqueci minha senha
+                                        Esqueceu a senha?
                                     </button>
                                 </p>
                                 <p className="text-center text-sm">
@@ -602,6 +603,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                         Criar conta
                                     </button>
                                 </p>
+                                </div>
                             </form>
                         ) : mode === "recuperar" ? (
                             renderRecuperar()

@@ -245,7 +245,7 @@ export default function Header() {
                         onChange={e => setTermo(e.target.value)}
                         onFocus={() => termo.trim() && setDropdownAberto(true)}
                         placeholder="Buscar usuários e livros..."
-                        className="w-full bg-transparent pl-2 text-base text-black outline-none placeholder:text-cinza-700"
+                        className="w-full bg-transparent pl-2 text-base text-black outline-none focus:outline-none focus-visible:outline-none border-0 shadow-none ring-0 placeholder:text-cinza-700"
                     />
                     {buscando ? (
                         <Loader2 className="h-6 w-6 shrink-0 animate-spin text-cinza-700" />
@@ -299,7 +299,7 @@ export default function Header() {
                                         value={termo}
                                         onChange={e => setTermo(e.target.value)}
                                         placeholder="Buscar usuários e livros..."
-                                        className="w-full min-w-0 bg-transparent text-base text-black outline-none placeholder:text-cinza-700"
+                                        className="w-full min-w-0 bg-transparent text-base text-black outline-none focus:outline-none focus-visible:outline-none border-0 shadow-none ring-0 placeholder:text-cinza-700"
                                         autoFocus
                                     />
                                     {buscando && <Loader2 className="h-5 w-5 shrink-0 animate-spin text-cinza-700" />}

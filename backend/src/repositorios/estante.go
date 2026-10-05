@@ -70,7 +70,7 @@ func (repositorio Estante) Listar(usuarioID uint64) ([]modelos.EstanteItem, erro
 		); erro != nil {
 			return nil, erro
 		}
-		if item.TemAvaliacao {
+		if item.TemAvaliacao || item.Status == "lido" {
 			item.Status = "lido"
 			item.PorcentagemAtual = 100
 		}

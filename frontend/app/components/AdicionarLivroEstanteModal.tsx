@@ -3,9 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { BuscaLivrosResposta, LivroBusca } from "@/types/livro";
-import type { StatusEstante } from "@/types/estante";
+import type { EstanteLivro, StatusEstante } from "@/types/estante";
 import { ROTULOS_STATUS_ESTANTE } from "@/types/estante";
+import ConviteAvaliacaoModal from "@/app/components/ConviteAvaliacaoModal";
 import FormularioLivroCampos from "@/app/components/FormularioLivroCampos";
+import NovaAvaliacaoModal from "@/app/components/NovaAvaliacaoModal";
 import { useCategoriasLivro } from "@/lib/hooks/useCategorias";
 import {
     dadosDeLivroBusca,
@@ -67,8 +69,13 @@ export default function AdicionarLivroEstanteModal({
     const [avisoBusca, setAvisoBusca] = useState("");
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
+    const [livroConcluido, setLivroConcluido] = useState<EstanteLivro | null>(null);
+    const [conviteAvaliacaoAberto, setConviteAvaliacaoAberto] = useState(false);
+    const [avaliacaoAberta, setAvaliacaoAberta] = useState(false);
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
+
+    const fluxoPosLido = conviteAvaliacaoAberto || avaliacaoAberta;
 
     useEffect(() => {
         if (!open) {
@@ -79,6 +86,9 @@ export default function AdicionarLivroEstanteModal({
             setStatus("quero_ler");
             setAvisoBusca("");
             setErro("");
+            setLivroConcluido(null);
+            setConviteAvaliacaoAberto(false);
+            setAvaliacaoAberta(false);
         }
     }, [open]);
 
@@ -181,7 +191,21 @@ export default function AdicionarLivroEstanteModal({
                 setErro(data.erro || "Não foi possível adicionar à estante.");
                 return;
             }
+
             onAdicionado?.();
+
+            if (status === "lido") {
+                setLivroConcluido({
+                    id: livroId,
+                    titulo: dadosLivro.titulo.trim(),
+                    autor: dadosLivro.autor.trim(),
+                    capa_url: dadosLivro.capa_url || undefined,
+                    paginas: Number(dadosLivro.paginas) || 0,
+                });
+                setConviteAvaliacaoAberto(true);
+                return;
+            }
+
             onClose();
         } catch (err) {
             setErro(err instanceof Error ? err.message : "Não foi possível adicionar à estante.");
@@ -190,18 +214,37 @@ export default function AdicionarLivroEstanteModal({
         }
     }
 
+    function finalizarFluxo() {
+        setConviteAvaliacaoAberto(false);
+        setAvaliacaoAberta(false);
+        setLivroConcluido(null);
+        onAdicionado?.();
+        onClose();
+    }
+
+    const livroInicialAvaliacao = livroConcluido
+        ? dadosDeLivroBusca({
+              id: livroConcluido.id,
+              titulo: livroConcluido.titulo,
+              autor: livroConcluido.autor,
+              paginas: livroConcluido.paginas,
+              capa_url: livroConcluido.capa_url,
+          })
+        : null;
+
     const exibirFormulario = !!dadosLivro;
 
     return (
-        <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
-            <DialogContent className="flex max-h-[92vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:max-h-[90vh] sm:max-w-lg sm:rounded-4xl">
-                <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-                    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
-                        <DialogHeader>
-                            <DialogTitle className="font-gabarito-bold text-2xl text-azul-900">
-                                Adicionar à estante
-                            </DialogTitle>
-                        </DialogHeader>
+        <>
+            <Dialog open={open && !fluxoPosLido} onOpenChange={(value) => !value && onClose()}>
+                <DialogContent className="flex max-h-[92vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:max-h-[90vh] sm:max-w-lg sm:rounded-4xl">
+                    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+                        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
+                            <DialogHeader>
+                                <DialogTitle className="font-gabarito-bold text-2xl text-azul-900">
+                                    Adicionar à estante
+                                </DialogTitle>
+                            </DialogHeader>
 
                         {!exibirFormulario ? (
                             <div className="flex flex-col gap-3">
@@ -330,5 +373,22 @@ export default function AdicionarLivroEstanteModal({
                 </form>
             </DialogContent>
         </Dialog>
+
+            <ConviteAvaliacaoModal
+                open={conviteAvaliacaoAberto}
+                livro={livroConcluido}
+                onAceitar={() => {
+                    setConviteAvaliacaoAberto(false);
+                    setAvaliacaoAberta(true);
+                }}
+                onDispensar={finalizarFluxo}
+            />
+
+            <NovaAvaliacaoModal
+                open={avaliacaoAberta}
+                livroInicial={livroInicialAvaliacao}
+                onClose={finalizarFluxo}
+            />
+        </>
     );
 }

@@ -166,8 +166,11 @@ func RegistrarDiario(w http.ResponseWriter, r *http.Request) {
 
 	var novaSequencia int
 	if jaLeuHoje {
-		respostas.Erro(w, http.StatusConflict, errors.New("Leitura de hoje já registrada"))
-		return
+		// Já leu hoje: permite novo registro sem alterar a sequência.
+		novaSequencia = usuario.SequenciaAtual
+		if novaSequencia <= 0 {
+			novaSequencia = 1
+		}
 	} else {
 		ultimoDia, erro := repoDiario.BuscarUltimoDiaLeitura(usuarioID)
 		if erro != nil {
@@ -403,6 +406,60 @@ func BuscarEstatisticasLeitura(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respostas.JSON(w, http.StatusOK, stats)
+}
+
+func BuscarAtividadeDiario(w http.ResponseWriter, r *http.Request) {
+	nick := mux.Vars(r)["nick"]
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
+	repoDiario := repositorios.NovoRepositorioDeDiario(db)
+
+	usuario, erro := repoUsuarios.BuscarPorNick(nick)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if usuario.ID == 0 {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Usuário não encontrado"))
+		return
+	}
+
+	viewerID := auth.ExtrairUsuarioIDOpcional(r)
+	ehDono := viewerID != 0 && viewerID == usuario.ID
+	config, _ := repositorios.NovoRepositorioDeConfiguracoes(db).BuscarOuCriar(usuario.ID)
+	segue, _ := repoUsuarios.Segue(viewerID, usuario.ID)
+
+	if config.VisibilidadePerfil == modelos.VisibilidadePrivado && !ehDono && !segue {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Este perfil é privado"))
+		return
+	}
+	if !modelos.PermiteAcesso(config.HistoricoVisivelPara, ehDono, segue) {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Histórico de leitura privado"))
+		return
+	}
+
+	agora := agoraDiario()
+	fim := truncarDia(agora)
+	inicio := fim.AddDate(0, 0, -364)
+
+	dias, erro := repoDiario.BuscarAtividade(usuario.ID, inicio, fim)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.JSON(w, http.StatusOK, modelos.DiarioAtividadeResposta{
+		Dias:          dias,
+		PeriodoInicio: inicio.Format("2006-01-02"),
+		PeriodoFim:    fim.Format("2006-01-02"),
+	})
 }
 
 func BuscarOpinioWrapped(w http.ResponseWriter, r *http.Request) {

@@ -413,6 +413,14 @@ html[data-acess-foco="alto"] :focus-visible {
   outline-offset: 2px;
 }
 
+/* Inputs/textarea/select já usam borda própria no focus — evita anel duplicado */
+html[data-acess-foco="alto"] input:focus-visible,
+html[data-acess-foco="alto"] textarea:focus-visible,
+html[data-acess-foco="alto"] select:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
 html[data-acess-reduce-motion="true"] *,
 html[data-acess-reduce-motion="true"] *::before,
 html[data-acess-reduce-motion="true"] *::after {

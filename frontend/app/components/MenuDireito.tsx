@@ -13,7 +13,7 @@ import { usePlano } from "./PlanoProvider";
 
 export default function MenuDireito() {
     const pathname = usePathname();
-    const { carregando, sequencia, streak, jaLeuHoje, diaHoje } = useDiario();
+    const { carregando, sequencia, streak, diaHoje } = useDiario();
     const { config } = useConfiguracoes();
     const { modoZen } = usePlano();
     const [modalAberto, setModalAberto] = useState(false);
@@ -96,23 +96,11 @@ export default function MenuDireito() {
 
                     <button
                         type="button"
-                        disabled={jaLeuHoje}
                         onClick={() => setModalAberto(true)}
-                        className={cn(
-                            "flex w-full items-center justify-center gap-1.5 rounded-full py-1.5 font-gabarito-bold text-sm transition",
-                            jaLeuHoje
-                                ? "cursor-not-allowed bg-cinza-300 text-cinza-700 opacity-90"
-                                : "bg-azul-600 text-azul-600-foreground hover:bg-azul-700",
-                        )}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-full bg-azul-600 py-1.5 font-gabarito-bold text-sm text-azul-600-foreground transition hover:bg-azul-700"
                     >
-                        {jaLeuHoje ? (
-                            "Leitura registrada hoje"
-                        ) : (
-                            <>
-                                <Plus className="h-3.5 w-3.5" />
-                                Registrar leitura
-                            </>
-                        )}
+                        <Plus className="h-3.5 w-3.5" />
+                        Registrar leitura
                     </button>
                 </Box>
             ) : null}

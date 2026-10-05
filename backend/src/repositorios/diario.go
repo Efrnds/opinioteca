@@ -109,6 +109,41 @@ func (repositorio Diario) BuscarDiasDaSemana(usuarioID uint64, inicio, fim time.
 	return dias, nil
 }
 
+func (repositorio Diario) BuscarAtividade(usuarioID uint64, inicio, fim time.Time) ([]modelos.DiaAtividadeLeitura, error) {
+	local := mustLocationDiario()
+	inicioLocal := inicio.In(local).Format("2006-01-02")
+	fimLocal := fim.In(local).Format("2006-01-02")
+
+	linhas, erro := repositorio.db.Query(
+		`SELECT TO_CHAR((data_registro AT TIME ZONE 'America/Sao_Paulo')::date, 'YYYY-MM-DD') AS dia,
+		        COALESCE(SUM(paginas_lidas), 0) AS paginas,
+		        COUNT(*) AS registros
+		 FROM diario_leitura
+		 WHERE usuario_id = $1
+		   AND (data_registro AT TIME ZONE 'America/Sao_Paulo')::date >= $2::date
+		   AND (data_registro AT TIME ZONE 'America/Sao_Paulo')::date <= $3::date
+		 GROUP BY dia
+		 ORDER BY dia ASC`,
+		usuarioID,
+		inicioLocal,
+		fimLocal,
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	dias := make([]modelos.DiaAtividadeLeitura, 0)
+	for linhas.Next() {
+		var item modelos.DiaAtividadeLeitura
+		if erro := linhas.Scan(&item.Dia, &item.Paginas, &item.Registros); erro != nil {
+			return nil, erro
+		}
+		dias = append(dias, item)
+	}
+	return dias, nil
+}
+
 func (repositorio Diario) BuscarHistorico(usuarioID uint64, limite int) ([]modelos.DiarioHistoricoItem, error) {
 	return repositorio.BuscarHistoricoDesde(usuarioID, limite, time.Time{})
 }
