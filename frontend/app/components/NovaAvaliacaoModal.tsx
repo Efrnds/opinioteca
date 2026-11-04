@@ -225,6 +225,10 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const templateSemSpoiler = /\bsem spoilers?\b/i.test(templateAtivo?.nome ?? "");
     const avaliacaoContemSpoiler = !templateSemSpoiler && contemSpoiler;
     const inputImagemId = useId();
+    const conteudoRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        conteudoRef.current?.scrollTo({ top: 0 });
+    }, [passo]);
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
 
@@ -652,7 +656,10 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
                 <DialogContent
                     showCloseButton
-                    className="flex h-dvh w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:max-w-xl sm:rounded-[2rem]"
+                    className={cn(
+                        "flex h-dvh w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:rounded-[2rem]",
+                        passo === 2 ? "sm:max-w-3xl" : "sm:max-w-xl",
+                    )}
                 >
                     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -674,7 +681,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                             <IndicadorPassos passo={passo} />
                         </div>
 
-                        <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-7 sm:py-4">
+                        <div ref={conteudoRef} className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-7 sm:py-4">
                             <AnimatePresence mode="wait" custom={direcao}>
                                 <motion.div
                                     key={passo}
@@ -860,57 +867,59 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                     )}
 
                                     {passo === 2 && dadosLivro && (
-                                        <div className="flex flex-1 flex-col items-center gap-4 py-1 sm:gap-6 sm:py-2">
-                                            <motion.div
-                                                initial={{ scale: 0.92, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                transition={{ type: "spring", stiffness: 320, damping: 24 }}
-                                                className="flex w-full items-center gap-3 text-left sm:w-auto sm:flex-col sm:text-center"
-                                            >
-                                                <div className="[&>img]:h-20 [&>img]:w-[54px] [&>div]:h-20 [&>div]:w-[54px] sm:[&>img]:h-36 sm:[&>img]:w-24 sm:[&>div]:h-36 sm:[&>div]:w-24">
-                                                    <CapaHero dados={dadosLivro} tamanho="md" />
-                                                </div>
-                                                <div className="max-w-[280px]">
-                                                    <p className="line-clamp-2 font-gabarito-bold text-lg text-azul-900">
-                                                        {dadosLivro.titulo}
-                                                    </p>
-                                                    <p className="font-gabarito-regular text-sm text-cinza-700">
-                                                        {dadosLivro.autor}
-                                                    </p>
-                                                </div>
-                                            </motion.div>
+                                        <div className="flex flex-1 flex-col items-center gap-4 py-1 sm:grid sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:items-start sm:gap-6 sm:py-2">
+                                            <div className="contents sm:flex sm:min-w-0 sm:flex-col sm:gap-4">
+                                                <motion.div
+                                                    initial={{ scale: 0.92, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    transition={{ type: "spring", stiffness: 320, damping: 24 }}
+                                                    className="flex w-full items-center gap-3 text-left"
+                                                >
+                                                    <div className="shrink-0 [&>img]:h-20 [&>img]:w-[54px] [&>div]:h-20 [&>div]:w-[54px]">
+                                                        <CapaHero dados={dadosLivro} tamanho="md" />
+                                                    </div>
+                                                    <div className="min-w-0 max-w-[280px]">
+                                                        <p className="line-clamp-2 font-gabarito-bold text-lg text-azul-900">
+                                                            {dadosLivro.titulo}
+                                                        </p>
+                                                        <p className="font-gabarito-regular text-sm text-cinza-700">
+                                                            {dadosLivro.autor}
+                                                        </p>
+                                                    </div>
+                                                </motion.div>
 
-                                            <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-4 py-4 sm:px-5 sm:py-6 ring-1 ring-azul-100">
-                                                <p className="mb-3 text-center font-gabarito-bold text-sm text-azul-900">
-                                                    Sua nota
-                                                </p>
-                                                <div className="flex justify-center gap-1">
-                                                    {[1, 2, 3, 4, 5].map((valor) => (
-                                                        <button
-                                                            key={valor}
-                                                            type="button"
-                                                            onMouseEnter={() => setNotaHover(valor)}
-                                                            onMouseLeave={() => setNotaHover(0)}
-                                                            onClick={() => {
-                                                                setNota(valor);
-                                                                setErro("");
-                                                            }}
-                                                            className="rounded p-0.5 transition hover:scale-110"
-                                                            aria-label={`Nota ${valor}`}
-                                                        >
-                                                            <Star
-                                                                className={`h-9 w-9 ${
-                                                                    valor <= notaExibida
-                                                                        ? "fill-amber-400 text-amber-400"
-                                                                        : "text-gray-300"
-                                                                }`}
-                                                            />
-                                                        </button>
-                                                    ))}
+                                                <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-4 py-4 sm:px-5 sm:py-6 ring-1 ring-azul-100">
+                                                    <p className="mb-3 text-center font-gabarito-bold text-sm text-azul-900">
+                                                        Sua nota
+                                                    </p>
+                                                    <div className="flex justify-center gap-1">
+                                                        {[1, 2, 3, 4, 5].map((valor) => (
+                                                            <button
+                                                                key={valor}
+                                                                type="button"
+                                                                onMouseEnter={() => setNotaHover(valor)}
+                                                                onMouseLeave={() => setNotaHover(0)}
+                                                                onClick={() => {
+                                                                    setNota(valor);
+                                                                    setErro("");
+                                                                }}
+                                                                className="rounded p-0.5 transition hover:scale-110"
+                                                                aria-label={`Nota ${valor}`}
+                                                            >
+                                                                <Star
+                                                                    className={`h-9 w-9 sm:h-8 sm:w-8 ${
+                                                                        valor <= notaExibida
+                                                                            ? "fill-amber-400 text-amber-400"
+                                                                            : "text-gray-300"
+                                                                    }`}
+                                                                />
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
+
                                             </div>
-
-                                            <div className="w-full max-w-sm">
+                                            <div className="w-full max-w-sm sm:min-w-0 sm:max-w-none">
                                                 <p className="mb-1 font-gabarito-bold text-sm text-azul-900">
                                                     Modelos de avaliação
                                                 </p>
