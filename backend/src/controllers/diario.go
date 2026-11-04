@@ -399,7 +399,17 @@ func BuscarEstatisticasLeitura(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats, erro := repoDiario.BuscarEstatisticasMensais(usuario.ID, agoraDiario())
+	periodo := r.URL.Query().Get("periodo")
+	if periodo == "" {
+		periodo = "semana"
+	}
+	switch periodo {
+	case "hoje", "semana", "mes", "ano", "tudo":
+	default:
+		respostas.Erro(w, http.StatusBadRequest, errors.New("Período inválido"))
+		return
+	}
+	stats, erro := repoDiario.BuscarEstatisticasLeitura(usuario.ID, agoraDiario(), periodo)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return

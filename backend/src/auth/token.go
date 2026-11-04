@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // CriarToken é a função responsável por criar um token JWT para o usuário autenticado, contendo as permissões e o ID do usuário, e retornando o token assinado como string.
@@ -28,7 +28,7 @@ func CriarToken(usuarioID uint64, status string, isAdmin bool) (string, error) {
 // ValidarToken é a função responsável por extrair o ID do usuário presente no token JWT da requisição, retornando o ID como uint64 e um erro caso o token seja inválido ou não contenha o ID do usuário.
 func ValidarToken(r *http.Request) error {
 	tokenString := extrairToken(r)
-	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao)
+	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuedAt())
 	if erro != nil {
 		return erro
 	}
@@ -52,7 +52,7 @@ func ExtrairUsuarioIDOpcional(r *http.Request) uint64 {
 // ExtrairUsuarioID é a função responsável por extrair o ID do usuário presente no token JWT da requisição, retornando o ID como uint64 e um erro caso o token seja inválido ou não contenha o ID do usuário.
 func ExtrairUsuarioID(r *http.Request) (uint64, error) {
 	tokenString := extrairToken(r)
-	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao)
+	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuedAt())
 	if erro != nil {
 		return 0, erro
 	}
@@ -83,7 +83,7 @@ func ExtrairUsuarioIDDoToken(tokenString string) (uint64, error) {
 		return 0, errors.New("Token não informado")
 	}
 
-	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao)
+	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuedAt())
 	if erro != nil {
 		return 0, erro
 	}
@@ -147,7 +147,7 @@ func retornarChaveDeVerificacao(token *jwt.Token) (interface{}, error) {
 // ExtrairIsAdmin é a função responsável por extrair o status do usuário presente no token JWT da requisição, retornando o status como string e um erro caso o token seja inválido ou não contenha o status do usuário.
 func ExtrairIsAdmin(r *http.Request) (bool, error) {
 	tokenString := extrairToken(r)
-	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao)
+	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuedAt())
 	if erro != nil {
 		return false, erro
 	}

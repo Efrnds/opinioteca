@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 type Params = { params: Promise<{ nick: string }> };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
     const session = await auth();
 
     if (!session?.accessToken) {
@@ -11,8 +11,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
     }
 
     const { nick } = await params;
+    const periodo = req.nextUrl.searchParams.get("periodo") || "semana";
     const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/diario/${encodeURIComponent(nick)}/estatisticas`,
+        `${process.env.NEXT_PUBLIC_API_URL}/diario/${encodeURIComponent(nick)}/estatisticas?periodo=${encodeURIComponent(periodo)}`,
         {
             headers: {
                 Authorization: `Bearer ${session.accessToken}`,

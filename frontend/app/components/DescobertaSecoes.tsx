@@ -310,11 +310,6 @@ function SecaoCriticosEmAlta({ variante }: { variante: Variante }) {
                     </Link>
                 )}
             </div>
-            {!lateral && (
-                <p className="font-gabarito-regular text-sm text-cinza-700">
-                    Rank de confiabilidade com base nos votos das avaliações (upvote +1, downvote −1).
-                </p>
-            )}
             {carregando ? (
                 <p className={cn("font-gabarito-regular text-cinza-600", lateral && "text-xs")}>
                     Carregando…

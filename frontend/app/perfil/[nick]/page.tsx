@@ -14,7 +14,7 @@ import {
     updatePerfilCache,
     type PerfilCacheUsuario,
 } from "@/lib/perfil-cache";
-import type { DiarioAtividadeResposta, DiarioHistoricoResposta, DiarioResposta, EstatisticasLeituraResposta } from "@/types/diario";
+import type { DiarioAtividadeResposta, DiarioHistoricoResposta, DiarioResposta, EstatisticasLeituraResposta, PeriodoEstatisticasLeitura } from "@/types/diario";
 import type { EstanteItem, EstanteResposta, StatusEstante } from "@/types/estante";
 import { ROTULOS_STATUS_ESTANTE } from "@/types/estante";
 import type { LivroPublico } from "@/types/livro";
@@ -157,6 +157,9 @@ export default function PerfilNickPage() {
     const [seguindo, setSeguindo] = useState<UsuarioPublico[]>([]);
     const [diario, setDiario] = useState<DiarioResposta | null>(null);
     const [historico, setHistorico] = useState<DiarioHistoricoResposta>(historicoVazio);
+    const [periodoEstatisticas, setPeriodoEstatisticas] = useState<PeriodoEstatisticasLeitura>("semana");
+    const periodoEstatisticasRef = useRef<PeriodoEstatisticasLeitura>("semana");
+    const requisicaoEstatisticasRef = useRef(0);
     const [estatisticas, setEstatisticas] = useState<EstatisticasLeituraResposta | null>(null);
     const [carregandoEstatisticas, setCarregandoEstatisticas] = useState(false);
     const [upgradeHistoricoAberto, setUpgradeHistoricoAberto] = useState(false);
@@ -263,23 +266,27 @@ export default function PerfilNickPage() {
             setEstatisticas(null);
             return;
         }
+        const periodo = periodoEstatisticasRef.current;
+        const requisicao = ++requisicaoEstatisticasRef.current;
         setCarregandoEstatisticas(true);
         try {
-            const res = await fetch(`/api/diario/${encodeURIComponent(nickAlvo)}/estatisticas`);
+            const res = await fetch(`/api/diario/${encodeURIComponent(nickAlvo)}/estatisticas?periodo=${periodo}`);
+            if (requisicao !== requisicaoEstatisticasRef.current) return;
             if (!res.ok) {
                 setEstatisticas(null);
                 return;
             }
             const data = (await res.json()) as EstatisticasLeituraResposta;
+            if (requisicao !== requisicaoEstatisticasRef.current) return;
             setEstatisticas(data);
             const cache = getPerfilCache(nickAlvo);
-            if (cache) {
+            if (cache && periodo === "semana") {
                 updatePerfilCache(nickAlvo, { estatisticas: data });
             }
         } catch {
-            setEstatisticas(null);
+            if (requisicao === requisicaoEstatisticasRef.current) setEstatisticas(null);
         } finally {
-            setCarregandoEstatisticas(false);
+            if (requisicao === requisicaoEstatisticasRef.current) setCarregandoEstatisticas(false);
         }
     }, [session?.accessToken]);
 
@@ -967,6 +974,12 @@ export default function PerfilNickPage() {
             {abaAtiva === "diario" && (
                 <Box className="flex flex-col gap-5">
                     <EstatisticasLeitura
+                        periodo={periodoEstatisticas}
+                        onPeriodoChange={(periodo) => {
+                            setPeriodoEstatisticas(periodo);
+                            periodoEstatisticasRef.current = periodo;
+                            void carregarEstatisticas(nick);
+                        }}
                         stats={estatisticas}
                         carregando={carregandoEstatisticas}
                         ehMeuPerfil={ehMeuPerfil}

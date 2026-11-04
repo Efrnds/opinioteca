@@ -21,14 +21,31 @@ func (repositorio Descoberta) LivrosEmAlta(limite int) ([]modelos.Livro, error) 
 	}
 
 	linhas, erro := repositorio.db.Query(
-		`SELECT l.id, l.ISBN, l.titulo, l.editora, l.categoria_id, l.status, l.paginas, l.autor, l.sinopse,
-		        l.capa_url, l.data_publicacao, l.google_volume_id, l.origem, l.criadoEm
-		 FROM livros l
-		 LEFT JOIN avaliacoes a ON a.livro_id = l.id AND a.criadoEm >= NOW() - INTERVAL '30 days'
-		 WHERE l.status = 'ativo'
-		 GROUP BY l.id
-		 ORDER BY COUNT(a.id) DESC, l.id DESC
-		 LIMIT $1`,
+		`WITH popularidade AS (
+            SELECT l.id,
+                   LOWER(TRIM(REGEXP_REPLACE(l.titulo, '\s+', ' ', 'g'))) AS titulo_obra,
+                   LOWER(TRIM(REGEXP_REPLACE(l.autor, '\s+', ' ', 'g'))) AS autor_obra,
+                   COUNT(a.id) AS avaliacoes_recentes
+            FROM livros l
+            LEFT JOIN avaliacoes a ON a.livro_id = l.id AND a.criadoEm >= NOW() - INTERVAL '30 days'
+            WHERE l.status = 'ativo'
+            GROUP BY l.id
+        ), obras AS (
+            SELECT id,
+                   SUM(avaliacoes_recentes) OVER (PARTITION BY titulo_obra, autor_obra) AS popularidade_obra,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY titulo_obra, autor_obra
+                       ORDER BY avaliacoes_recentes DESC, id DESC
+                   ) AS posicao
+            FROM popularidade
+        )
+        SELECT l.id, l.ISBN, l.titulo, l.editora, l.categoria_id, l.status, l.paginas, l.autor, l.sinopse,
+               l.capa_url, l.data_publicacao, l.google_volume_id, l.origem, l.criadoEm
+        FROM obras o
+        JOIN livros l ON l.id = o.id
+        WHERE o.posicao = 1
+        ORDER BY o.popularidade_obra DESC, l.id DESC
+        LIMIT $1`,
 		limite,
 	)
 	if erro != nil {
@@ -45,7 +62,7 @@ func (repositorio Descoberta) LivrosEmAlta(limite int) ([]modelos.Livro, error) 
 		}
 		livros = append(livros, livro)
 	}
-	return livros, nil
+	return livros, linhas.Err()
 }
 
 func (repositorio Descoberta) LivrosRecentes(limite int) ([]modelos.Livro, error) {

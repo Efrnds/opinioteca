@@ -50,7 +50,12 @@ export type DiarioHistoricoResposta = {
     historico_limitado?: boolean;
 };
 
+export type PeriodoEstatisticasLeitura = "hoje" | "semana" | "mes" | "ano" | "tudo";
+
 export type EstatisticasLeituraResposta = {
+    periodo?: PeriodoEstatisticasLeitura;
+    periodo_inicio?: string;
+    periodo_fim?: string;
     disponivel: boolean;
     teaser?: boolean;
     mes_referencia?: string;

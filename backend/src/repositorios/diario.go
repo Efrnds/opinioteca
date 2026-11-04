@@ -269,16 +269,40 @@ func (repositorio Diario) BuscarResumoLivrosDesde(usuarioID uint64, desde time.T
 	return resumo, nil
 }
 
-func (repositorio Diario) BuscarEstatisticasMensais(usuarioID uint64, inicioMes time.Time) (modelos.EstatisticasLeituraResposta, error) {
+func intervaloEstatisticasLeitura(agora time.Time, periodo string) (time.Time, time.Time) {
 	local := mustLocationDiario()
-	inicio := time.Date(inicioMes.Year(), inicioMes.Month(), 1, 0, 0, 0, 0, local)
-	fim := inicio.AddDate(0, 1, 0)
-	inicioStr := inicio.Format("2006-01-02")
-	fimStr := fim.Format("2006-01-02")
+	agora = agora.In(local)
+	inicio := time.Date(agora.Year(), agora.Month(), agora.Day(), 0, 0, 0, 0, local)
+	switch periodo {
+	case "tudo":
+		return time.Time{}, time.Time{}
+	case "hoje":
+		return inicio, inicio.AddDate(0, 0, 1)
+	case "mes":
+		inicio = time.Date(agora.Year(), agora.Month(), 1, 0, 0, 0, 0, local)
+		return inicio, inicio.AddDate(0, 1, 0)
+	case "ano":
+		inicio = time.Date(agora.Year(), time.January, 1, 0, 0, 0, 0, local)
+		return inicio, inicio.AddDate(1, 0, 0)
+	default:
+		inicio = inicio.AddDate(0, 0, -int(inicio.Weekday()))
+		return inicio, inicio.AddDate(0, 0, 7)
+	}
+}
 
+func (repositorio Diario) BuscarEstatisticasLeitura(usuarioID uint64, agora time.Time, periodo string) (modelos.EstatisticasLeituraResposta, error) {
+	inicio, fim := intervaloEstatisticasLeitura(agora, periodo)
+	var inicioStr, fimStr any
 	var stats modelos.EstatisticasLeituraResposta
 	stats.Disponivel = true
-	stats.MesReferencia = inicio.Format("2006-01")
+	stats.Periodo = periodo
+	if periodo != "tudo" {
+		inicioStr = inicio.Format("2006-01-02")
+		fimStr = fim.Format("2006-01-02")
+		stats.MesReferencia = inicio.Format("2006-01")
+		stats.PeriodoInicio = inicio.Format("2006-01-02")
+		stats.PeriodoFim = fim.AddDate(0, 0, -1).Format("2006-01-02")
+	}
 
 	erro := repositorio.db.QueryRow(
 		`SELECT
@@ -287,8 +311,8 @@ func (repositorio Diario) BuscarEstatisticasMensais(usuarioID uint64, inicioMes 
 			COUNT(*)
 		 FROM diario_leitura
 		 WHERE usuario_id = $1
-		   AND (data_registro AT TIME ZONE 'America/Sao_Paulo')::date >= $2::date
-		   AND (data_registro AT TIME ZONE 'America/Sao_Paulo')::date < $3::date`,
+		   AND ($2::date IS NULL OR (data_registro AT TIME ZONE 'America/Sao_Paulo')::date >= $2::date)
+		   AND ($3::date IS NULL OR (data_registro AT TIME ZONE 'America/Sao_Paulo')::date < $3::date)`,
 		usuarioID,
 		inicioStr,
 		fimStr,
@@ -302,13 +326,13 @@ func (repositorio Diario) BuscarEstatisticasMensais(usuarioID uint64, inicioMes 
 			SELECT livro_id FROM diario_leitura
 			WHERE usuario_id = $1
 			  AND porcentagem_leitura >= 100
-			  AND (data_registro AT TIME ZONE 'America/Sao_Paulo')::date >= $2::date
-			  AND (data_registro AT TIME ZONE 'America/Sao_Paulo')::date < $3::date
+			  AND ($2::date IS NULL OR (data_registro AT TIME ZONE 'America/Sao_Paulo')::date >= $2::date)
+			  AND ($3::date IS NULL OR (data_registro AT TIME ZONE 'America/Sao_Paulo')::date < $3::date)
 			UNION
 			SELECT livro_id FROM avaliacoes
 			WHERE usuario_id = $1
-			  AND (criadoEm AT TIME ZONE 'America/Sao_Paulo')::date >= $2::date
-			  AND (criadoEm AT TIME ZONE 'America/Sao_Paulo')::date < $3::date
+			  AND ($2::date IS NULL OR (criadoEm AT TIME ZONE 'America/Sao_Paulo')::date >= $2::date)
+			  AND ($3::date IS NULL OR (criadoEm AT TIME ZONE 'America/Sao_Paulo')::date < $3::date)
 		) AS finalizados`,
 		usuarioID,
 		inicioStr,
@@ -322,8 +346,10 @@ func (repositorio Diario) BuscarEstatisticasMensais(usuarioID uint64, inicioMes 
 		`SELECT COUNT(DISTINCT livro_id)
 		 FROM diario_leitura
 		 WHERE usuario_id = $1
-		   AND porcentagem_leitura > 0 AND porcentagem_leitura < 100`,
-		usuarioID,
+		   AND porcentagem_leitura > 0 AND porcentagem_leitura < 100
+		   AND ($2::date IS NULL OR (data_registro AT TIME ZONE 'America/Sao_Paulo')::date >= $2::date)
+		   AND ($3::date IS NULL OR (data_registro AT TIME ZONE 'America/Sao_Paulo')::date < $3::date)`,
+		usuarioID, inicioStr, fimStr,
 	).Scan(&stats.TotalLivrosAtivos)
 	if erro != nil {
 		return modelos.EstatisticasLeituraResposta{}, erro

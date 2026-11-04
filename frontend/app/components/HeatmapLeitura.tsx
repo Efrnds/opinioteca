@@ -20,11 +20,11 @@ type Celula = {
     foraDoPeriodo: boolean;
 };
 
-const LABELS_DIA = ["D", "S", "T", "Q", "Q", "S", "S"];
+const LABELS_DIA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 const NIVEL_CLASSE: Record<0 | 1 | 2 | 3 | 4, string> = {
-    0: "bg-azul-50 ring-1 ring-inset ring-azul-100/80",
+    0: "bg-cinza-200",
     1: "bg-azul-100",
     2: "bg-azul-200",
     3: "bg-azul-400",
@@ -125,13 +125,13 @@ export default function HeatmapLeitura({
         [dias, periodoInicio, periodoFim],
     );
 
-    const totalDias = dias.length;
+    const totalDias = dias.filter((dia) => dia.paginas > 0 || dia.registros > 0).length;
     const totalPaginas = dias.reduce((soma, item) => soma + item.paginas, 0);
 
     if (carregando) {
         return (
-            <div className={cn("flex flex-col gap-3", className)}>
-                <div className="h-28 animate-pulse rounded-2xl bg-azul-50" />
+            <div className={cn("flex w-full min-w-0 flex-col gap-4 rounded-2xl border border-cinza-200 p-4", className)}>
+                <div className="h-36 animate-pulse rounded-xl bg-cinza-200" />
             </div>
         );
     }
@@ -139,29 +139,45 @@ export default function HeatmapLeitura({
     if (semanas.length === 0) {
         return (
             <p className={cn("font-gabarito-regular text-sm text-cinza-700", className)}>
-                Não foi possível carregar o heatmap de leitura.
+                Não foi possível carregar seu ano de leitura.
             </p>
         );
     }
 
     return (
-        <div className={cn("flex flex-col gap-3", className)}>
-            <div className="overflow-x-auto pb-1">
-                <div className="inline-flex min-w-full flex-col gap-1.5">
+        <div className={cn("flex w-full min-w-0 flex-col gap-4 rounded-2xl border border-cinza-200 p-4", className)}>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <p className="font-gabarito-medium text-sm text-azul-900">
+                    {totalDias.toLocaleString("pt-BR")} dia{totalDias === 1 ? "" : "s"} com leitura
+                </p>
+                <p className="font-gabarito-regular text-sm text-cinza-600">
+                    {totalPaginas.toLocaleString("pt-BR")} páginas no período
+                </p>
+            </div>
+
+            <div
+                tabIndex={0}
+                role="region"
+                aria-label="Calendário anual de leitura. Role horizontalmente para ver todos os meses."
+                className="overflow-x-auto rounded-lg pb-2 outline-none focus-visible:ring-2 focus-visible:ring-azul-600"
+            >
+                <div className="flex min-w-[44rem] flex-col gap-1.5">
                     <div
-                        className="grid gap-1"
-                        style={{ gridTemplateColumns: `1.25rem repeat(${semanas.length}, minmax(0, 1fr))` }}
+                        aria-hidden="true"
+                        className="mb-1 grid gap-1"
+                        style={{ gridTemplateColumns: `2rem repeat(${semanas.length}, minmax(0, 1fr))` }}
                     >
-                        <div />
-                        {semanas.map((_, indice) => {
-                            const label = labelsMes.find((item) => item.indice === indice);
+                        {labelsMes.map(({ indice, label }, posicao) => {
+                            const proximo = labelsMes[posicao + 1]?.indice ?? semanas.length;
+                            if (proximo - indice < 3) return null;
                             return (
-                                <div
-                                    key={`mes-${indice}`}
-                                    className="h-4 overflow-visible font-gabarito-bold text-[10px] leading-none text-cinza-700"
+                                <span
+                                    key={`${label}-${indice}`}
+                                    style={{ gridColumn: `${indice + 2} / ${proximo + 2}` }}
+                                    className="font-gabarito-medium text-xs text-cinza-600"
                                 >
-                                    {label?.label ?? ""}
-                                </div>
+                                    {label}
+                                </span>
                             );
                         })}
                     </div>
@@ -170,13 +186,10 @@ export default function HeatmapLeitura({
                         <div
                             key={labelDia + linha}
                             className="grid gap-1"
-                            style={{ gridTemplateColumns: `1.25rem repeat(${semanas.length}, minmax(0, 1fr))` }}
+                            style={{ gridTemplateColumns: `2rem repeat(${semanas.length}, minmax(0, 1fr))` }}
                         >
                             <span
-                                className={cn(
-                                    "flex items-center font-gabarito-bold text-[10px] text-cinza-700",
-                                    linha % 2 === 1 ? "opacity-100" : "opacity-0 sm:opacity-100",
-                                )}
+                                className="flex items-center font-gabarito-regular text-[11px] text-cinza-600"
                             >
                                 {labelDia}
                             </span>
@@ -193,10 +206,10 @@ export default function HeatmapLeitura({
                                                   : `${new Date(celula.data + "T12:00:00").toLocaleDateString("pt-BR")}: sem leitura`
                                         }
                                         className={cn(
-                                            "aspect-square w-full min-w-[9px] max-w-3.5 rounded-[3px]",
+                                            "aspect-square w-full rounded-[3px] transition-colors",
                                             celula.foraDoPeriodo
                                                 ? "bg-transparent"
-                                                : NIVEL_CLASSE[celula.nivel],
+                                                : `${NIVEL_CLASSE[celula.nivel]} hover:ring-2 hover:ring-azul-600 hover:ring-offset-1 hover:ring-offset-superficie`,
                                         )}
                                     />
                                 );
@@ -206,16 +219,16 @@ export default function HeatmapLeitura({
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-gabarito-regular text-xs text-cinza-700">
-                    {totalDias} dia{totalDias === 1 ? "" : "s"} com leitura · {totalPaginas} páginas no período
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-cinza-200 pt-3">
+                <p className="font-gabarito-regular text-xs text-cinza-600">
+                    {totalDias === 0 ? "Suas leituras vão preencher este calendário." : "Cada quadrado representa um dia."}
                 </p>
-                <div className="flex items-center gap-1">
-                    <span className="font-gabarito-regular text-[10px] text-cinza-700">Menos</span>
+                <div className="flex items-center gap-1.5" aria-label="Intensidade de leitura: de menos a mais páginas">
+                    <span className="mr-1 font-gabarito-regular text-xs text-cinza-600">Menos</span>
                     {([0, 1, 2, 3, 4] as const).map((nivel) => (
-                        <div key={nivel} className={cn("h-2.5 w-2.5 rounded-[2px]", NIVEL_CLASSE[nivel])} />
+                        <span key={nivel} aria-hidden="true" className={cn("h-3 w-3 rounded-[3px]", NIVEL_CLASSE[nivel])} />
                     ))}
-                    <span className="font-gabarito-regular text-[10px] text-cinza-700">Mais</span>
+                    <span className="ml-1 font-gabarito-regular text-xs text-cinza-600">Mais</span>
                 </div>
             </div>
         </div>

@@ -1,28 +1,34 @@
 "use client";
 
-import type { EstatisticasLeituraResposta } from "@/types/diario";
+import type { EstatisticasLeituraResposta, PeriodoEstatisticasLeitura } from "@/types/diario";
 import { BookOpen, CalendarDays, CheckCircle2, FileText } from "lucide-react";
 import { useState } from "react";
 import PlanoUpgradeModal from "./PlanoUpgradeModal";
 
 type EstatisticasLeituraProps = {
     stats: EstatisticasLeituraResposta | null;
+    periodo: PeriodoEstatisticasLeitura;
+    onPeriodoChange: (periodo: PeriodoEstatisticasLeitura) => void;
     carregando?: boolean;
     ehMeuPerfil?: boolean;
 };
 
-function formatarMesReferencia(mes?: string) {
-    if (!mes) return "este mês";
-    const [ano, mesNum] = mes.split("-");
-    const data = new Date(Number(ano), Number(mesNum) - 1, 1);
-    if (Number.isNaN(data.getTime())) return "este mês";
-    return data.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+function opcoesPeriodo() {
+    const hoje = new Date();
+    const fuso = "America/Sao_Paulo";
+    return [
+        { valor: "hoje", rotulo: `Hoje · ${hoje.toLocaleDateString("pt-BR", { timeZone: fuso, day: "2-digit", month: "2-digit" })}` },
+        { valor: "semana", rotulo: "Esta semana" },
+        { valor: "mes", rotulo: hoje.toLocaleDateString("pt-BR", { timeZone: fuso, month: "long", year: "numeric" }) },
+        { valor: "ano", rotulo: hoje.toLocaleDateString("pt-BR", { timeZone: fuso, year: "numeric" }) },
+        { valor: "tudo", rotulo: "Tempo todo" },
+    ];
 }
 
-export default function EstatisticasLeitura({ stats, carregando, ehMeuPerfil }: EstatisticasLeituraProps) {
+export default function EstatisticasLeitura({ stats, carregando, ehMeuPerfil, periodo, onPeriodoChange }: EstatisticasLeituraProps) {
     const [upgradeAberto, setUpgradeAberto] = useState(false);
 
-    if (carregando) {
+    if (carregando && !stats) {
         return (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[1, 2, 3, 4].map((i) => (
@@ -42,7 +48,7 @@ export default function EstatisticasLeitura({ stats, carregando, ehMeuPerfil }: 
                 <div className="rounded-2xl border border-dashed border-azul-300 bg-azul-50/60 p-4">
                     <p className="font-gabarito-bold text-base text-azul-900">Estatísticas de leitura</p>
                     <p className="mt-1 font-gabarito-regular text-sm text-cinza-700">
-                        Veja páginas lidas, livros finalizados e dias com leitura no último mês. Exclusivo do OpinioTop.
+                        Veja páginas lidas, livros finalizados e dias com leitura por dia, semana, mês ou ano. Exclusivo do OpinioTop.
                     </p>
                     <div className="mt-3 grid grid-cols-2 gap-2 opacity-50 blur-[2px] select-none" aria-hidden>
                         <div className="rounded-xl bg-white p-3 text-center">
@@ -96,14 +102,23 @@ export default function EstatisticasLeitura({ stats, carregando, ehMeuPerfil }: 
 
     return (
         <div className="flex flex-col gap-3">
-            <div className="flex items-baseline justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-gabarito-bold text-base text-azul-900">Estatísticas de leitura</h3>
-                <p className="font-gabarito-regular text-xs text-cinza-600 capitalize">
-                    {formatarMesReferencia(stats.mes_referencia)}
-                </p>
+                <select
+                    aria-label="Período das estatísticas de leitura"
+                    value={periodo}
+                    onChange={(event) => onPeriodoChange(event.target.value as PeriodoEstatisticasLeitura)}
+                    className="max-w-full rounded-full border border-cinza-200 bg-white px-3 py-1.5 font-gabarito-regular text-xs text-cinza-600 capitalize outline-none focus:border-azul-600"
+                >
+                    {opcoesPeriodo().map(({ valor, rotulo }) => (
+                        <option key={valor} value={valor}>{rotulo}</option>
+                    ))}
+                </select>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {cards.map(({ rotulo, valor, icone: Icone }) => (
+            <div aria-busy={carregando} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {carregando ? [1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-24 animate-pulse rounded-2xl bg-cinza-200" />
+                )) : cards.map(({ rotulo, valor, icone: Icone }) => (
                     <div
                         key={rotulo}
                         className="flex flex-col gap-1 rounded-2xl border border-cinza-200 bg-white px-3 py-3"

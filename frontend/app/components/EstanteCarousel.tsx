@@ -74,11 +74,11 @@ export default function EstanteCarousel({
                             type="button"
                             onClick={protegerClique(() => onSelecionar(item))}
                             className={cn(
-                                "group flex w-[140px] shrink-0 flex-col gap-2 rounded-2xl bg-background p-2 text-left transition hover:shadow-md",
+                                "group flex w-[140px] min-w-0 shrink-0 flex-col gap-2 rounded-2xl bg-background p-2 text-left transition hover:shadow-md",
                                 arrastando && "pointer-events-none",
                             )}
                         >
-                            <div className={cn("relative", arrastando && "pointer-events-none")}>
+                            <div className={cn("relative w-full shrink-0", arrastando && "pointer-events-none")}>
                                 {mediaUrl(item.livro.capa_url) ? (
                                     <Image
                                         src={mediaUrl(item.livro.capa_url)!}
@@ -100,15 +100,15 @@ export default function EstanteCarousel({
                                     </span>
                                 )}
                             </div>
-                            <p className="pointer-events-none line-clamp-2 font-gabarito-bold text-xs text-azul-900">
+                            <p className="pointer-events-none line-clamp-2 h-8 w-full break-words font-gabarito-bold text-xs leading-4 text-azul-900">
                                 {item.livro.titulo}
                             </p>
-                            <p className="pointer-events-none line-clamp-1 font-gabarito-regular text-[10px] text-cinza-700">
+                            <p className="pointer-events-none h-4 w-full truncate font-gabarito-regular text-[11px] leading-4 text-cinza-700">
                                 {item.livro.autor}
                             </p>
                             <span
                                 className={cn(
-                                    "pointer-events-none rounded-full px-2 py-0.5 text-center font-gabarito-bold text-[10px]",
+                                    "pointer-events-none mt-auto flex min-h-6 w-full items-center justify-center rounded-full px-2 py-1 text-center font-gabarito-bold text-[11px] leading-4",
                                     item.status === "lendo"
                                         ? "bg-amber-100 text-amber-700"
                                         : "bg-gray-200 text-cinza-700",

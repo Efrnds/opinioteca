@@ -2,15 +2,16 @@
 
 import type { MetaLeituraResposta, PeriodoMetaLeitura, TipoMetaLeitura } from "@/types/metaLeitura";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import PlanoUpgradeModal from "./PlanoUpgradeModal";
 
 const selectClass =
     "rounded-full border-2 border-cinza-400 bg-white px-3 py-1.5 font-gabarito-regular text-sm outline-none focus:border-azul-600";
 
-export default function MetaLeituraCard() {
+export default function MetaLeituraCard({ editavel = false }: { editavel?: boolean }) {
     const { data: session } = useSession();
     const nick = session?.user?.nick;
     const [dados, setDados] = useState<MetaLeituraResposta | null>(null);
@@ -20,6 +21,7 @@ export default function MetaLeituraCard() {
     const [tipo, setTipo] = useState<TipoMetaLeitura>("paginas");
     const [periodo, setPeriodo] = useState<PeriodoMetaLeitura>("mensal");
     const [meta, setMeta] = useState("12");
+    const metaInputRef = useRef<HTMLInputElement>(null);
 
     const carregar = useCallback(async () => {
         if (!nick) return;
@@ -42,6 +44,13 @@ export default function MetaLeituraCard() {
     useEffect(() => {
         void carregar();
     }, [carregar]);
+
+    useEffect(() => {
+        if (!editavel || carregando || window.location.hash !== "#meta-leitura") return;
+        document.getElementById("meta-leitura")?.scrollIntoView({ block: "center" });
+        metaInputRef.current?.focus({ preventScroll: true });
+        metaInputRef.current?.select();
+    }, [editavel, carregando]);
 
     async function salvar() {
         if (!nick) return;
@@ -94,7 +103,7 @@ export default function MetaLeituraCard() {
                     <button
                         type="button"
                         onClick={() => setCtaAberto(true)}
-                        className="mt-3 rounded-full bg-gradient-to-r from-violet-600 to-azul-600 px-4 py-2 font-gabarito-bold text-sm text-white"
+                        className="mt-3 rounded-full bg-azul-600 hover:bg-azul-700 px-4 py-2 font-gabarito-bold text-sm text-white"
                     >
                         Conhecer OpinioPro
                     </button>
@@ -107,14 +116,34 @@ export default function MetaLeituraCard() {
     const progresso =
         dados?.disponivel && dados.configurada ? dados.meta : null;
 
+    const concluida = progresso !== null && progresso.progresso >= progresso.meta;
+
     const rotuloTipo = progresso?.tipo === "livros" ? "livros" : "páginas";
-    const rotuloPeriodo = progresso?.periodo === "anual" ? "este ano" : "este mês";
+    const rotuloPeriodo = progresso?.periodo === "anual" ? "neste ano" : "neste mês";
 
     return (
-        <div className="rounded-2xl border border-azul-200 bg-azul-50/40 p-4">
-            <p className="font-gabarito-bold text-base text-azul-900">Meta de leitura</p>
+        <div className={`rounded-2xl border p-4 ${concluida
+            ? "border-azul-300 bg-azul-50"
+            : "border-azul-200 bg-azul-50/40"}`}>
+            <p className="font-gabarito-bold text-base text-azul-900">
+                {concluida ? <>Meta de leitura concluída! <span aria-hidden="true">🎉 📚</span></> : "Meta de leitura"}
+            </p>
             <p className="mt-0.5 font-gabarito-regular text-sm text-cinza-700">
-                Acompanhe seu objetivo de {rotuloPeriodo}.
+                {concluida
+                    ? <>
+                        {`Parabéns! Você alcançou seu objetivo ${rotuloPeriodo}.`} {" "}
+                        {!editavel && <Link
+                            href="/configuracoes?secao=preferencias#meta-leitura"
+                            className="font-gabarito-medium text-azul-600 underline underline-offset-4 hover:text-azul-700 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-azul-600"
+                        >
+                            Se sentindo inspirado? Que tal aumentar a meta?
+                        </Link>}
+                    </>
+                    : progresso
+                        ? `Acompanhe seu objetivo ${rotuloPeriodo}.`
+                        : editavel
+                            ? "Defina sua meta e acompanhe seu progresso."
+                            : "Defina sua meta de leitura nas configurações."}
             </p>
 
             {progresso ? (
@@ -125,22 +154,31 @@ export default function MetaLeituraCard() {
                         </span>
                         <span>{Math.round(progresso.percentual)}%</span>
                     </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-white">
+                    <div
+                        role="progressbar"
+                        aria-label="Progresso da meta de leitura"
+                        aria-valuemin={0}
+                        aria-valuemax={progresso.meta}
+                        aria-valuenow={Math.min(progresso.meta, Math.max(0, progresso.progresso))}
+                        aria-valuetext={`${progresso.progresso} de ${progresso.meta} ${rotuloTipo}`}
+                        className="h-2.5 overflow-hidden rounded-full bg-white"
+                    >
                         <div
-                            className="h-full rounded-full bg-gradient-to-r from-azul-500 to-violet-500 transition-all"
+                            className="h-full rounded-full bg-azul-600 transition-all"
                             style={{ width: `${Math.min(100, progresso.percentual)}%` }}
                         />
                     </div>
                 </div>
             ) : null}
 
-            <div className="mt-4 flex flex-wrap gap-2">
-                <select className={selectClass} value={tipo} onChange={(e) => setTipo(e.target.value as TipoMetaLeitura)}>
+            {editavel ? <div className="mt-4 flex flex-wrap gap-2">
+                <select aria-label="Tipo de meta" className={selectClass} value={tipo} onChange={(e) => setTipo(e.target.value as TipoMetaLeitura)}>
                     <option value="paginas">Páginas</option>
                     <option value="livros">Livros</option>
                 </select>
                 <select
                     className={selectClass}
+                    aria-label="Período da meta"
                     value={periodo}
                     onChange={(e) => setPeriodo(e.target.value as PeriodoMetaLeitura)}
                 >
@@ -148,6 +186,8 @@ export default function MetaLeituraCard() {
                     <option value="anual">Anual</option>
                 </select>
                 <input
+                    ref={metaInputRef}
+                    aria-label="Quantidade da meta"
                     type="number"
                     min={1}
                     className={`${selectClass} w-24`}
@@ -162,7 +202,7 @@ export default function MetaLeituraCard() {
                 >
                     {salvando ? "Salvando…" : "Salvar meta"}
                 </button>
-            </div>
+            </div> : null}
         </div>
     );
 }

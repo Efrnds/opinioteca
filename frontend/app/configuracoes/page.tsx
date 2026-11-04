@@ -1189,7 +1189,9 @@ function PreferenciasSecao() {
                 />
             </div>
 
-            <MetaLeituraCard />
+            <div id="meta-leitura" className="scroll-mt-6">
+                <MetaLeituraCard editavel />
+            </div>
 
             <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-azul-50 p-4">
                 <p className="font-gabarito-bold text-base text-azul-900">OpinioWrapped</p>

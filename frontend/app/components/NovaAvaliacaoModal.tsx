@@ -221,6 +221,9 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const [templateSelecionado, setTemplateSelecionado] = useState<number | null>(null);
     const [templatesAvaliacao, setTemplatesAvaliacao] = useState<TemplateAvaliacao[]>([]);
     const [upgradeTemplatesAberto, setUpgradeTemplatesAberto] = useState(false);
+    const templateAtivo = templatesAvaliacao.find((t) => t.id === templateSelecionado) ?? null;
+    const templateSemSpoiler = /\bsem spoilers?\b/i.test(templateAtivo?.nome ?? "");
+    const avaliacaoContemSpoiler = !templateSemSpoiler && contemSpoiler;
     const inputImagemId = useId();
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
@@ -416,6 +419,17 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
         };
     }, [busca, open, modoManual, dadosLivro, mostrarBusca]);
 
+    function selecionarTemplate(template: TemplateAvaliacao) {
+        if (!temTop) {
+            setUpgradeTemplatesAberto(true);
+            return;
+        }
+        setTemplateSelecionado(template.id);
+        if (/\bsem spoilers?\b/i.test(template.nome)) setContemSpoiler(false);
+        setTexto(template.texto.replace(/(^|\n)[ \t]*[▸•✓][ \t]*/g, "$1"));
+        setErro("");
+    }
+
     function irPara(proximo: Passo) {
         setDirecao(proximo > passo ? 1 : -1);
         setErro("");
@@ -582,7 +596,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                 livro_id: livroId,
                 nota,
                 texto: textoFinal,
-                contem_spoiler: contemSpoiler,
+                contem_spoiler: avaliacaoContemSpoiler,
             };
             if (anexoUrl) payload.anexo_url = anexoUrl;
             if (templateSelecionado) payload.template_id = templateSelecionado;
@@ -612,7 +626,6 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const notaExibida = notaHover || nota;
     const precisaCompletar = dadosLivro ? livroPrecisaCompletar(dadosLivro) : false;
     const exibirFormularioLivro = !!dadosLivro && (modoManual || precisaCompletar || livroPrecisaCadastro(dadosLivro));
-    const templateAtivo = templatesAvaliacao.find((t) => t.id === templateSelecionado) ?? null;
 
     const tituloPasso =
         passo === 1
@@ -639,7 +652,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
                 <DialogContent
                     showCloseButton
-                    className="flex h-[min(92vh,720px)] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:max-w-xl sm:rounded-[2rem]"
+                    className="flex h-dvh w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:max-w-xl sm:rounded-[2rem]"
                 >
                     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -648,7 +661,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                             <div className="absolute bottom-0 left-1/3 h-40 w-64 rounded-full bg-azul-100/40 blur-3xl" />
                         </div>
 
-                        <div className="relative z-10 flex shrink-0 flex-col gap-4 px-5 pb-2 pt-5 sm:px-7 sm:pt-6">
+                        <div className="relative z-10 flex shrink-0 flex-col gap-3 px-4 pb-2 pt-4 sm:gap-4 sm:px-7 sm:pt-6">
                             <div className="pr-8">
                                 <p className="font-gabarito-medium text-[11px] uppercase tracking-[0.18em] text-azul-600">
                                     Nova avaliação
@@ -661,7 +674,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                             <IndicadorPassos passo={passo} />
                         </div>
 
-                        <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-7">
+                        <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-7 sm:py-4">
                             <AnimatePresence mode="wait" custom={direcao}>
                                 <motion.div
                                     key={passo}
@@ -847,14 +860,16 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                     )}
 
                                     {passo === 2 && dadosLivro && (
-                                        <div className="flex flex-1 flex-col items-center gap-6 py-2">
+                                        <div className="flex flex-1 flex-col items-center gap-4 py-1 sm:gap-6 sm:py-2">
                                             <motion.div
                                                 initial={{ scale: 0.92, opacity: 0 }}
                                                 animate={{ scale: 1, opacity: 1 }}
                                                 transition={{ type: "spring", stiffness: 320, damping: 24 }}
-                                                className="flex flex-col items-center gap-3 text-center"
+                                                className="flex w-full items-center gap-3 text-left sm:w-auto sm:flex-col sm:text-center"
                                             >
-                                                <CapaHero dados={dadosLivro} tamanho="md" />
+                                                <div className="[&>img]:h-20 [&>img]:w-[54px] [&>div]:h-20 [&>div]:w-[54px] sm:[&>img]:h-36 sm:[&>img]:w-24 sm:[&>div]:h-36 sm:[&>div]:w-24">
+                                                    <CapaHero dados={dadosLivro} tamanho="md" />
+                                                </div>
                                                 <div className="max-w-[280px]">
                                                     <p className="line-clamp-2 font-gabarito-bold text-lg text-azul-900">
                                                         {dadosLivro.titulo}
@@ -865,7 +880,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                 </div>
                                             </motion.div>
 
-                                            <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
+                                            <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-4 py-4 sm:px-5 sm:py-6 ring-1 ring-azul-100">
                                                 <p className="mb-3 text-center font-gabarito-bold text-sm text-azul-900">
                                                     Sua nota
                                                 </p>
@@ -902,7 +917,31 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                 <p className="mb-3 font-gabarito-regular text-xs text-cinza-700">
                                                     Opcional. Escolha um ponto de partida e edite depois.
                                                 </p>
-                                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                                <div className="sm:hidden">
+                                                    <select
+                                                        aria-label="Modelo de avaliação"
+                                                        value={templateSelecionado ?? ""}
+                                                        onChange={(event) => {
+                                                            const id = Number(event.target.value);
+                                                            if (!id) {
+                                                                setTemplateSelecionado(null);
+                                                                return;
+                                                            }
+                                                            const template = templatesAvaliacao.find((item) => item.id === id);
+                                                            if (template) selecionarTemplate(template);
+                                                        }}
+                                                        className="min-h-12 w-full rounded-2xl border-2 border-cinza-300 bg-white px-3 py-2 font-gabarito-regular text-base text-azul-900 outline-none focus:border-azul-600"
+                                                    >
+                                                        <option value="">Escrever sem modelo</option>
+                                                        {templatesAvaliacao.map((template) => (
+                                                            <option key={template.id} value={template.id}>{template.nome}</option>
+                                                        ))}
+                                                    </select>
+                                                    {templateAtivo && (
+                                                        <p className="mt-2 font-gabarito-regular text-sm text-cinza-600">{templateAtivo.descricao}</p>
+                                                    )}
+                                                </div>
+                                                <div className="hidden gap-2 sm:grid sm:grid-cols-2">
                                                     {templatesAvaliacao.map((template) => {
                                                         const selecionado = templateSelecionado === template.id;
                                                         const bloqueado = !temTop;
@@ -910,15 +949,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                             <button
                                                                 key={template.id}
                                                                 type="button"
-                                                                onClick={() => {
-                                                                    if (bloqueado) {
-                                                                        setUpgradeTemplatesAberto(true);
-                                                                        return;
-                                                                    }
-                                                                    setTemplateSelecionado(template.id);
-                                                                    setTexto(template.texto);
-                                                                    setErro("");
-                                                                }}
+                                                                onClick={() => selecionarTemplate(template)}
                                                                 className={`rounded-2xl border-2 px-3 py-2.5 text-left transition ${
                                                                     bloqueado
                                                                         ? "cursor-pointer border-cinza-200 bg-cinza-100/80 opacity-70"
@@ -981,7 +1012,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between gap-3 rounded-2xl border border-cinza-200 bg-background px-4 py-3">
+                                            {!templateSemSpoiler && <div className="flex items-center justify-between gap-3 rounded-2xl border border-cinza-200 bg-background px-4 py-3">
                                                 <div>
                                                     <p className="font-gabarito-bold text-sm text-azul-900">
                                                         Contém spoiler
@@ -995,7 +1026,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                     onCheckedChange={setContemSpoiler}
                                                     aria-label="Marcar avaliação como contendo spoiler"
                                                 />
-                                            </div>
+                                            </div>}
 
                                             <div>
                                                 <label
@@ -1194,7 +1225,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                         )}
 
                                                         <div className="mt-3 flex flex-wrap gap-2">
-                                                            {contemSpoiler && (
+                                                            {avaliacaoContemSpoiler && (
                                                                 <span className="rounded-full bg-amber-100 px-2 py-0.5 font-gabarito-bold text-[10px] text-amber-800">
                                                                     Contém spoiler
                                                                 </span>
@@ -1224,7 +1255,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                         </div>
 
                         {mostrarRodape && (
-                            <div className="relative z-10 shrink-0 border-t border-cinza-200/80 bg-background/90 px-5 py-4 backdrop-blur-sm sm:px-7">
+                            <div className="relative z-10 shrink-0 border-t border-cinza-200/80 bg-background/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:px-7 sm:py-4">
                                 <div className="flex gap-2">
                                     {(passo > 1 || exibirFormularioLivro) && (
                                         <Button

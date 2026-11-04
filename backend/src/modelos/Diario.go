@@ -66,14 +66,17 @@ type DiarioHistoricoResposta struct {
 }
 
 type EstatisticasLeituraResposta struct {
-	Disponivel          bool   `json:"disponivel"`
-	Teaser              bool   `json:"teaser,omitempty"`
-	MesReferencia       string `json:"mes_referencia,omitempty"`
-	PaginasLidasMes     int    `json:"paginas_lidas_mes,omitempty"`
-	LivrosFinalizados   int    `json:"livros_finalizados_mes,omitempty"`
-	DiasComLeitura      int    `json:"dias_com_leitura_mes,omitempty"`
-	RegistrosMes        int    `json:"registros_mes,omitempty"`
-	TotalLivrosAtivos   int    `json:"total_livros_ativos,omitempty"`
+	Periodo           string `json:"periodo,omitempty"`
+	PeriodoInicio     string `json:"periodo_inicio,omitempty"`
+	PeriodoFim        string `json:"periodo_fim,omitempty"`
+	Disponivel        bool   `json:"disponivel"`
+	Teaser            bool   `json:"teaser,omitempty"`
+	MesReferencia     string `json:"mes_referencia,omitempty"`
+	PaginasLidasMes   int    `json:"paginas_lidas_mes,omitempty"`
+	LivrosFinalizados int    `json:"livros_finalizados_mes,omitempty"`
+	DiasComLeitura    int    `json:"dias_com_leitura_mes,omitempty"`
+	RegistrosMes      int    `json:"registros_mes,omitempty"`
+	TotalLivrosAtivos int    `json:"total_livros_ativos,omitempty"`
 }
 
 func (req *RegistrarDiarioRequest) Preparar() error {
