@@ -223,7 +223,11 @@ func RegistrarDiario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resposta.SequenciaAtual = novaSequencia
-	respostas.JSON(w, http.StatusCreated, resposta)
+	respostas.JSON(w, http.StatusCreated, modelos.RegistrarDiarioResposta{
+		DiarioResposta:     resposta,
+		PaginasLidas:       registro.PaginasLidas,
+		PorcentagemLeitura: registro.PorcentagemLeitura,
+	})
 }
 
 func BuscarDiario(w http.ResponseWriter, r *http.Request) {

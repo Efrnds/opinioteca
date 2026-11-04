@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "audit": "pnpm audit --prod"
+    "audit": "pnpm audit --prod",
+    "test:leitura": "node --test lib/progresso-leitura.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

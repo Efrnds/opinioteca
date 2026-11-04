@@ -30,6 +30,12 @@ type DiarioResposta struct {
 	Semana         []DiaSemana `json:"semana"`
 }
 
+type RegistrarDiarioResposta struct {
+	DiarioResposta
+	PaginasLidas       int     `json:"paginas_lidas"`
+	PorcentagemLeitura float64 `json:"porcentagem_leitura"`
+}
+
 type DiaAtividadeLeitura struct {
 	Dia       string `json:"dia"`
 	Paginas   int    `json:"paginas"`

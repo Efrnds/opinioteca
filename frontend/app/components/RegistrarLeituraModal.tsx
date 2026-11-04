@@ -6,6 +6,8 @@ import type { EstanteItem } from "@/types/estante";
 import { dadosDeLivroBusca } from "@/lib/livro-cadastro";
 import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
+import { calcularProgressoLeitura, formatarPorcentagemLeitura, paginasPorPorcentagem, type TipoProgressoLeitura } from "@/lib/progresso-leitura";
+import type { RegistrarDiarioResposta } from "@/types/diario";
 import ConviteAvaliacaoModal from "@/app/components/ConviteAvaliacaoModal";
 import EstanteCarousel from "@/app/components/EstanteCarousel";
 import NovaAvaliacaoModal from "@/app/components/NovaAvaliacaoModal";
@@ -42,13 +44,6 @@ const slideVariants = {
         opacity: 0,
     }),
 };
-
-function calcularPaginasDoDelta(novaPct: number, pctAtual: number, totalPaginas: number): number | null {
-    if (novaPct <= pctAtual) return null;
-    const diff = novaPct - pctAtual;
-    if (totalPaginas <= 0) return 1;
-    return Math.max(1, Math.round((diff / 100) * totalPaginas));
-}
 
 function CapaHero({
     livro,
@@ -142,6 +137,8 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const [direcao, setDirecao] = useState(1);
     const [livroSelecionado, setLivroSelecionado] = useState<EstanteItem | null>(null);
     const [porcentagem, setPorcentagem] = useState(0);
+    const [tipoProgresso, setTipoProgresso] = useState<TipoProgressoLeitura | null>(null);
+    const [paginas, setPaginas] = useState("1");
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
     const [conviteAvaliacaoAberto, setConviteAvaliacaoAberto] = useState(false);
@@ -177,6 +174,8 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             setDirecao(1);
             setLivroSelecionado(null);
             setPorcentagem(0);
+            setTipoProgresso(null);
+            setPaginas("1");
             setErro("");
             setConviteAvaliacaoAberto(false);
             setLivroConcluido(null);
@@ -192,8 +191,10 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
 
     function selecionarLivro(item: EstanteItem) {
         setLivroSelecionado(item);
-        const min = Math.min(100, Math.floor(item.porcentagem_atual) + 1);
-        setPorcentagem(min);
+        setTipoProgresso(null);
+        setPaginas("1");
+        const inicial = calcularProgressoLeitura("paginas", 1, item.porcentagem_atual, item.livro.paginas);
+        setPorcentagem(inicial?.porcentagem ?? 100);
         setErro("");
         setDirecao(1);
         setPasso(2);
@@ -203,6 +204,8 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         if (passo === 2) {
             setLivroSelecionado(null);
             setPorcentagem(0);
+            setTipoProgresso(null);
+            setPaginas("1");
             irPara(1);
             return;
         }
@@ -212,12 +215,25 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     }
 
     const pctAtualLivro = livroSelecionado?.porcentagem_atual ?? 0;
-    const minPct = Math.min(100, Math.floor(pctAtualLivro) + 1);
     const totalPaginasLivro = livroSelecionado?.livro.paginas ?? 0;
-    const paginasCalculadas = livroSelecionado
-        ? calcularPaginasDoDelta(porcentagem, pctAtualLivro, totalPaginasLivro)
+    const paginaAnterior = totalPaginasLivro > 0 ? paginasPorPorcentagem(pctAtualLivro, totalPaginasLivro) : 0;
+    const minPct = totalPaginasLivro > 0 ? Math.min(100, (paginaAnterior + 1) / totalPaginasLivro * 100) : 100;
+    const progresso = tipoProgresso
+        ? calcularProgressoLeitura(tipoProgresso, tipoProgresso === "paginas" ? Number(paginas) : porcentagem, pctAtualLivro, totalPaginasLivro)
         : null;
-    const pctValida = porcentagem > pctAtualLivro && porcentagem <= 100;
+    const paginasCalculadas = progresso?.paginasLidas ?? null;
+    const porcentagemCalculada = progresso?.porcentagem ?? pctAtualLivro;
+    const pctValida = progresso !== null;
+    const paginasRestantes = Math.max(0, totalPaginasLivro - paginaAnterior);
+
+    function escolherTipoProgresso(tipo: TipoProgressoLeitura) {
+        if (progresso) {
+            setPorcentagem(progresso.porcentagem);
+            setPaginas(String(progresso.paginasLidas));
+        }
+        setTipoProgresso(tipo);
+        setErro("");
+    }
 
     function ajustarPct(delta: number) {
         setPorcentagem((atual) => Math.max(minPct, Math.min(100, atual + delta)));
@@ -229,8 +245,18 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             setErro("Selecione um livro da sua estante.");
             return false;
         }
+        if (!tipoProgresso) {
+            setErro("Escolha se quer registrar por porcentagem ou páginas.");
+            return false;
+        }
+        if (totalPaginasLivro <= 0) {
+            setErro("Complete o total de páginas do livro antes de registrar a leitura.");
+            return false;
+        }
         if (!pctValida) {
-            setErro(`Informe uma porcentagem maior que ${Math.round(pctAtualLivro)}%.`);
+            setErro(tipoProgresso === "paginas"
+                ? `Informe de 1 a ${paginasRestantes} páginas lidas nesta sessão.`
+                : `Informe um progresso maior que ${formatarPorcentagemLeitura(pctAtualLivro)}% que corresponda a pelo menos uma página.`);
             return false;
         }
         if (paginasCalculadas === null || paginasCalculadas <= 0) {
@@ -249,15 +275,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         setErro("");
         if (!livroSelecionado || !validarProgresso()) return;
 
-        const paginas = calcularPaginasDoDelta(
-            porcentagem,
-            livroSelecionado.porcentagem_atual,
-            livroSelecionado.livro.paginas,
-        );
-        if (paginas === null || paginas <= 0) {
-            setErro("Não foi possível calcular as páginas lidas.");
-            return;
-        }
+        if (!progresso) return;
 
         setEnviando(true);
         try {
@@ -266,11 +284,11 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     livro_id: livroSelecionado.livro.id,
-                    paginas_lidas: paginas,
-                    porcentagem_leitura: porcentagem,
+                    paginas_lidas: progresso.paginasLidas,
+                    porcentagem_leitura: progresso.porcentagem,
                 }),
             });
-            const data = await res.json();
+            const data = (await res.json()) as RegistrarDiarioResposta & { erro?: string };
 
             if (!res.ok) {
                 setErro(data.erro || "Não foi possível registrar a leitura.");
@@ -279,12 +297,14 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
 
             window.dispatchEvent(new Event("diario:refresh"));
 
-            if (porcentagem >= 100 && !livroSelecionado.tem_avaliacao) {
+            if (data.porcentagem_leitura >= 100 && !livroSelecionado.tem_avaliacao) {
                 setLivroConcluido(livroSelecionado.livro);
                 setConviteAvaliacaoAberto(true);
                 setPasso(1);
                 setLivroSelecionado(null);
                 setPorcentagem(0);
+                setTipoProgresso(null);
+                setPaginas("1");
                 void carregarEstante();
             } else {
                 onClose();
@@ -317,7 +337,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         passo === 1
             ? "Escolha um livro da sua estante e registre o momento."
             : passo === 2
-              ? "Ajuste o progresso. Mostramos as páginas aproximadas."
+              ? "Escolha como informar sua leitura. Mostramos páginas e porcentagem."
               : "Confira o resumo e salve sua leitura de hoje.";
 
     return (
@@ -384,15 +404,15 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                     )}
 
                                     {passo === 2 && livroSelecionado && (
-                                        <div className="flex flex-1 flex-col items-center gap-6 py-2">
+                                        <div className="flex flex-1 flex-col items-center gap-4 py-2">
                                             <motion.div
                                                 initial={{ scale: 0.92, opacity: 0 }}
                                                 animate={{ scale: 1, opacity: 1 }}
                                                 transition={{ type: "spring", stiffness: 320, damping: 24 }}
-                                                className="flex flex-col items-center gap-3 text-center"
+                                                className="flex w-full max-w-sm items-center gap-3 text-left"
                                             >
-                                                <CapaHero livro={livroSelecionado.livro} tamanho="lg" />
-                                                <div className="max-w-[280px]">
+                                                <CapaHero livro={livroSelecionado.livro} tamanho="sm" />
+                                                <div className="min-w-0 max-w-[280px]">
                                                     <p className="line-clamp-2 font-gabarito-bold text-lg text-azul-900">
                                                         {livroSelecionado.livro.titulo}
                                                     </p>
@@ -402,99 +422,146 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                 </div>
                                             </motion.div>
 
-                                            <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => ajustarPct(-1)}
-                                                        disabled={porcentagem <= minPct}
-                                                        className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40"
-                                                        aria-label="Diminuir porcentagem"
-                                                    >
-                                                        <Minus className="h-5 w-5" />
-                                                    </button>
-
-                                                    <div className="flex flex-col items-center">
-                                                        <span className="font-gabarito-black text-5xl leading-none tracking-tight text-azul-900 tabular-nums sm:text-6xl">
-                                                            {porcentagem}
-                                                            <span className="text-3xl text-azul-600 sm:text-4xl">%</span>
-                                                        </span>
-                                                        <span className="mt-2 font-gabarito-regular text-xs text-cinza-700">
-                                                            antes: {Math.round(pctAtualLivro)}%
-                                                        </span>
-                                                    </div>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => ajustarPct(1)}
-                                                        disabled={porcentagem >= 100}
-                                                        className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40"
-                                                        aria-label="Aumentar porcentagem"
-                                                    >
-                                                        <Plus className="h-5 w-5" />
-                                                    </button>
+                                            <fieldset className="w-full max-w-sm">
+                                                <legend className="mb-2 font-gabarito-bold text-sm text-azul-900">Como você quer registrar?</legend>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {([{ tipo: "porcentagem", rotulo: "Porcentagem lida" }, { tipo: "paginas", rotulo: "Páginas lidas" }] as const).map(({ tipo, rotulo }) => (
+                                                        <label key={tipo} className={cn(
+                                                            "flex cursor-pointer items-center gap-2 rounded-2xl border-2 px-3 py-3 font-gabarito-medium text-sm text-azul-900",
+                                                            tipoProgresso === tipo ? "border-azul-600 bg-azul-50" : "border-cinza-200 bg-white hover:border-azul-300",
+                                                        )}>
+                                                            <input type="radio" name="tipo-progresso" value={tipo} checked={tipoProgresso === tipo} onChange={() => escolherTipoProgresso(tipo)} className="accent-azul-600" />
+                                                            {rotulo}
+                                                        </label>
+                                                    ))}
                                                 </div>
+                                            </fieldset>
 
-                                                <div className="mt-5">
+                                            {totalPaginasLivro <= 0 && (
+                                                <p role="status" className="w-full max-w-sm font-gabarito-regular text-sm text-cinza-700">
+                                                    Complete o total de páginas do livro para calcular páginas e porcentagem.
+                                                </p>
+                                            )}
+
+                                            {tipoProgresso === "paginas" && totalPaginasLivro > 0 && (
+                                                <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
+                                                    <label htmlFor="paginas-leitura" className="mb-2 block font-gabarito-bold text-sm text-azul-900">Quantas páginas você leu nesta sessão?</label>
                                                     <input
-                                                        type="range"
-                                                        min={minPct}
-                                                        max={100}
-                                                        value={porcentagem}
-                                                        onChange={(e) => {
-                                                            setPorcentagem(Number(e.target.value));
-                                                            setErro("");
-                                                        }}
-                                                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-azul-200 accent-azul-600 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-azul-600 [&::-webkit-slider-thumb]:shadow-md"
-                                                        aria-label="Porcentagem lida"
+                                                        id="paginas-leitura"
+                                                        type="number"
+                                                        inputMode="numeric"
+                                                        min={1}
+                                                        max={paginasRestantes}
+                                                        step={1}
+                                                        value={paginas}
+                                                        onChange={(event) => { setPaginas(event.target.value); setErro(""); }}
+                                                        className="w-full rounded-2xl border-2 border-cinza-300 bg-white px-4 py-3 font-gabarito-regular text-base text-azul-900 outline-none focus:border-azul-600"
                                                     />
-                                                    <div className="mt-1.5 flex justify-between font-gabarito-regular text-[10px] text-cinza-700">
-                                                        <span>{minPct}%</span>
-                                                        <span>100%</span>
+                                                    <p className="mt-2 font-gabarito-regular text-xs text-cinza-700">Restam {paginasRestantes} páginas. O progresso anterior é {formatarPorcentagemLeitura(pctAtualLivro)}%.</p>
+                                                </div>
+                                            )}
+
+                                            {tipoProgresso === "porcentagem" && totalPaginasLivro > 0 && (
+                                                <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => ajustarPct(-1)}
+                                                            disabled={porcentagem <= minPct}
+                                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40"
+                                                            aria-label="Diminuir porcentagem"
+                                                        >
+                                                            <Minus className="h-5 w-5" />
+                                                        </button>
+
+                                                        <div className="flex min-w-0 flex-1 flex-col items-center">
+                                                            <div className="flex w-full min-w-0 items-baseline justify-center gap-1">
+                                                                <input
+                                                                    type="number"
+                                                                    inputMode="decimal"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step="any"
+                                                                    value={Number(porcentagem.toFixed(6))}
+                                                                    onChange={(event) => { setPorcentagem(Number(event.target.value)); setErro(""); }}
+                                                                    aria-label="Porcentagem total lida"
+                                                                    className="w-full min-w-0 max-w-28 rounded-lg bg-transparent text-center font-gabarito-black text-3xl sm:text-4xl text-azul-900 outline-none focus-visible:ring-2 focus-visible:ring-azul-600"
+                                                                />
+                                                                <span className="font-gabarito-bold text-2xl text-azul-600">%</span>
+                                                            </div>
+                                                            <span className="mt-2 font-gabarito-regular text-xs text-cinza-700">
+                                                                antes: {formatarPorcentagemLeitura(pctAtualLivro)}%
+                                                            </span>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => ajustarPct(1)}
+                                                            disabled={porcentagem >= 100}
+                                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40"
+                                                            aria-label="Aumentar porcentagem"
+                                                        >
+                                                            <Plus className="h-5 w-5" />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="mt-5">
+                                                        <input
+                                                            type="range"
+                                                            min={pctAtualLivro}
+                                                            max={100}
+                                                            step="any"
+                                                            value={porcentagem}
+                                                            onChange={(e) => {
+                                                                setPorcentagem(Number(e.target.value));
+                                                                setErro("");
+                                                            }}
+                                                            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-azul-200 accent-azul-600 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-azul-600 [&::-webkit-slider-thumb]:shadow-md"
+                                                            aria-label="Porcentagem lida"
+                                                        />
+                                                        <div className="mt-1.5 flex justify-between font-gabarito-regular text-[10px] text-cinza-700">
+                                                            <span>{formatarPorcentagemLeitura(pctAtualLivro)}%</span>
+                                                            <span>100%</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                                        {[25, 50, 75, 100]
+                                                            .filter((v) => v >= minPct)
+                                                            .map((v) => (
+                                                                <button
+                                                                    key={v}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setPorcentagem(v);
+                                                                        setErro("");
+                                                                    }}
+                                                                    className={cn(
+                                                                        "rounded-full px-3 py-1 font-gabarito-bold text-xs transition",
+                                                                        porcentagem === v
+                                                                            ? "bg-azul-600 text-white"
+                                                                            : "bg-white text-azul-700 ring-1 ring-azul-200 hover:bg-azul-100",
+                                                                    )}
+                                                                >
+                                                                    {v}%
+                                                                </button>
+                                                            ))}
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                                                    {[25, 50, 75, 100]
-                                                        .filter((v) => v >= minPct)
-                                                        .map((v) => (
-                                                            <button
-                                                                key={v}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setPorcentagem(v);
-                                                                    setErro("");
-                                                                }}
-                                                                className={cn(
-                                                                    "rounded-full px-3 py-1 font-gabarito-bold text-xs transition",
-                                                                    porcentagem === v
-                                                                        ? "bg-azul-600 text-white"
-                                                                        : "bg-white text-azul-700 ring-1 ring-azul-200 hover:bg-azul-100",
-                                                                )}
-                                                            >
-                                                                {v}%
-                                                            </button>
-                                                        ))}
-                                                </div>
-                                            </div>
+                                            )}
 
-                                            <div className="text-center">
-                                                {paginasCalculadas !== null ? (
+                                            {progresso && (
+                                                <div aria-live="polite" className="w-full max-w-sm text-center">
                                                     <p className="font-gabarito-bold text-base text-azul-900">
-                                                        ≈ {paginasCalculadas}{" "}
-                                                        {paginasCalculadas === 1 ? "página" : "páginas"} hoje
+                                                        {formatarPorcentagemLeitura(progresso.porcentagem)}% do livro lido
                                                     </p>
-                                                ) : (
-                                                    <p className="font-gabarito-regular text-sm text-cinza-700">
-                                                        Avance além de {Math.round(pctAtualLivro)}% para registrar
+                                                    <p className="mt-1 font-gabarito-regular text-sm text-cinza-700">
+                                                        {progresso.paginasLidas} {progresso.paginasLidas === 1 ? "página lida" : "páginas lidas"} nesta sessão
                                                     </p>
-                                                )}
-                                                {totalPaginasLivro > 0 && (
-                                                    <p className="mt-0.5 font-gabarito-regular text-xs text-cinza-700">
-                                                        {totalPaginasLivro} páginas no total
-                                                    </p>
-                                                )}
-                                            </div>
+                                                    <p className="mt-1 font-gabarito-regular text-xs text-cinza-700">Página {progresso.paginaAtual} de {totalPaginasLivro}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -531,7 +598,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                                     Progresso
                                                                 </p>
                                                                 <p className="font-gabarito-bold text-lg text-azul-900 tabular-nums">
-                                                                    {Math.round(pctAtualLivro)}% → {porcentagem}%
+                                                                    {formatarPorcentagemLeitura(pctAtualLivro)}% para {formatarPorcentagemLeitura(porcentagemCalculada)}%
                                                                 </p>
                                                             </div>
                                                             <div className="rounded-2xl bg-azul-50 px-3 py-2">
@@ -539,12 +606,12 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                                     Páginas
                                                                 </p>
                                                                 <p className="font-gabarito-bold text-lg text-azul-900 tabular-nums">
-                                                                    ≈ {paginasCalculadas ?? 0}
+                                                                    {paginasCalculadas ?? 0}
                                                                 </p>
                                                             </div>
                                                         </div>
 
-                                                        {porcentagem >= 100 && (
+                                                        {porcentagemCalculada >= 100 && (
                                                             <p className="mt-3 font-gabarito-bold text-xs text-azul-600">
                                                                 Você vai concluir este livro!
                                                             </p>

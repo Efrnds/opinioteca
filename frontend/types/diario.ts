@@ -8,6 +8,11 @@ export type DiarioResposta = {
     semana: DiaSemana[];
 };
 
+export type RegistrarDiarioResposta = DiarioResposta & {
+    paginas_lidas: number;
+    porcentagem_leitura: number;
+};
+
 export type DiaAtividadeLeitura = {
     dia: string;
     paginas: number;
