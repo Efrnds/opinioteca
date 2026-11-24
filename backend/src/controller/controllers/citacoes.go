@@ -3,7 +3,7 @@ package controllers
 import (
 	"backend/src/model/banco"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
+	"backend/src/utils/respostas"
 	"database/sql"
 	"errors"
 	"net/http"

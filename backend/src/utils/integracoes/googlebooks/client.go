@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"backend/src/infra/config"
+	"backend/src/utils/config"
 )
 
 const baseURL = "https://www.googleapis.com/books/v1/volumes"

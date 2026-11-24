@@ -3,7 +3,7 @@ package servicos
 import (
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/websockets"
+	"backend/src/utils/websockets"
 	"database/sql"
 )
 

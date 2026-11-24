@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"backend/src/model/banco"
-	"backend/src/infra/integracoes/googlebooks"
+	"backend/src/utils/integracoes/googlebooks"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
+	"backend/src/utils/respostas"
 	"net/http"
 	"sort"
 	"strconv"

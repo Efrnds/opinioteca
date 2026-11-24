@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"backend/src/infra/config"
+	"backend/src/utils/config"
 	"encoding/base64"
 	"errors"
 	"fmt"

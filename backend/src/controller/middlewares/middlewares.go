@@ -1,10 +1,10 @@
 package middlewares
 
 import (
-	"backend/src/infra/auth"
+	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
+	"backend/src/utils/respostas"
 	"errors"
 	"log"
 	"net/http"

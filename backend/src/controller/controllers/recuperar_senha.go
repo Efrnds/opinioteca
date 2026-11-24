@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"backend/src/model/banco"
-	"backend/src/infra/email"
+	"backend/src/utils/email"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
-	"backend/src/infra/security"
+	"backend/src/utils/respostas"
+	"backend/src/utils/security"
 	"crypto/rand"
 	"encoding/json"
 	"errors"

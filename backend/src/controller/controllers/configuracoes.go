@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"backend/src/infra/respostas"
-	"backend/src/infra/security"
+	"backend/src/utils/respostas"
+	"backend/src/utils/security"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"

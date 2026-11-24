@@ -1,7 +1,7 @@
 package main
 
 import (
-	"backend/src/infra/config"
+	"backend/src/utils/config"
 	"backend/src/controller/router"
 	"fmt"
 	"log"

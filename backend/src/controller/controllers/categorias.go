@@ -4,7 +4,7 @@ import (
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
+	"backend/src/utils/respostas"
 	"encoding/json"
 	"io"
 	"net/http"

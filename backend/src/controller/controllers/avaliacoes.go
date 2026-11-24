@@ -1,13 +1,13 @@
 package controllers
 
 import (
-	"backend/src/infra/auth"
+	"backend/src/utils/auth"
 	"backend/src/model/banco"
-	"backend/src/infra/integracoes/googlebooks"
+	"backend/src/utils/integracoes/googlebooks"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
-	"backend/src/infra/servicos"
+	"backend/src/utils/respostas"
+	"backend/src/utils/servicos"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"

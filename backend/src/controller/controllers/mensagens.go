@@ -4,7 +4,7 @@ package controllers
 
 import (
 
-	"backend/src/infra/auth"
+	"backend/src/utils/auth"
 
 	"backend/src/model/banco"
 
@@ -12,9 +12,9 @@ import (
 
 	"backend/src/model/repositorios"
 
-	"backend/src/infra/respostas"
+	"backend/src/utils/respostas"
 
-	"backend/src/infra/servicos"
+	"backend/src/utils/servicos"
 
 	"database/sql"
 

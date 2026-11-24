@@ -1,7 +1,7 @@
 package modelos
 
 import (
-	"backend/src/infra/security"
+	"backend/src/utils/security"
 	"errors"
 	"strings"
 	"time"

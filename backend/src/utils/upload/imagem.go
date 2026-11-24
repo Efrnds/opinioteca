@@ -1,7 +1,7 @@
 package upload
 
 import (
-	"backend/src/infra/config"
+	"backend/src/utils/config"
 	"bytes"
 	"errors"
 	"fmt"

@@ -1,7 +1,7 @@
 package banco
 
 import (
-	"backend/src/infra/config"
+	"backend/src/utils/config"
 	"database/sql"
 
 	_ "github.com/jackc/pgx/v5/stdlib"

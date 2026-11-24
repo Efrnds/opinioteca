@@ -1,7 +1,7 @@
 package servicos
 
 import (
-	"backend/src/infra/integracoes/googlebooks"
+	"backend/src/utils/integracoes/googlebooks"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
 	"database/sql"

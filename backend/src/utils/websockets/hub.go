@@ -1,7 +1,7 @@
 package websockets
 
 import (
-	"backend/src/infra/config"
+	"backend/src/utils/config"
 	"encoding/json"
 	"net/http"
 	"net/url"

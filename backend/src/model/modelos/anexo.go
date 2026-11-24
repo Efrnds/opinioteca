@@ -1,7 +1,7 @@
 package modelos
 
 import (
-	"backend/src/infra/config"
+	"backend/src/utils/config"
 	"errors"
 	"net/url"
 	"path"

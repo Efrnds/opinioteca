@@ -1,9 +1,9 @@
 package router
 
 import (
-	"backend/src/infra/config"
+	"backend/src/utils/config"
 	"backend/src/controller/router/rotas"
-	"backend/src/infra/upload"
+	"backend/src/utils/upload"
 	"log"
 	"net/http"
 	"os"

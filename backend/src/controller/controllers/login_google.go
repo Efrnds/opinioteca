@@ -1,14 +1,14 @@
 package controllers
 
 import (
-	"backend/src/infra/auth"
+	"backend/src/utils/auth"
 	"backend/src/model/banco"
-	"backend/src/infra/config"
-	"backend/src/infra/integracoes/googleoauth"
+	"backend/src/utils/config"
+	"backend/src/utils/integracoes/googleoauth"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
-	"backend/src/infra/security"
+	"backend/src/utils/respostas"
+	"backend/src/utils/security"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"

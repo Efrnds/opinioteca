@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"backend/src/infra/auth"
+	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
-	"backend/src/infra/upload"
+	"backend/src/utils/respostas"
+	"backend/src/utils/upload"
 	"errors"
 	"io"
 	"mime/multipart"

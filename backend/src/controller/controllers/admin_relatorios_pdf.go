@@ -3,9 +3,9 @@ package controllers
 import (
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
-	"backend/src/infra/pdf"
+	"backend/src/utils/pdf"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
+	"backend/src/utils/respostas"
 	"errors"
 	"fmt"
 	"net/http"

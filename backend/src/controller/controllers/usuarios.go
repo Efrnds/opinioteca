@@ -1,13 +1,13 @@
 package controllers
 
 import (
-	"backend/src/infra/auth"
+	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
-	"backend/src/infra/servicos"
-	"backend/src/infra/security"
+	"backend/src/utils/respostas"
+	"backend/src/utils/servicos"
+	"backend/src/utils/security"
 	"encoding/json"
 	"errors"
 	"io"
