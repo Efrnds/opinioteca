@@ -1,15 +1,16 @@
 package controllers
 
 import (
+	"backend/src/infra/respostas"
+	"backend/src/infra/security"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
-	"backend/src/infra/security"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 )
 
 // BuscarConfiguracoes retorna as preferências do próprio usuário.
@@ -125,12 +126,13 @@ func ReativarUsuario(w http.ResponseWriter, r *http.Request) {
 		respostas.Erro(w, http.StatusBadRequest, erro)
 		return
 	}
-	if req.Nick == "" || req.Senha == "" {
-		respostas.Erro(w, http.StatusBadRequest, errors.New("Nick e senha são obrigatórios"))
+	identificador := strings.TrimSpace(req.Nick)
+	if identificador == "" || req.Senha == "" {
+		respostas.Erro(w, http.StatusBadRequest, errors.New("Nick/email e senha são obrigatórios"))
 		return
 	}
 
-	if !security.LoginPermitido(r, req.Nick) {
+	if !security.LoginPermitido(r, identificador) {
 		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
 		return
 	}
@@ -143,20 +145,20 @@ func ReativarUsuario(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repo := repositorios.NovoRepositorioDeUsuarios(db)
-	usuario, erro := repo.BuscarPorNickParaLogin(req.Nick)
+	usuario, erro := repo.BuscarPorNickOuEmailParaLogin(identificador)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 	if usuario.ID == 0 {
-		security.RegistrarFalhaLogin(r, req.Nick)
-		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
+		security.RegistrarFalhaLogin(r, identificador)
+		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick/email ou senha inválidos"))
 		return
 	}
 
 	if erro = security.VerificarSenha(usuario.Senha, req.Senha); erro != nil {
-		security.RegistrarFalhaLogin(r, req.Nick)
-		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
+		security.RegistrarFalhaLogin(r, identificador)
+		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick/email ou senha inválidos"))
 		return
 	}
 

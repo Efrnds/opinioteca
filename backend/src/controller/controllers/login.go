@@ -2,15 +2,16 @@ package controllers
 
 import (
 	"backend/src/infra/auth"
+	"backend/src/infra/respostas"
+	"backend/src/infra/security"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
-	"backend/src/infra/respostas"
-	"backend/src/infra/security"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 )
 
 // Login é a função responsável por autenticar um usuário e retornar um token de acesso.
@@ -30,12 +31,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if credenciais.Nick == "" || credenciais.Senha == "" {
-		respostas.Erro(w, http.StatusBadRequest, errors.New("Nick e senha são obrigatórios"))
+	identificador := strings.TrimSpace(credenciais.Nick)
+	if identificador == "" || credenciais.Senha == "" {
+		respostas.Erro(w, http.StatusBadRequest, errors.New("Nick/email e senha são obrigatórios"))
 		return
 	}
 
-	if !security.LoginPermitido(r, credenciais.Nick) {
+	if !security.LoginPermitido(r, identificador) {
 		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
 		return
 	}
@@ -48,21 +50,27 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	usuarioSalvoNoBanco, erro := repositorio.BuscarPorNickParaLogin(credenciais.Nick)
+	usuarioSalvoNoBanco, erro := repositorio.BuscarPorNickOuEmailParaLogin(identificador)
 	if erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
 	if usuarioSalvoNoBanco.ID == 0 {
-		security.RegistrarFalhaLogin(r, credenciais.Nick)
-		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
+		security.RegistrarFalhaLogin(r, identificador)
+		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick/email ou senha inválidos"))
 		return
 	}
 
 	if erro = security.VerificarSenha(usuarioSalvoNoBanco.Senha, credenciais.Senha); erro != nil {
-		security.RegistrarFalhaLogin(r, credenciais.Nick)
-		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick ou senha inválidos"))
+		security.RegistrarFalhaLogin(r, identificador)
+		respostas.Erro(w, http.StatusUnauthorized, errors.New("Nick/email ou senha inválidos"))
+		return
+	}
+
+	usuarioCompleto, erro := repositorio.BuscarPorID(usuarioSalvoNoBanco.ID)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
@@ -75,14 +83,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		respostas.JSON(w, http.StatusUnauthorized, map[string]any{
 			"erro":         mensagem,
 			"podeReativar": podeReativar,
-			"nick":         credenciais.Nick,
+			"nick":         usuarioCompleto.Nick,
 		})
-		return
-	}
-
-	usuarioCompleto, erro := repositorio.BuscarPorID(usuarioSalvoNoBanco.ID)
-	if erro != nil {
-		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
@@ -92,7 +94,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	security.RegistrarSucessoLogin(r, credenciais.Nick)
+	security.RegistrarSucessoLogin(r, identificador)
 	respostas.JSON(w, http.StatusOK, modelos.LoginResposta{
 		Token:   token,
 		IsAdmin: usuarioCompleto.IsAdmin,

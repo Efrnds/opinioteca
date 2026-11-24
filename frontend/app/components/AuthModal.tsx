@@ -194,7 +194,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                     /* ignore */
                 }
                 setPassword("");
-                setErro("Nome de usuário ou senha inválidos.");
+                setErro("Nick/email ou senha inválidos.");
                 return;
             }
 
@@ -554,7 +554,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                             <form onSubmit={handleLogin} className="flex flex-col gap-4">
                                 <input
                                     type="text"
-                                    placeholder="Nome de usuário"
+                                    placeholder="Nick ou email"
                                     value={nickLogin}
                                     onChange={(e) => setNickLogin(e.target.value)}
                                     required

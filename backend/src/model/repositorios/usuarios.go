@@ -477,6 +477,23 @@ func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario
 	return usuario, nil
 }
 
+// BuscarPorNickOuEmailParaLogin resolve credenciais por nick (preferência) ou e-mail.
+func (repositorio Usuarios) BuscarPorNickOuEmailParaLogin(identificador string) (modelos.Usuario, error) {
+	identificador = strings.TrimSpace(identificador)
+	if identificador == "" {
+		return modelos.Usuario{}, nil
+	}
+
+	usuario, erro := repositorio.BuscarPorNickParaLogin(identificador)
+	if erro != nil {
+		return modelos.Usuario{}, erro
+	}
+	if usuario.ID != 0 {
+		return usuario, nil
+	}
+	return repositorio.BuscarPorEmailParaLogin(identificador)
+}
+
 // Atualizar é a função responsável por atualizar um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
 func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario) error {
 	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, '') WHERE id = $5"
