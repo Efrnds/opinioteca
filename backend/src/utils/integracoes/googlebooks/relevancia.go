@@ -14,7 +14,32 @@ func RelevanciaVolume(item VolumeItem, consulta string) int {
 	score += similaridadeAutor(autor, consulta)
 	score += pontuarPopularidade(item.VolumeInfo.RatingsCount, item.VolumeInfo.AverageRating)
 	score += penalidadesTitulo(titulo, consulta)
+	score += bonusIdiomaPortugues(item.VolumeInfo.Language, titulo)
 	return score
+}
+
+func idiomaPortugues(lang string) bool {
+	lang = strings.ToLower(strings.TrimSpace(lang))
+	return lang == "pt" || strings.HasPrefix(lang, "pt-")
+}
+
+// bonusIdiomaPortugues prioriza edições em português (pt / pt-BR).
+func bonusIdiomaPortugues(lang, tituloNormalizado string) int {
+	if idiomaPortugues(lang) {
+		return 320
+	}
+	// Heurística quando a API não manda language confiável.
+	indicadoresPT := []string{
+		" e a ", " e o ", " e as ", " e os ", "filosofal", "camara secreta",
+		"prisioneiro de azkaban", "calice de fogo", "ordem da fenix",
+		"enigma do principe", "reliquias da morte", "aneis",
+	}
+	for _, ind := range indicadoresPT {
+		if strings.Contains(tituloNormalizado, ind) {
+			return 180
+		}
+	}
+	return 0
 }
 
 func RelevanciaLivro(titulo, autor, consulta string, bonus int) int {
@@ -42,6 +67,8 @@ func normalizarTextoBusca(s string) string {
 	return strings.Join(strings.Fields(replacer.Replace(s)), " ")
 }
 
+// similaridadeTitulo prioriza o nome do livro: match exato/prefixo ganha de
+// autor com o mesmo termo (ex.: "verity" → Verity, não obras de uma Verity).
 func similaridadeTitulo(texto, consulta string) int {
 	if texto == "" || consulta == "" {
 		return 0
@@ -49,11 +76,12 @@ func similaridadeTitulo(texto, consulta string) int {
 
 	score := 0
 
-	if strings.Contains(texto, consulta) {
-		score += 150
-	}
-	if strings.HasPrefix(texto, consulta) {
-		score += 50
+	if texto == consulta {
+		score += 450
+	} else if strings.HasPrefix(texto, consulta+" ") || strings.HasPrefix(texto, consulta) {
+		score += 280
+	} else if strings.Contains(texto, consulta) {
+		score += 120
 	}
 
 	termos := strings.Fields(consulta)
@@ -72,15 +100,12 @@ func similaridadeTitulo(texto, consulta string) int {
 	if strings.Contains(texto, " and the ") || strings.Contains(texto, " e a ") || strings.Contains(texto, " e o ") {
 		score += 25
 	}
-	if texto == consulta {
-		score -= 35
-	}
 
 	return score
 }
 
-// similaridadeAutor prioriza obras cujo autor contém o termo buscado
-// (ex.: "marx" → Karl Marx), acima de títulos que só citam o nome.
+// similaridadeAutor ajuda buscas por sobrenome (ex.: "marx" → Karl Marx),
+// mas fica abaixo de um título com match forte.
 func similaridadeAutor(autor, consulta string) int {
 	if autor == "" || consulta == "" {
 		return 0
@@ -88,7 +113,7 @@ func similaridadeAutor(autor, consulta string) int {
 
 	score := 0
 	if strings.Contains(autor, consulta) {
-		score += 220
+		score += 100
 	}
 
 	termosConsulta := strings.Fields(consulta)
@@ -99,29 +124,29 @@ func similaridadeAutor(autor, consulta string) int {
 		achou := false
 		for _, token := range tokensAutor {
 			if token == termo {
-				score += 90
+				score += 40
 				achou = true
 				break
 			}
 			if len(termo) >= 3 && strings.HasPrefix(token, termo) {
-				score += 45
+				score += 20
 				achou = true
 				break
 			}
 			if strings.Contains(token, termo) {
-				score += 20
+				score += 10
 				achou = true
 				break
 			}
 		}
 		if achou || strings.Contains(autor, termo) {
 			matched++
-			score += 10
+			score += 8
 		}
 	}
 
 	if len(termosConsulta) > 0 && matched == len(termosConsulta) {
-		score += 50
+		score += 30
 	}
 
 	return score
@@ -150,8 +175,9 @@ func penalidadesTitulo(titulo, consulta string) int {
 			penalidade -= 50
 		}
 	}
-	if titulo == consulta {
-		penalidade -= 20
+	// Evita ranquear meta-livros cujo título só cita o termo no meio.
+	if consulta != "" && titulo != consulta && strings.Contains(titulo, consulta) && !strings.HasPrefix(titulo, consulta) {
+		penalidade -= 15
 	}
 	return penalidade
 }

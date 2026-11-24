@@ -162,8 +162,8 @@ export default function LivroPage() {
                     <h1 className="truncate font-gabarito-bold text-xl text-azul-900">{livro.titulo}</h1>
                 </div>
 
-                <div className="flex justify-between rounded-xl bg-cinza-200 p-4">
-                    <div className="flex gap-4">
+                <div className="flex justify-between gap-3 rounded-xl bg-cinza-200 p-4">
+                    <div className="flex min-w-0 flex-1 gap-4">
                         {mediaUrl(livro.capa_url) ? (
                             <Image
                                 src={mediaUrl(livro.capa_url)!}
@@ -178,37 +178,40 @@ export default function LivroPage() {
                                 📖
                             </div>
                         )}
-                        <div className="min-w-0 self-end">
-                            <p className="truncate font-gabarito-bold text-xl text-white">{livro.titulo}</p>
-                            <p className="truncate font-gabarito-regular text-sm text-gray-200">{livro.autor}</p>
+                        <div className="flex min-w-0 flex-col justify-end gap-1">
+                            <p className="truncate font-gabarito-bold text-xl text-azul-900">{livro.titulo}</p>
+                            <p className="truncate font-gabarito-regular text-sm text-cinza-700">
+                                {livro.autor?.trim() || "Autor desconhecido"}
+                            </p>
+                            <div className="flex items-center gap-1.5 text-cinza-700">
+                                <BookOpen className="h-4 w-4 shrink-0" />
+                                <span className="font-gabarito-bold text-sm">
+                                    {livro.paginas && livro.paginas > 0
+                                        ? `${livro.paginas} páginas`
+                                        : "Páginas não informadas"}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex flex-1 flex-col items-end justify-between gap-2 text-gray-200">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                void iniciarCompartilharLivro({
-                                    titulo: livro.titulo,
-                                    autor: livro.autor,
-                                    livroId,
-                                    volumeId,
-                                }).then((acao) => {
-                                    if (acao === "modal") {
-                                        setCompartilharAberto(true);
-                                    }
-                                })
-                            }
-                            className="rounded-full p-1 transition hover:bg-white/10"
-                            aria-label="Compartilhar livro"
-                        >
-                            <Share2 className="h-4 w-4" />
-                        </button>
-
-                        <div className="flex items-center gap-2">
-                            <BookOpen className="h-5 w-5" />
-                            <span className="font-gabarito-bold text-xl">{livro.paginas ?? "-"}</span>
-                        </div>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() =>
+                            void iniciarCompartilharLivro({
+                                titulo: livro.titulo,
+                                autor: livro.autor,
+                                livroId,
+                                volumeId,
+                            }).then((acao) => {
+                                if (acao === "modal") {
+                                    setCompartilharAberto(true);
+                                }
+                            })
+                        }
+                        className="h-fit shrink-0 rounded-full p-1 text-azul-900 transition hover:bg-white/40"
+                        aria-label="Compartilhar livro"
+                    >
+                        <Share2 className="h-4 w-4" />
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-3 rounded-xl bg-background p-2">

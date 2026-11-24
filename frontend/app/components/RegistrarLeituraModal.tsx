@@ -8,6 +8,9 @@ import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { calcularProgressoLeitura, formatarPorcentagemLeitura, paginasPorPorcentagem, type TipoProgressoLeitura } from "@/lib/progresso-leitura";
 import type { RegistrarDiarioResposta } from "@/types/diario";
+import AdicionarLivroEstanteModal, {
+    type LivroAdicionadoEstante,
+} from "@/app/components/AdicionarLivroEstanteModal";
 import ConviteAvaliacaoModal from "@/app/components/ConviteAvaliacaoModal";
 import EstanteCarousel from "@/app/components/EstanteCarousel";
 import NovaAvaliacaoModal from "@/app/components/NovaAvaliacaoModal";
@@ -144,6 +147,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const [conviteAvaliacaoAberto, setConviteAvaliacaoAberto] = useState(false);
     const [livroConcluido, setLivroConcluido] = useState<EstanteItem["livro"] | null>(null);
     const [avaliacaoAberta, setAvaliacaoAberta] = useState(false);
+    const [adicionarLivroAberto, setAdicionarLivroAberto] = useState(false);
 
     const carregarEstante = useCallback(async () => {
         if (!nick) {
@@ -180,6 +184,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             setConviteAvaliacaoAberto(false);
             setLivroConcluido(null);
             setAvaliacaoAberta(false);
+            setAdicionarLivroAberto(false);
         }
     }, [open, carregarEstante]);
 
@@ -198,6 +203,26 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         setErro("");
         setDirecao(1);
         setPasso(2);
+    }
+
+    async function aoLivroAdicionadoNaEstante(resultado?: LivroAdicionadoEstante) {
+        await carregarEstante();
+        if (!resultado) return;
+
+        const item: EstanteItem = {
+            livro: {
+                id: resultado.livroId,
+                titulo: resultado.dados.titulo.trim(),
+                autor: resultado.dados.autor.trim(),
+                capa_url: resultado.dados.capa_url || undefined,
+                paginas: Number(resultado.dados.paginas) || 0,
+            },
+            status: resultado.status,
+            porcentagem_atual: resultado.status === "lido" ? 100 : 0,
+            adicionado_em: new Date().toISOString(),
+            tem_avaliacao: false,
+        };
+        selecionarLivro(item);
     }
 
     function voltar() {
@@ -342,7 +367,10 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
 
     return (
         <>
-            <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+            <Dialog
+                open={open && !adicionarLivroAberto && !conviteAvaliacaoAberto && !avaliacaoAberta}
+                onOpenChange={(value) => !value && onClose()}
+            >
                 <DialogContent
                     showCloseButton
                     className="flex h-[min(92vh,720px)] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:max-w-xl sm:rounded-[2rem]"
@@ -397,6 +425,11 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                 <EstanteCarousel
                                                     livros={estante}
                                                     onSelecionar={selecionarLivro}
+                                                    onAdicionarLivro={
+                                                        nick
+                                                            ? () => setAdicionarLivroAberto(true)
+                                                            : undefined
+                                                    }
                                                     dica="Arraste ou toque no livro que você leu hoje"
                                                 />
                                             )}
@@ -699,6 +732,16 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                     onClose();
                 }}
             />
+
+            {nick ? (
+                <AdicionarLivroEstanteModal
+                    open={adicionarLivroAberto}
+                    onClose={() => setAdicionarLivroAberto(false)}
+                    nick={nick}
+                    omitirConviteAvaliacao
+                    onAdicionado={(resultado) => void aoLivroAdicionadoNaEstante(resultado)}
+                />
+            ) : null}
         </>
     );
 }

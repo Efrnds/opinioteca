@@ -32,7 +32,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AlterarNickModal from "../../components/AlterarNickModal";
 import AdicionarLivroEstanteModal from "../../components/AdicionarLivroEstanteModal";
+import NovaAvaliacaoModal from "../../components/NovaAvaliacaoModal";
 import BadgeRank from "../../components/BadgeRank";
+import { dadosDeLivroBusca, type DadosLivroForm } from "@/lib/livro-cadastro";
 import BadgeTop from "../../components/BadgeTop";
 import EstatisticasLeitura from "../../components/EstatisticasLeitura";
 import HeatmapLeitura from "../../components/HeatmapLeitura";
@@ -175,6 +177,8 @@ export default function PerfilNickPage() {
     const [carregandoEstante, setCarregandoEstante] = useState(false);
     const [filtroStatusLivros, setFiltroStatusLivros] = useState<StatusEstante | "todos">("todos");
     const [adicionarLivroAberto, setAdicionarLivroAberto] = useState(false);
+    const [avaliacaoAposEstanteAberta, setAvaliacaoAposEstanteAberta] = useState(false);
+    const [livroInicialAvaliacao, setLivroInicialAvaliacao] = useState<DadosLivroForm | null>(null);
     const [menuOpcoesAberto, setMenuOpcoesAberto] = useState(false);
     const [alterarNickAberto, setAlterarNickAberto] = useState(false);
     const [listaAberta, setListaAberta] = useState<ListaPerfil>(null);
@@ -1203,6 +1207,30 @@ export default function PerfilNickPage() {
                     onClose={() => setAdicionarLivroAberto(false)}
                     nick={nick}
                     onAdicionado={() => void carregarEstante(nick)}
+                    onQueroAvaliar={(livro) => {
+                        setLivroInicialAvaliacao(
+                            dadosDeLivroBusca({
+                                id: livro.id,
+                                titulo: livro.titulo,
+                                autor: livro.autor,
+                                paginas: livro.paginas,
+                                capa_url: livro.capa_url,
+                            }),
+                        );
+                        setAvaliacaoAposEstanteAberta(true);
+                    }}
+                />
+            )}
+
+            {ehMeuPerfil && (
+                <NovaAvaliacaoModal
+                    open={avaliacaoAposEstanteAberta}
+                    livroInicial={livroInicialAvaliacao}
+                    onClose={() => {
+                        setAvaliacaoAposEstanteAberta(false);
+                        setLivroInicialAvaliacao(null);
+                        void carregarEstante(nick);
+                    }}
                 />
             )}
 

@@ -5,6 +5,9 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { BuscaLivrosResposta, LivroBusca } from "@/types/livro";
 import type { EstanteItem } from "@/types/estante";
+import AdicionarLivroEstanteModal, {
+    type LivroAdicionadoEstante,
+} from "@/app/components/AdicionarLivroEstanteModal";
 import FormularioLivroCampos from "@/app/components/FormularioLivroCampos";
 import EstanteCarousel from "@/app/components/EstanteCarousel";
 import { useCategoriasLivro } from "@/lib/hooks/useCategorias";
@@ -194,6 +197,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const [estante, setEstante] = useState<EstanteItem[]>([]);
     const [carregandoEstante, setCarregandoEstante] = useState(false);
     const [mostrarBusca, setMostrarBusca] = useState(false);
+    const [adicionarLivroAberto, setAdicionarLivroAberto] = useState(false);
 
     const [passo, setPasso] = useState<Passo>(1);
     const [direcao, setDirecao] = useState(1);
@@ -287,6 +291,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             setTemplatesAvaliacao([]);
             setErro("");
             setEstante([]);
+            setAdicionarLivroAberto(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- limparAnexo is stable enough; reset only on open toggle
     }, [open, carregarEstante]);
@@ -463,6 +468,20 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                 autor: item.livro.autor,
                 paginas: item.livro.paginas,
                 capa_url: item.livro.capa_url,
+            }),
+        );
+    }
+
+    async function aoLivroAdicionadoNaEstante(resultado?: LivroAdicionadoEstante) {
+        await carregarEstante();
+        if (!resultado) return;
+        aplicarLivro(
+            dadosDeLivroBusca({
+                id: resultado.livroId,
+                titulo: resultado.dados.titulo,
+                autor: resultado.dados.autor,
+                paginas: Number(resultado.dados.paginas) || undefined,
+                capa_url: resultado.dados.capa_url || undefined,
             }),
         );
     }
@@ -653,7 +672,10 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
 
     return (
         <>
-            <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+            <Dialog
+                open={open && !adicionarLivroAberto}
+                onOpenChange={(value) => !value && onClose()}
+            >
                 <DialogContent
                     showCloseButton
                     className={cn(
@@ -740,6 +762,11 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                                     livros={estante}
                                                                     apenasAtivos={false}
                                                                     onSelecionar={selecionarDaEstante}
+                                                                    onAdicionarLivro={
+                                                                        nick
+                                                                            ? () => setAdicionarLivroAberto(true)
+                                                                            : undefined
+                                                                    }
                                                                     dica="Arraste ou toque no livro que você quer avaliar"
                                                                 />
                                                             )}
@@ -1344,6 +1371,16 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                 onClose={() => setUpgradeTemplatesAberto(false)}
                 recurso="templatesAvaliacao"
             />
+
+            {nick ? (
+                <AdicionarLivroEstanteModal
+                    open={adicionarLivroAberto}
+                    onClose={() => setAdicionarLivroAberto(false)}
+                    nick={nick}
+                    omitirConviteAvaliacao
+                    onAdicionado={(resultado) => void aoLivroAdicionadoNaEstante(resultado)}
+                />
+            ) : null}
         </>
     );
 }

@@ -39,6 +39,7 @@ type volumeInfo struct {
 	Authors             []string             `json:"authors"`
 	Publisher           string               `json:"publisher"`
 	Description         string               `json:"description"`
+	Language            string               `json:"language"`
 	PageCount           int                  `json:"pageCount"`
 	PrintedPageCount    int                  `json:"printedPageCount"`
 	PublishedDate       string               `json:"publishedDate"`
@@ -57,6 +58,12 @@ type industryIdentifier struct {
 	Identifier string `json:"identifier"`
 }
 
+type jobBusca struct {
+	query        string
+	langRestrict string
+	preferirPT   bool
+}
+
 func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 	if max <= 0 {
 		max = 10
@@ -72,37 +79,59 @@ func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 		return []VolumeItem{}, nil
 	}
 
+	// Busca em PT primeiro (langRestrict=pt); fallback sem restrição puxa EN etc.
+	jobs := make([]jobBusca, 0, len(queries)+1)
+	for _, query := range queries {
+		jobs = append(jobs, jobBusca{query: query, langRestrict: "pt", preferirPT: true})
+	}
+	jobs = append(jobs, jobBusca{query: queries[0], langRestrict: "", preferirPT: false})
+
 	type resultadoBusca struct {
-		itens []VolumeItem
-		erro  error
+		itens      []VolumeItem
+		erro       error
+		preferirPT bool
 	}
 
-	ch := make(chan resultadoBusca, len(queries))
-	for _, query := range queries {
-		go func(query string) {
-			itens, erro := c.buscarRaw(query, buscarAte)
-			ch <- resultadoBusca{itens: itens, erro: erro}
-		}(query)
+	ch := make(chan resultadoBusca, len(jobs))
+	for _, job := range jobs {
+		go func(job jobBusca) {
+			itens, erro := c.buscarRaw(job.query, buscarAte, job.langRestrict)
+			ch <- resultadoBusca{itens: itens, erro: erro, preferirPT: job.preferirPT}
+		}(job)
 	}
 
 	vistos := map[string]struct{}{}
-	merged := make([]VolumeItem, 0, buscarAte*len(queries))
+	prioritarios := make([]VolumeItem, 0, buscarAte)
+	fallback := make([]VolumeItem, 0, buscarAte)
 	var ultimoErro error
 
-	for range queries {
+	for range jobs {
 		res := <-ch
 		if res.erro != nil {
 			ultimoErro = res.erro
 			continue
 		}
+		destino := &fallback
+		if res.preferirPT {
+			destino = &prioritarios
+		}
 		for _, item := range res.itens {
 			if _, ok := vistos[item.ID]; ok {
 				continue
 			}
+			// Resultados sem restrição que já são PT entram no bloco prioritário.
+			if !res.preferirPT && idiomaPortugues(item.VolumeInfo.Language) {
+				prioritarios = append(prioritarios, item)
+			} else {
+				*destino = append(*destino, item)
+			}
 			vistos[item.ID] = struct{}{}
-			merged = append(merged, item)
 		}
 	}
+
+	merged := make([]VolumeItem, 0, len(prioritarios)+len(fallback))
+	merged = append(merged, prioritarios...)
+	merged = append(merged, fallback...)
 
 	if len(merged) == 0 && ultimoErro != nil {
 		return nil, ultimoErro
@@ -112,8 +141,8 @@ func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 }
 
 // montarQueriesBusca monta buscas complementares no Google Books.
-// Sempre inclui a consulta geral (títulos etc.) e uma busca inauthor,
-// para sobrenomes como "marx" ou "kant" trazerem obras do autor, não só livros sobre ele.
+// Prioriza intitle para trazer o livro pelo nome; mantém inauthor para
+// sobrenomes como "marx" ou "kant" (a relevância decide a ordem final).
 func montarQueriesBusca(q string) []string {
 	q = strings.TrimSpace(q)
 	if q == "" {
@@ -124,16 +153,17 @@ func montarQueriesBusca(q string) []string {
 	palavras := strings.Fields(q)
 
 	if len(palavras) == 1 {
+		queries = append(queries, "intitle:"+q)
 		queries = append(queries, "inauthor:"+q)
 	} else {
-		queries = append(queries, fmt.Sprintf(`inauthor:"%s"`, q))
 		queries = append(queries, fmt.Sprintf(`intitle:"%s"`, q))
+		queries = append(queries, fmt.Sprintf(`inauthor:"%s"`, q))
 	}
 
 	return queries
 }
 
-func (c *Client) buscarRaw(q string, max int) ([]VolumeItem, error) {
+func (c *Client) buscarRaw(q string, max int, langRestrict string) ([]VolumeItem, error) {
 	if max <= 0 {
 		max = 10
 	}
@@ -143,6 +173,9 @@ func (c *Client) buscarRaw(q string, max int) ([]VolumeItem, error) {
 	params.Set("maxResults", strconv.Itoa(max))
 	params.Set("printType", "books")
 	params.Set("orderBy", "relevance")
+	if langRestrict != "" {
+		params.Set("langRestrict", langRestrict)
+	}
 	if config.GoogleBooksAPIKey != "" {
 		params.Set("key", config.GoogleBooksAPIKey)
 	}

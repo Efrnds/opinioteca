@@ -15,22 +15,22 @@ func TestMontarQueriesBusca(t *testing.T) {
 		{
 			nome: "sobrenome unico",
 			q:    "marx",
-			want: []string{"marx", "inauthor:marx"},
+			want: []string{"marx", "intitle:marx", "inauthor:marx"},
 		},
 		{
 			nome: "kant",
 			q:    "kant",
-			want: []string{"kant", "inauthor:kant"},
+			want: []string{"kant", "intitle:kant", "inauthor:kant"},
 		},
 		{
 			nome: "nome completo",
 			q:    "karl marx",
-			want: []string{"karl marx", `inauthor:"karl marx"`, `intitle:"karl marx"`},
+			want: []string{"karl marx", `intitle:"karl marx"`, `inauthor:"karl marx"`},
 		},
 		{
 			nome: "titulo multiplo",
 			q:    "dom casmurro",
-			want: []string{"dom casmurro", `inauthor:"dom casmurro"`, `intitle:"dom casmurro"`},
+			want: []string{"dom casmurro", `intitle:"dom casmurro"`, `inauthor:"dom casmurro"`},
 		},
 	}
 
@@ -68,6 +68,30 @@ func TestRelevanciaPrefereAutorSobreTituloSobre(t *testing.T) {
 	}
 }
 
+func TestRelevanciaPrefereTituloSobreAutorHomônimo(t *testing.T) {
+	consulta := "verity"
+
+	tituloExato := VolumeItem{
+		VolumeInfo: volumeInfo{
+			Title:   "Verity",
+			Authors: []string{"Colleen Hoover"},
+		},
+	}
+	autorHomônimo := VolumeItem{
+		VolumeInfo: volumeInfo{
+			Title:   "Outro livro qualquer",
+			Authors: []string{"Verity Spott"},
+		},
+	}
+
+	scoreTitulo := RelevanciaVolume(tituloExato, consulta)
+	scoreAutor := RelevanciaVolume(autorHomônimo, consulta)
+
+	if scoreTitulo <= scoreAutor {
+		t.Fatalf("título Verity (%d) deveria ranquear acima de autor Verity (%d)", scoreTitulo, scoreAutor)
+	}
+}
+
 func TestRelevanciaMantemTituloForte(t *testing.T) {
 	consulta := "dom casmurro"
 
@@ -87,11 +111,42 @@ func TestRelevanciaMantemTituloForte(t *testing.T) {
 	scoreTitulo := RelevanciaVolume(tituloExato, consulta)
 	scoreAutor := RelevanciaVolume(autorIrrelevante, consulta)
 
-	// Ambos batem o termo; o importante é o título continuar bem pontuado.
-	if scoreTitulo < 150 {
-		t.Fatalf("título exato deveria pontuar alto, got %d", scoreTitulo)
+	if scoreTitulo <= scoreAutor {
+		t.Fatalf("título exato (%d) deveria ranquear acima de autor homônimo (%d)", scoreTitulo, scoreAutor)
 	}
-	if scoreAutor < 150 {
-		t.Fatalf("autor contendo a consulta deveria pontuar alto, got %d", scoreAutor)
+}
+
+func TestRelevanciaPreferePortuguesSobreIngles(t *testing.T) {
+	consulta := "harry potter"
+
+	pt := VolumeItem{
+		VolumeInfo: volumeInfo{
+			Title:    "Harry Potter e a Pedra Filosofal",
+			Authors:  []string{"J.K. Rowling"},
+			Language: "pt",
+		},
+	}
+	en := VolumeItem{
+		VolumeInfo: volumeInfo{
+			Title:    "Harry Potter and the Sorcerer's Stone",
+			Authors:  []string{"J.K. Rowling"},
+			Language: "en",
+		},
+	}
+
+	scorePT := RelevanciaVolume(pt, consulta)
+	scoreEN := RelevanciaVolume(en, consulta)
+
+	if scorePT <= scoreEN {
+		t.Fatalf("edição PT (%d) deveria ranquear acima da EN (%d)", scorePT, scoreEN)
+	}
+}
+
+func TestIdiomaPortugues(t *testing.T) {
+	if !idiomaPortugues("pt") || !idiomaPortugues("pt-BR") || !idiomaPortugues("PT-br") {
+		t.Fatal("deveria reconhecer códigos pt")
+	}
+	if idiomaPortugues("en") || idiomaPortugues("") {
+		t.Fatal("não deveria tratar en/vazio como português")
 	}
 }

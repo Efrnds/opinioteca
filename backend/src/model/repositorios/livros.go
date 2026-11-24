@@ -188,12 +188,21 @@ func (repositorio Livros) BuscarTexto(q string, limite int) ([]modelos.Livro, er
 		limite = 10
 	}
 
-	padrao := "%" + strings.TrimSpace(q) + "%"
+	termo := strings.TrimSpace(q)
+	padrao := "%" + termo + "%"
 	linhas, erro := repositorio.db.Query(
 		selectLivro+` WHERE status = 'ativo'
 		 AND (titulo ILIKE $1 OR autor ILIKE $1 OR ISBN ILIKE $1 OR editora ILIKE $1)
-		 ORDER BY titulo ASC LIMIT $2`,
-		padrao, limite,
+		 ORDER BY
+		   CASE
+		     WHEN lower(titulo) = lower($3) THEN 0
+		     WHEN titulo ILIKE $3 || '%' THEN 1
+		     WHEN titulo ILIKE $1 THEN 2
+		     ELSE 3
+		   END,
+		   titulo ASC
+		 LIMIT $2`,
+		padrao, limite, termo,
 	)
 	if erro != nil {
 		return nil, erro
@@ -372,8 +381,16 @@ func (repositorio Livros) PesquisarGlobal(termo string, limite int) ([]modelos.L
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, titulo, autor, capa_url, google_volume_id, ISBN FROM livros
 		 WHERE status = 'ativo' AND (titulo ILIKE $1 OR autor ILIKE $1)
-		 LIMIT $2`,
-		padrao, limite,
+		 ORDER BY
+		   CASE
+		     WHEN lower(titulo) = lower($2) THEN 0
+		     WHEN titulo ILIKE $2 || '%' THEN 1
+		     WHEN titulo ILIKE $1 THEN 2
+		     ELSE 3
+		   END,
+		   titulo ASC
+		 LIMIT $3`,
+		padrao, termo, limite,
 	)
 	if erro != nil {
 		return nil, erro
