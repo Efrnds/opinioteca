@@ -12,17 +12,63 @@ Este projeto é **proprietário**. Todos os direitos reservados.
 
 Os termos completos estão em [`LICENSE`](./LICENSE).
 
-Se você encontrou este código sem permissão, não o utilize: apague as cópias locais e não redistribua.
+## Arquitetura MVC
 
-## Estrutura
+O projeto segue o padrão **Model–View–Controller** de ponta a ponta:
+
+```
+Requisição HTTP
+      │
+      ▼
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
+│  CONTROLLER │────▶│    MODEL     │────▶│  PostgreSQL     │
+│  (API Go)   │◀────│  entidades + │◀────│                 │
+└─────────────┘     │  repositórios│     └─────────────────┘
+      │             └──────────────┘
+      │ JSON
+      ▼
+┌─────────────┐
+│    VIEW     │  Next.js (páginas, componentes, UI)
+│  (frontend) │
+└─────────────┘
+```
+
+| Camada | Onde fica | Responsabilidade |
+|--------|-----------|------------------|
+| **Model** | `backend/src/model/` | Dados: structs (`modelos`), SQL (`repositorios`), conexão (`banco`) |
+| **Controller** | `backend/src/controller/` | HTTP: handlers, rotas, middlewares (auth/admin) |
+| **View** | `frontend/` | Interface: App Router, componentes, Auth.js |
+| Infra (apoio) | `backend/src/infra/` | JWT, e-mail, upload, WebSocket, PDF, integrações — não é regra de negócio |
+
+### Fluxo típico (ex.: criar avaliação)
+
+1. **View** — formulário no Next.js chama a API  
+2. **Controller** — `controllers/avaliacoes.go` valida e orquestra  
+3. **Model** — `repositorios` persiste; `modelos` tipa o dado  
+4. Resposta JSON volta para a **View**
+
+### Estrutura do repositório
 
 ```
 opinioteca/
-├── backend/     # API Go (PostgreSQL, WebSocket, uploads)
-├── frontend/    # App Next.js (App Router, Auth.js)
-├── docs/        # Documentação interna
-├── LICENSE      # Licença proprietária
-└── README.md
+├── backend/                 # Model + Controller (+ infra)
+│   ├── main.go
+│   ├── docker-compose.yml   # PostgreSQL
+│   ├── sql/                 # schema e migrations
+│   └── src/
+│       ├── model/           # ★ MODEL
+│       │   ├── modelos/
+│       │   ├── repositorios/
+│       │   └── banco/
+│       ├── controller/      # ★ CONTROLLER
+│       │   ├── controllers/
+│       │   ├── router/
+│       │   └── middlewares/
+│       └── infra/           # auth, config, upload, ws, …
+└── frontend/                # ★ VIEW (Next.js)
+    ├── app/                 # páginas / rotas da UI
+    ├── components/
+    └── lib/
 ```
 
 | Parte | Stack |
@@ -31,7 +77,7 @@ opinioteca/
 | Frontend | Next.js, React, Tailwind, Auth.js / NextAuth |
 | Infra típica | Docker (DB), nginx / NPM na frente |
 
-Detalhes de operação do backend (Docker, sessão, WebSocket): ver [`backend/readme.MD`](./backend/readme.MD).
+Detalhes de operação do backend: [`backend/readme.MD`](./backend/readme.MD).
 
 ## Quem pode desenvolver
 

@@ -1,5 +1,12 @@
 # Doc oficial backend opinioteca
 
+Backend organizado em **MVC** (ver README da raiz):
+
+- `src/model/` — Model (modelos, repositorios, banco)
+- `src/controller/` — Controller (controllers, router, middlewares)
+- `src/infra/` — apoio (auth, config, upload, websocket, …)
+- A **View** é o `frontend/` (Next.js)
+
 Esta é a documentação oficial do backend do TCC Opinioteca, nele você pode encontrar como subir o banco de dados e como iniciar a api, além de comandos úteis para a usabilidade do mesmo
 
 ### Subir o banco
