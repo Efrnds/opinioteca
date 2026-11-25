@@ -7,7 +7,6 @@ import type { Notificacao } from "@/types/notificacao";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 export const LIMITE_NOTIFICACOES = 20;
 type WebSocketContextValue = {
     subscribe: (fn: WsListener) => () => void;
@@ -200,6 +199,9 @@ export default function WebSocketProvider({ children }: {
         }
         const wsUrl = `${toWsUrl(wsBaseUrl())}/ws`;
         wsClient.connect(wsUrl, token);
+        return () => {
+            wsClient.disconnect();
+        };
     }, [session?.accessToken]);
     useEffect(() => {
         if (!session?.accessToken)
@@ -239,7 +241,6 @@ export default function WebSocketProvider({ children }: {
                     return [payload, ...atual];
                 });
                 setContagemNaoLidas((c) => c + 1);
-                toast.info(payload.titulo, { description: payload.conteudo });
             }
         });
     }, [session?.accessToken, marcarMensagemLidaSilenciosa]);
