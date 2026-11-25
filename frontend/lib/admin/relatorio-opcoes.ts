@@ -45,7 +45,7 @@ export async function carregarOpcoesRelatorio(fonte: RelatorioFonte): Promise<Re
                 .sort((a, b) => a.nick.localeCompare(b.nick, "pt-BR", { sensitivity: "base" }))
                 .map((u) => ({
                     value: String(u.id),
-                    label: `@${u.nick} — ${u.nome} (${u.email})`,
+                    label: `@${u.nick} - ${u.nome} (${u.email})`,
                 }));
         }
         case "livros": {
@@ -55,7 +55,7 @@ export async function carregarOpcoesRelatorio(fonte: RelatorioFonte): Promise<Re
                 .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR", { sensitivity: "base" }))
                 .map((l) => ({
                     value: String(l.id),
-                    label: `${l.titulo}${l.autor ? ` — ${l.autor}` : ""}`,
+                    label: `${l.titulo}${l.autor ? ` - ${l.autor}` : ""}`,
                 }));
         }
         case "categorias": {

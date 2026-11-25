@@ -20,7 +20,7 @@ func EnviarOTPRecuperacaoSenha(destinatario, codigo string, validadeMinutos int)
 	}
 
 	if !configurado() {
-		log.Printf("[email] SMTP não configurado — OTP para %s: %s (válido %d min)", destinatario, codigo, validadeMinutos)
+		log.Printf("[email] SMTP não configurado - OTP para %s: %s (válido %d min)", destinatario, codigo, validadeMinutos)
 		return nil
 	}
 

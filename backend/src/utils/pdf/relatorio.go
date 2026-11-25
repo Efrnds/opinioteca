@@ -155,40 +155,65 @@ func (d *Documento) ResumoLinha(rotulo, valor string) {
 
 func (d *Documento) Tabela(larguras []float64, cabecalhos []string, linhas [][]string) {
 	p := d.pdf
-	altura := 6.0
+	const linhaAltura = 4.5
+	const paddingVert = 1.5
 
 	desenharCabecalho := func() {
 		p.SetFont("Helvetica", "B", 8)
 		p.SetFillColor(27, 36, 50)
 		p.SetTextColor(255, 255, 255)
 		for i, h := range cabecalhos {
-			p.CellFormat(larguras[i], altura, d.tr(h), "1", 0, "L", true, 0, "")
+			p.CellFormat(larguras[i], 6, d.tr(h), "1", 0, "L", true, 0, "")
 		}
 		p.Ln(-1)
 	}
 
 	desenharCabecalho()
 
-	p.SetFont("Helvetica", "", 8)
-	p.SetTextColor(40, 40, 40)
 	fill := false
 	for _, linha := range linhas {
+		p.SetFont("Helvetica", "", 8)
+		celulas := make([][]string, len(larguras))
+		maxLinhas := 1
+		for i := 0; i < len(larguras); i++ {
+			texto := ""
+			if i < len(linha) {
+				texto = limparCelula(linha[i])
+			}
+			partes := quebrarTexto(p, d.tr, texto, larguras[i]-1.6)
+			celulas[i] = partes
+			if len(partes) > maxLinhas {
+				maxLinhas = len(partes)
+			}
+		}
+		altura := float64(maxLinhas)*linhaAltura + paddingVert*2
+
 		if p.GetY()+altura > 277 {
 			p.AddPage()
 			desenharCabecalho()
 			p.SetFont("Helvetica", "", 8)
-			p.SetTextColor(40, 40, 40)
 		}
+
 		if fill {
 			p.SetFillColor(245, 247, 250)
 		} else {
 			p.SetFillColor(255, 255, 255)
 		}
-		for i, celula := range linha {
-			texto := truncar(celula, int(larguras[i]*1.6))
-			p.CellFormat(larguras[i], altura, d.tr(texto), "1", 0, "L", true, 0, "")
+
+		x0, y0 := p.GetX(), p.GetY()
+		x := x0
+		for i := 0; i < len(larguras); i++ {
+			p.Rect(x, y0, larguras[i], altura, "FD")
+			p.SetTextColor(40, 40, 40)
+			yLinha := y0 + paddingVert
+			for _, parte := range celulas[i] {
+				p.SetXY(x+0.8, yLinha)
+				p.CellFormat(larguras[i]-1.6, linhaAltura, d.tr(parte), "", 0, "L", false, 0, "")
+				yLinha += linhaAltura
+			}
+			x += larguras[i]
 		}
-		p.Ln(-1)
+		p.SetXY(x0, y0+altura)
 		fill = !fill
 	}
 	p.Ln(3)
@@ -211,16 +236,54 @@ func (d *Documento) Escrever(w http.ResponseWriter) error {
 	return d.pdf.Output(w)
 }
 
-func truncar(s string, max int) string {
+func limparCelula(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", " ")
 	s = strings.ReplaceAll(s, "\n", " ")
-	s = strings.TrimSpace(s)
-	if max <= 0 || len(s) <= max {
-		return s
+	s = strings.ReplaceAll(s, "\t", " ")
+	return strings.TrimSpace(s)
+}
+
+func quebrarTexto(p *gofpdf.Fpdf, tr func(string) string, texto string, largura float64) []string {
+	texto = limparCelula(texto)
+	if texto == "" {
+		return []string{""}
 	}
-	if max <= 3 {
-		return s[:max]
+	if largura <= 1 {
+		return []string{texto}
 	}
-	return s[:max-3] + "..."
+
+	palavras := strings.Fields(texto)
+	if len(palavras) == 0 {
+		return []string{""}
+	}
+
+	var linhas []string
+	atual := palavras[0]
+	for _, palavra := range palavras[1:] {
+		candidato := atual + " " + palavra
+		if p.GetStringWidth(tr(candidato)) <= largura {
+			atual = candidato
+			continue
+		}
+		linhas = append(linhas, atual)
+		atual = palavra
+		for p.GetStringWidth(tr(atual)) > largura && len([]rune(atual)) > 1 {
+			runes := []rune(atual)
+			corte := len(runes) - 1
+			for corte > 1 && p.GetStringWidth(tr(string(runes[:corte]))) > largura {
+				corte--
+			}
+			linhas = append(linhas, string(runes[:corte]))
+			atual = string(runes[corte:])
+		}
+	}
+	if atual != "" {
+		linhas = append(linhas, atual)
+	}
+	if len(linhas) == 0 {
+		return []string{""}
+	}
+	return linhas
 }
 
 func FormatData(t time.Time) string {

@@ -16,6 +16,12 @@ func TestGeraPDFBasico(t *testing.T) {
 	doc.ResumoLinha("Total", "10")
 	doc.Tabela([]float64{45, 45, 45, 47}, []string{"Col1", "Col2", "Col3", "Col4"}, [][]string{
 		{"alpha", "beta", "gama", "delta"},
+		{
+			"O Castelo Do Bdsm: Um Guia Consciente Para Exploracao Longa Que Precisa Quebrar Linha",
+			"Não",
+			"24/06/2026 13:39",
+			"texto curto",
+		},
 	})
 	var buf bytes.Buffer
 	if err := doc.pdf.Output(&buf); err != nil {
