@@ -110,28 +110,27 @@ export class WsClient {
         };
 
         ws.onerror = () => {
-            // O browser já registra a falha; só fecha para disparar onclose/reconnect.
-            try {
-                ws.close();
-            } catch {
-                /* ignore */
-            }
+            // Não chama close() aqui: no Firefox isso gera "interrupted while the page
+            // was loading" durante handshake; o onclose já cuida do reconnect.
         };
     }
 
     private teardownSocket() {
         this.clearReconnect();
         if (this.ws) {
-            this.ws.onclose = null;
-            this.ws.onerror = null;
-            this.ws.onopen = null;
-            this.ws.onmessage = null;
+            const socket = this.ws;
+            this.ws = null;
+            // Evita onclose agendar reconnect depois de teardown intencional.
+            socket.onclose = null;
+            socket.onerror = null;
+            socket.onopen = null;
+            socket.onmessage = null;
             try {
-                this.ws.close();
+                // 1000 = normal closure; reduz ruído no console do Firefox.
+                socket.close(1000, "teardown");
             } catch {
                 /* ignore */
             }
-            this.ws = null;
         }
     }
 

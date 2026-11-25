@@ -222,10 +222,11 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
             return;
         }
 
+        // Singleton: não dá disconnect no cleanup do effect — remount (Strict Mode /
+        // navegação) cortava o handshake e o Firefox logava "interrupted while loading".
+        // Logout / troca de conta já chama disconnect em session-cleanup / SessionScopeReset.
         const wsUrl = `${toWsUrl(wsBaseUrl())}/ws`;
         wsClient.connect(wsUrl, token);
-
-        return () => wsClient.disconnect();
     }, [session?.accessToken]);
 
     useEffect(() => {
