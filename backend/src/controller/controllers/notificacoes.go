@@ -47,7 +47,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	websockets.Registrar(usuarioID, conn)
 	defer func() {
-		websockets.Remover(usuarioID)
+		websockets.RemoverConn(usuarioID, conn)
 		conn.Close()
 	}()
 

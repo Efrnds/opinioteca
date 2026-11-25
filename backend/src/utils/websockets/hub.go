@@ -71,12 +71,18 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-type Hub struct {
-	mu    sync.RWMutex
-	conns map[uint64]*websocket.Conn
+// cliente guarda a conn + mutex de escrita (gorilla não permite WriteMessage concorrente).
+type cliente struct {
+	conn *websocket.Conn
+	mu   sync.Mutex
 }
 
-var hub = &Hub{conns: make(map[uint64]*websocket.Conn)}
+type Hub struct {
+	mu    sync.RWMutex
+	conns map[uint64]*cliente
+}
+
+var hub = &Hub{conns: make(map[uint64]*cliente)}
 
 func Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header) (*websocket.Conn, error) {
 	return upgrader.Upgrade(w, r, responseHeader)
@@ -85,15 +91,24 @@ func Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header)
 func Registrar(usuarioID uint64, conn *websocket.Conn) {
 	hub.mu.Lock()
 	if anterior, ok := hub.conns[usuarioID]; ok {
-		anterior.Close()
+		anterior.conn.Close()
 	}
-	hub.conns[usuarioID] = conn
+	hub.conns[usuarioID] = &cliente{conn: conn}
 	hub.mu.Unlock()
 }
 
 func Remover(usuarioID uint64) {
 	hub.mu.Lock()
 	delete(hub.conns, usuarioID)
+	hub.mu.Unlock()
+}
+
+// RemoverConn só remove se ainda for a mesma conexão (evita race no reconnect).
+func RemoverConn(usuarioID uint64, conn *websocket.Conn) {
+	hub.mu.Lock()
+	if atual, ok := hub.conns[usuarioID]; ok && atual.conn == conn {
+		delete(hub.conns, usuarioID)
+	}
 	hub.mu.Unlock()
 }
 
@@ -108,42 +123,47 @@ func IDsConectados() []uint64 {
 	return ids
 }
 
-func enviar(conn *websocket.Conn, tipoEvento string, payload interface{}) {
-	if conn == nil {
-		return
-	}
+func (c *cliente) escrever(tipoEvento string, payload interface{}) error {
 	dados, erro := json.Marshal(map[string]interface{}{
 		"tipo":    tipoEvento,
 		"payload": payload,
 	})
 	if erro != nil {
-		return
+		return erro
 	}
-	conn.WriteMessage(websocket.TextMessage, dados)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.WriteMessage(websocket.TextMessage, dados)
 }
 
 func EnviarParaUsuario(usuarioID uint64, tipoEvento string, payload interface{}) {
 	hub.mu.RLock()
-	conn, ok := hub.conns[usuarioID]
+	c, ok := hub.conns[usuarioID]
 	hub.mu.RUnlock()
-	if !ok {
+	if !ok || c == nil {
 		return
 	}
-	enviar(conn, tipoEvento, payload)
+	if erro := c.escrever(tipoEvento, payload); erro != nil {
+		RemoverConn(usuarioID, c.conn)
+		_ = c.conn.Close()
+	}
 }
 
 func Broadcast(tipoEvento string, payload interface{}) {
 	hub.mu.RLock()
-	conns := make([]*websocket.Conn, 0, len(hub.conns))
-	for _, conn := range hub.conns {
-		if conn != nil {
-			conns = append(conns, conn)
+	snapshot := make(map[uint64]*cliente, len(hub.conns))
+	for id, c := range hub.conns {
+		if c != nil {
+			snapshot[id] = c
 		}
 	}
 	hub.mu.RUnlock()
 
-	for _, conn := range conns {
-		enviar(conn, tipoEvento, payload)
+	for id, c := range snapshot {
+		if erro := c.escrever(tipoEvento, payload); erro != nil {
+			RemoverConn(id, c.conn)
+			_ = c.conn.Close()
+		}
 	}
 }
 

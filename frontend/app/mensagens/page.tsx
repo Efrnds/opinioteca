@@ -300,6 +300,29 @@ function MensagensConteudo() {
         return () => setChatAtivoWS(null);
     }, [setChatAtivoWS]);
 
+    // Fallback se o push WS falhar: atualiza inbox/chat enquanto a aba está aberta.
+    useEffect(() => {
+        if (!accessToken) return;
+
+        const tick = () => {
+            if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+            void carregarInboxRef.current();
+            const ativo = chatAtivoRef.current;
+            if (ativo != null) {
+                void fetch(`/api/mensagens/${ativo}`)
+                    .then((res) => (res.ok ? res.json() : null))
+                    .then((lista) => {
+                        if (!Array.isArray(lista) || chatAtivoRef.current !== ativo) return;
+                        setMensagens(lista as Mensagem[]);
+                    })
+                    .catch(() => {});
+            }
+        };
+
+        const id = window.setInterval(tick, 2500);
+        return () => window.clearInterval(id);
+    }, [accessToken]);
+
     const marcarMensagemLida = useCallback((mensagemId: number) => {
         fetch(`/api/mensagens/msg/${mensagemId}/ler`, { method: "PUT" }).catch(() => {});
     }, []);
