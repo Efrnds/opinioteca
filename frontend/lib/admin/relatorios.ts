@@ -36,60 +36,73 @@ export const RELATORIO_TABS: RelatorioTab[] = [
         endpoint: "/api/admin/relatorios/pdf/denuncias",
     },
 ];
+export type RelatorioFonte = "livros" | "usuarios" | "categorias" | "autores" | "editoras";
 export const RELATORIOS = {
     "comentarios-livro": {
         titulo: "Comentários por Livro",
-        subtitulo: "Insira o título ou ID do livro para abrir o relatório",
-        placeholder: "Título ou ID do livro",
+        subtitulo: "Selecione o livro para abrir o relatório",
+        placeholder: "Selecione um livro",
         apiTipo: "livro",
         apiCategoria: "comentarios",
+        fonte: "livros" as RelatorioFonte,
     },
     "comentarios-usuario": {
         titulo: "Comentários por Usuário",
-        subtitulo: "Insira o nome de usuário, e-mail ou ID do leitor para abrir o relatório",
-        placeholder: "Nome de usuário, e-mail ou ID",
+        subtitulo: "Selecione o leitor para abrir o relatório",
+        placeholder: "Selecione um usuário",
         apiTipo: "usuario",
         apiCategoria: "comentarios",
+        fonte: "usuarios" as RelatorioFonte,
     },
     "comentarios-categoria": {
         titulo: "Comentários por Categoria",
-        subtitulo: "Insira o nome ou ID da categoria para abrir o relatório",
-        placeholder: "Nome ou ID da categoria",
+        subtitulo: "Selecione a categoria para abrir o relatório",
+        placeholder: "Selecione uma categoria",
         apiTipo: "categoria",
         apiCategoria: "comentarios",
+        fonte: "categorias" as RelatorioFonte,
     },
     "livros-autor": {
         titulo: "Listagem de Livros por Autor",
-        subtitulo: "Insira o nome do autor para abrir o relatório",
-        placeholder: "Nome do autor",
+        subtitulo: "Selecione o autor para abrir o relatório",
+        placeholder: "Selecione um autor",
         apiTipo: "autor",
         apiCategoria: "livros",
+        fonte: "autores" as RelatorioFonte,
     },
     "livros-editora": {
         titulo: "Listagem de Livros por Editora",
-        subtitulo: "Insira o nome da editora para abrir o relatório",
-        placeholder: "Nome da editora",
+        subtitulo: "Selecione a editora para abrir o relatório",
+        placeholder: "Selecione uma editora",
         apiTipo: "editora",
         apiCategoria: "livros",
+        fonte: "editoras" as RelatorioFonte,
     },
     "livros-categoria": {
         titulo: "Listagem de Livros por Categoria",
-        subtitulo: "Insira o nome ou ID da categoria para abrir o relatório",
-        placeholder: "Nome ou ID da categoria",
+        subtitulo: "Selecione a categoria para abrir o relatório",
+        placeholder: "Selecione uma categoria",
         apiTipo: "categoria",
         apiCategoria: "livros",
+        fonte: "categorias" as RelatorioFonte,
     },
     "seguidores-seguindo": {
         titulo: "Listagem de Seguidores e Seguindo do Leitor",
-        subtitulo: "Insira o nome de usuário, e-mail ou ID do leitor para abrir o relatório",
-        placeholder: "Insira o nome de usuário, e-mail ou ID do leitor",
+        subtitulo: "Selecione o leitor para abrir o relatório",
+        placeholder: "Selecione um usuário",
         apiCategoria: "seguidores-seguindo",
+        fonte: "usuarios" as RelatorioFonte,
     },
     "historico-leitura": {
         titulo: "Histórico de Leitura do Leitor",
-        subtitulo: "Insira o nome de usuário, e-mail ou ID do leitor para abrir o relatório",
-        placeholder: "Insira o nome de usuário, e-mail ou ID do leitor",
+        subtitulo: "Selecione o leitor para abrir o relatório",
+        placeholder: "Selecione um usuário",
         apiCategoria: "historico-leitura",
+        fonte: "usuarios" as RelatorioFonte,
     },
 } as const;
 export type RelatorioSlug = keyof typeof RELATORIOS;
+export type RelatorioOpcao = {
+    value: string;
+    label: string;
+};
