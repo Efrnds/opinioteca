@@ -69,14 +69,17 @@ export class WsClient {
 
         let ws: WebSocket;
         try {
-            // Token no subprotocolo (não na query) — evita vazamento em access logs.
+            // Preferir subprotocolo; também manda ?token= porque NPM/custom location
+            // às vezes stripa Sec-WebSocket-Protocol e o Go responde "Token não informado".
             const proto =
                 "jwt." +
                 btoa(this.token)
                     .replace(/\+/g, "-")
                     .replace(/\//g, "_")
                     .replace(/=+$/, "");
-            ws = new WebSocket(this.url, [proto]);
+            const sep = this.url.includes("?") ? "&" : "?";
+            const urlComToken = `${this.url}${sep}token=${encodeURIComponent(this.token)}`;
+            ws = new WebSocket(urlComToken, [proto]);
         } catch {
             this.status = "closed";
             this.scheduleReconnect();

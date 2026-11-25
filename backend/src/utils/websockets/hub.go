@@ -3,6 +3,7 @@ package websockets
 import (
 	"backend/src/utils/config"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,7 +13,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func origemPermitida(origin string) bool {
+func hostnameSemPorta(hostport string) string {
+	hostport = strings.TrimSpace(strings.ToLower(hostport))
+	if hostport == "" {
+		return ""
+	}
+	if h, _, erro := net.SplitHostPort(hostport); erro == nil {
+		return h
+	}
+	return hostport
+}
+
+func origemPermitida(origin, requestHost string) bool {
 	if origin == "" {
 		// Em produção, rejeita Origin vazio (clientes não-browser / CSRF fraco).
 		env := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
@@ -30,6 +42,12 @@ func origemPermitida(origin string) bool {
 	if host == "localhost" || host == "127.0.0.1" {
 		return true
 	}
+
+	// Same-origin atrás do NPM: Origin do browser == Host do pedido (opinioteca.prismapp.com.br).
+	if reqHost := hostnameSemPorta(requestHost); reqHost != "" && strings.EqualFold(reqHost, host) {
+		return true
+	}
+
 	candidatos := []string{config.APIPublicURL, os.Getenv("FRONTEND_URL"), os.Getenv("AUTH_URL")}
 	for _, raw := range candidatos {
 		raw = strings.TrimSpace(raw)
@@ -49,7 +67,7 @@ func origemPermitida(origin string) bool {
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return origemPermitida(r.Header.Get("Origin"))
+		return origemPermitida(r.Header.Get("Origin"), r.Host)
 	},
 }
 
