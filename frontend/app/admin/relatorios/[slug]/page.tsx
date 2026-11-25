@@ -2,11 +2,11 @@
 import Box from "@/app/components/Box";
 import AdminPageHeader from "@/app/components/admin/AdminPageHeader";
 import { RELATORIOS, type RelatorioSlug } from "@/lib/admin/relatorios";
-import { ArrowLeft, Download, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Download, Loader2 } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+
 function endpointPdf(slug: RelatorioSlug, q: string): string | null {
     const config = RELATORIOS[slug];
     const params = new URLSearchParams({ q });
@@ -26,6 +26,7 @@ function endpointPdf(slug: RelatorioSlug, q: string): string | null {
     }
     return null;
 }
+
 export default function AdminRelatorioPage() {
     const params = useParams();
     const searchParams = useSearchParams();
@@ -33,9 +34,11 @@ export default function AdminRelatorioPage() {
     const q = searchParams.get("q") ?? "";
     const config = RELATORIOS[slug];
     const [gerando, setGerando] = useState(false);
+
     if (!config) {
         return <p className="font-gabarito-regular text-cinza-700">Relatório não encontrado.</p>;
     }
+
     async function gerarPdf() {
         const url = endpointPdf(slug, q);
         if (!url) {
@@ -71,26 +74,33 @@ export default function AdminRelatorioPage() {
             setGerando(false);
         }
     }
-    return (<>
-            <Link href="/admin/relatorios" className="mb-4 inline-flex items-center gap-2 font-gabarito-medium text-sm text-azul-600 hover:underline">
-                <ArrowLeft className="h-4 w-4"/>
-                Voltar aos relatórios
-            </Link>
 
-            <AdminPageHeader titulo={config.titulo}/>
+    return (
+        <>
+            <AdminPageHeader titulo={config.titulo} />
 
             <Box className="max-w-xl p-6">
                 <p className="font-gabarito-regular text-sm text-cinza-700">{config.subtitulo}</p>
-                {q ? (<p className="mt-3 font-gabarito-medium text-sm text-azul-900">
+                {q ? (
+                    <p className="mt-3 font-gabarito-medium text-sm text-azul-900">
                         Consulta: <span className="font-gabarito-regular">{q}</span>
-                    </p>) : (<p className="mt-3 font-gabarito-regular text-sm text-amber-700">
-                        Nenhuma consulta na URL. Use a página de Relatórios para configurar e gerar.
-                    </p>)}
+                    </p>
+                ) : (
+                    <p className="mt-3 font-gabarito-regular text-sm text-amber-700">
+                        Nenhuma consulta informada. Abra o relatório pelo menu Relatórios.
+                    </p>
+                )}
 
-                <button type="button" onClick={gerarPdf} disabled={gerando || !q.trim()} className="mt-6 inline-flex items-center gap-2 rounded-full bg-azul-600 px-6 py-3 font-gabarito-bold text-sm text-white transition hover:bg-azul-500 disabled:opacity-60">
-                    {gerando ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4"/>}
+                <button
+                    type="button"
+                    onClick={gerarPdf}
+                    disabled={gerando || !q.trim()}
+                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-azul-600 px-6 py-3.5 font-gabarito-bold text-sm text-white transition hover:bg-azul-500 disabled:opacity-60 sm:w-auto"
+                >
+                    {gerando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     Gerar PDF
                 </button>
             </Box>
-        </>);
+        </>
+    );
 }

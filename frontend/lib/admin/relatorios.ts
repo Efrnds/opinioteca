@@ -1,11 +1,10 @@
-export type RelatorioTabId = "usuarios" | "avaliacoes" | "assinaturas" | "denuncias" | "comentarios" | "livros" | "leitor";
+export type RelatorioTabId = "usuarios" | "avaliacoes" | "assinaturas" | "denuncias";
 export type RelatorioTab = {
     id: RelatorioTabId;
     label: string;
     titulo: string;
     descricao: string;
     endpoint: string;
-    requerConsulta?: boolean;
 };
 export const RELATORIO_TABS: RelatorioTab[] = [
     {
@@ -35,30 +34,6 @@ export const RELATORIO_TABS: RelatorioTab[] = [
         titulo: "Relatório de denúncias",
         descricao: "Moderação: volume de denúncias por status e tipo de entidade, com listagem detalhada no período.",
         endpoint: "/api/admin/relatorios/pdf/denuncias",
-    },
-    {
-        id: "comentarios",
-        label: "Comentários",
-        titulo: "Comentários (consulta específica)",
-        descricao: "Listagem de comentários filtrados por livro, usuário ou categoria — o mesmo relatório específico de antes, agora em PDF.",
-        endpoint: "/api/admin/relatorios/pdf/comentarios",
-        requerConsulta: true,
-    },
-    {
-        id: "livros",
-        label: "Livros",
-        titulo: "Livros (consulta específica)",
-        descricao: "Listagem de livros filtrados por autor, editora ou categoria — relatório específico em PDF.",
-        endpoint: "/api/admin/relatorios/pdf/livros",
-        requerConsulta: true,
-    },
-    {
-        id: "leitor",
-        label: "Leitor",
-        titulo: "Relatórios por leitor",
-        descricao: "Gera PDF de seguidores/seguindo ou do histórico de leitura de um leitor específico.",
-        endpoint: "",
-        requerConsulta: true,
     },
 ];
 export const RELATORIOS = {
@@ -107,13 +82,13 @@ export const RELATORIOS = {
     "seguidores-seguindo": {
         titulo: "Listagem de Seguidores e Seguindo do Leitor",
         subtitulo: "Insira o nome de usuário, e-mail ou ID do leitor para abrir o relatório",
-        placeholder: "Nome de usuário, e-mail ou ID",
+        placeholder: "Insira o nome de usuário, e-mail ou ID do leitor",
         apiCategoria: "seguidores-seguindo",
     },
     "historico-leitura": {
         titulo: "Histórico de Leitura do Leitor",
         subtitulo: "Insira o nome de usuário, e-mail ou ID do leitor para abrir o relatório",
-        placeholder: "Nome de usuário, e-mail ou ID",
+        placeholder: "Insira o nome de usuário, e-mail ou ID do leitor",
         apiCategoria: "historico-leitura",
     },
 } as const;
