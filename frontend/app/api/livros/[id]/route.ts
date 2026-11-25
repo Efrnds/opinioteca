@@ -1,8 +1,10 @@
 import { headersAuthOpcional, proxyResposta } from "@/lib/api-proxy";
 import { NextRequest } from "next/server";
-
-type Params = { params: Promise<{ id: string }> };
-
+type Params = {
+    params: Promise<{
+        id: string;
+    }>;
+};
 export async function GET(_req: NextRequest, { params }: Params) {
     const { id } = await params;
     const headers = await headersAuthOpcional();

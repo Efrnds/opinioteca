@@ -1,4 +1,4 @@
--- Login com Google: vincula contas ao subject OAuth (sub).
+
 ALTER TABLE usuarios
     ADD COLUMN IF NOT EXISTS google_id VARCHAR(255);
 

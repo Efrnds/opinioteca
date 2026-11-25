@@ -12,28 +12,25 @@ import (
 )
 
 var (
-	// StringConexaoBanco é a string de conexão com o banco de dados
 	StringConexaoBanco = ""
-	// Porta é a porta onde a API vai rodar
+
 	Porta = 0
-	// SecretKey é a chave secreta usada para assinar os tokens JWT
+
 	SecretKey []byte
-	// GoogleBooksAPIKey chave opcional da Google Books API
+
 	GoogleBooksAPIKey = ""
-	// GoogleClientID audience esperado ao validar id_token OAuth
+
 	GoogleClientID = ""
-	// UploadsDir pasta onde arquivos enviados são salvos
+
 	UploadsDir = ""
-	// APIPublicURL URL base pública da API (usada nas URLs de imagens)
+
 	APIPublicURL = ""
 )
 
-// URLPublica monta a URL completa de um recurso estático da API.
 func URLPublica(caminho string) string {
 	return fmt.Sprintf("%s%s", APIPublicURL, caminho)
 }
 
-// A função Carregar, carrega as variáveis de ambiente no arquivo .env
 func Carregar() {
 	var erro error
 

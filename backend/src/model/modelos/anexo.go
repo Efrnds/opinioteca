@@ -35,7 +35,7 @@ func caminhoUploadLimpo(caminho string) (string, error) {
 func hostAnexoPermitido(host string) bool {
 	host = strings.ToLower(host)
 	if host == "localhost" || host == "127.0.0.1" {
-		// Só em desenvolvimento / API local.
+
 		base := strings.TrimRight(config.APIPublicURL, "/")
 		if base == "" {
 			return true
@@ -59,7 +59,6 @@ func hostAnexoPermitido(host string) bool {
 	return strings.EqualFold(host, baseURL.Hostname())
 }
 
-// ValidarURLAnexo aceita uploads da Opinoteca ou GIFs do Giphy.
 func ValidarURLAnexo(raw string) error {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -98,7 +97,6 @@ func ValidarURLAnexo(raw string) error {
 	return nil
 }
 
-// ValidarURLMidiaPerfil aceita apenas arquivos em /uploads/avatars ou /uploads/banners.
 func ValidarURLMidiaPerfil(raw string) error {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {

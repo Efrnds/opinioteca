@@ -20,7 +20,7 @@ func TestLivrosEmAltaAgrupaEdicoesAntesDoLimite(t *testing.T) {
 	}
 	defer db.Close()
 	db.SetMaxOpenConns(1)
-	// As tabelas temporárias isolam os dados do teste e somem ao fechar a conexão.
+
 	_, err = db.Exec(`
  CREATE TEMP TABLE livros (
   id BIGINT PRIMARY KEY, isbn TEXT, titulo TEXT NOT NULL, editora TEXT,

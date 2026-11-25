@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// Livro representa a estrutura de um livro da aplicação
 type Livro struct {
 	ID             uint64     `json:"id"`
 	ISBN           string     `json:"isbn,omitempty"`
@@ -25,7 +24,6 @@ type Livro struct {
 	CriadoEm       time.Time  `json:"criado_em"`
 }
 
-// LivroPublico é a struct responsável por representar um livro público da aplicação
 type LivroPublico struct {
 	ID             uint64     `json:"id"`
 	ISBN           string     `json:"isbn,omitempty"`
@@ -41,18 +39,17 @@ type LivroPublico struct {
 	CriadoEm       time.Time  `json:"criado_em"`
 }
 
-// LivroBusca representa um item na busca unificada (local ou Google Books)
 type LivroBusca struct {
-	Origem         string  `json:"origem"`
-	ID             *uint64 `json:"id,omitempty"`
-	GoogleVolumeID string  `json:"google_volume_id,omitempty"`
-	ISBN           string  `json:"isbn,omitempty"`
-	Titulo         string  `json:"titulo"`
-	Autor          string  `json:"autor"`
-	Paginas        int     `json:"paginas"`
-	Editora        string  `json:"editora,omitempty"`
-	CapaURL        string  `json:"capa_url,omitempty"`
-	Sinopse        string  `json:"sinopse,omitempty"`
+	Origem         string   `json:"origem"`
+	ID             *uint64  `json:"id,omitempty"`
+	GoogleVolumeID string   `json:"google_volume_id,omitempty"`
+	ISBN           string   `json:"isbn,omitempty"`
+	Titulo         string   `json:"titulo"`
+	Autor          string   `json:"autor"`
+	Paginas        int      `json:"paginas"`
+	Editora        string   `json:"editora,omitempty"`
+	CapaURL        string   `json:"capa_url,omitempty"`
+	Sinopse        string   `json:"sinopse,omitempty"`
 	CategoriaID    uint64   `json:"categoria_id,omitempty"`
 	CategoriasIDs  []uint64 `json:"categorias_ids,omitempty"`
 }
@@ -63,13 +60,13 @@ type ResultadoBuscaLivros struct {
 }
 
 type CriarLivroUsuarioRequest struct {
-	LivroID        *uint64 `json:"livro_id"`
-	GoogleVolumeID string  `json:"google_volume_id"`
-	Titulo         string  `json:"titulo"`
-	Autor          string  `json:"autor"`
-	Paginas        int     `json:"paginas"`
-	CapaURL        string  `json:"capa_url"`
-	ISBN           string  `json:"isbn"`
+	LivroID        *uint64  `json:"livro_id"`
+	GoogleVolumeID string   `json:"google_volume_id"`
+	Titulo         string   `json:"titulo"`
+	Autor          string   `json:"autor"`
+	Paginas        int      `json:"paginas"`
+	CapaURL        string   `json:"capa_url"`
+	ISBN           string   `json:"isbn"`
 	CategoriaID    uint64   `json:"categoria_id"`
 	CategoriasIDs  []uint64 `json:"categorias_ids"`
 }
@@ -165,7 +162,6 @@ func (l Livro) ParaBusca() LivroBusca {
 	}
 }
 
-// Preparar valida e formata os dados do livro antes de persistir.
 func (livro *Livro) Preparar(etapa string) error {
 	if erro := livro.validar(etapa); erro != nil {
 		return erro

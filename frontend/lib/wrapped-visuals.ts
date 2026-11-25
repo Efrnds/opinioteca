@@ -1,6 +1,4 @@
 import type { CSSProperties } from "react";
-
-/** Opinoteca system palette (from globals.css) */
 export const OPINOTECA_AZUL_900 = "#1B2432";
 export const OPINOTECA_AZUL_800 = "#000E33";
 export const OPINOTECA_AZUL_700 = "#001d66";
@@ -11,18 +9,12 @@ export const OPINOTECA_OFF_WHITE = "#E8EAED";
 export const OPINOTECA_WHITE = "#FFFFFF";
 export const OPINOTECA_CINZA_700 = "#808080";
 export const OPINOTECA_FOREGROUND = "#171717";
-
-/** Modal share slide gradient: unchanged (Spotify-style) */
 export const WRAPPED_SHARE_GRADIENT_TAILWIND = "from-[#14061c] via-[#7e22ce] to-[#f97316]";
-
 export type WrappedShareTemaId = "brand" | "navy" | "sunset" | "violet" | "teal" | "mono";
-
 export type WrappedShareTema = {
     id: WrappedShareTemaId;
     label: string;
-    /** Primary swatch color for the picker */
     swatch: string;
-    /** Optional secondary for dual-tone swatch */
     swatchSecondary?: string;
     bgColor: string;
     gradientCss: string;
@@ -45,7 +37,6 @@ export type WrappedShareTema = {
     previewMuted: string;
     previewChip: string;
 };
-
 export const WRAPPED_SHARE_TEMAS: Record<WrappedShareTemaId, WrappedShareTema> = {
     brand: {
         id: "brand",
@@ -204,59 +195,50 @@ export const WRAPPED_SHARE_TEMAS: Record<WrappedShareTemaId, WrappedShareTema> =
         previewChip: "rgba(17, 17, 17, 0.08)",
     },
 };
-
 export const WRAPPED_SHARE_TEMAS_LIST = Object.values(WRAPPED_SHARE_TEMAS);
-
 export const WRAPPED_SHARE_TEMA_PADRAO: WrappedShareTemaId = "brand";
-
 export function getWrappedShareTema(id?: WrappedShareTemaId | null): WrappedShareTema {
     return WRAPPED_SHARE_TEMAS[id ?? WRAPPED_SHARE_TEMA_PADRAO] ?? WRAPPED_SHARE_TEMAS.brand;
 }
-
-/** @deprecated Prefer theme.gradientCss; kept for callers expecting brand default */
 export const WRAPPED_SHARE_GRADIENT_CSS = WRAPPED_SHARE_TEMAS.brand.gradientCss;
-
-/** @deprecated Prefer theme.bgColor */
 export const WRAPPED_SHARE_BG_COLOR = WRAPPED_SHARE_TEMAS.brand.bgColor;
-
 export function formatarPeriodo(inicio?: string, fim?: string) {
-    if (!inicio || !fim) return "últimos 12 meses";
+    if (!inicio || !fim)
+        return "últimos 12 meses";
     const fmt = (s: string) => {
         const [y, m] = s.split("-").map(Number);
         return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).toUpperCase();
     };
     return `${fmt(inicio)} a ${fmt(fim)}`;
 }
-
 export function formatarPeriodoShare(inicio?: string, fim?: string) {
-    if (!inicio || !fim) return "12 MESES";
+    if (!inicio || !fim)
+        return "12 MESES";
     const fmt = (s: string) => {
         const [y, m] = s.split("-").map(Number);
         return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).toUpperCase();
     };
     return `${fmt(inicio)} a ${fmt(fim)}`;
 }
-
 export function anoDoPeriodo(fim?: string) {
-    if (!fim) return new Date().getFullYear().toString();
+    if (!fim)
+        return new Date().getFullYear().toString();
     return fim.split("-")[0] ?? new Date().getFullYear().toString();
 }
-
 export function formatarMes(ym?: string) {
-    if (!ym) return "seu melhor mês";
+    if (!ym)
+        return "seu melhor mês";
     const [ano, mes] = ym.split("-");
     const data = new Date(Number(ano), Number(mes) - 1, 1);
     return data.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
-
 export function formatarMesCurto(ym?: string) {
-    if (!ym) return "-";
+    if (!ym)
+        return "-";
     const [ano, mes] = ym.split("-");
     const data = new Date(Number(ano), Number(mes) - 1, 1);
     return data.toLocaleDateString("pt-BR", { month: "long" });
 }
-
-/** Stat chip: white card, no backdrop-filter (html-to-image safe) */
 export function chipStyle(tema: WrappedShareTema = WRAPPED_SHARE_TEMAS.brand): CSSProperties {
     return {
         flex: 1,
@@ -272,8 +254,6 @@ export function chipStyle(tema: WrappedShareTema = WRAPPED_SHARE_TEMAS.brand): C
         boxShadow: `0 8px 24px ${tema.shadow}`,
     };
 }
-
-/** Hero ring: no backdrop-filter */
 export function heroRingStyle(size: number, tema: WrappedShareTema = WRAPPED_SHARE_TEMAS.brand): CSSProperties {
     return {
         position: "relative",
@@ -289,7 +269,6 @@ export function heroRingStyle(size: number, tema: WrappedShareTema = WRAPPED_SHA
         boxShadow: `0 12px 32px ${tema.accentShadow}`,
     };
 }
-
 export function heroRingInnerStyle(size: number, tema: WrappedShareTema = WRAPPED_SHARE_TEMAS.brand): CSSProperties {
     return {
         position: "absolute",
@@ -298,8 +277,6 @@ export function heroRingInnerStyle(size: number, tema: WrappedShareTema = WRAPPE
         border: `1px dashed ${tema.border}`,
     };
 }
-
-/** Accent card (best-month / highlight blocks) */
 export function accentCardStyle(tema: WrappedShareTema = WRAPPED_SHARE_TEMAS.brand): CSSProperties {
     return {
         borderRadius: 64,
@@ -310,8 +287,6 @@ export function accentCardStyle(tema: WrappedShareTema = WRAPPED_SHARE_TEMAS.bra
         boxShadow: `0 10px 28px ${tema.shadow}`,
     };
 }
-
-/** Sparkles badge */
 export function sparklesBadgeStyle(tema: WrappedShareTema = WRAPPED_SHARE_TEMAS.brand): CSSProperties {
     return {
         display: "flex",

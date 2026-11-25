@@ -1,5 +1,4 @@
--- Migração: livros com Google Books + seed categoria Outros
--- Executar em banco existente antes de subir a nova versão da API.
+
 
 INSERT INTO categorias (nome_categoria) VALUES ('Outros')
 ON CONFLICT (nome_categoria) DO NOTHING;

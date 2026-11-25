@@ -14,19 +14,19 @@ type MensagemResumo struct {
 }
 
 type Mensagem struct {
-	ID                      uint64          `json:"id"`
-	RemetenteID             uint64          `json:"remetente_id"`
-	DestinatarioID          uint64          `json:"destinatario_id"`
-	Conteudo                string          `json:"conteudo"`
-	AnexoURL                *string         `json:"anexo_url,omitempty"`
-	Lida                    bool            `json:"lida"`
-	Editada                 bool            `json:"editada"`
-	RespostaAID             *uint64         `json:"resposta_a_id,omitempty"`
-	Reacao                  *string         `json:"reacao,omitempty"`
-	ApagadoPorRemetente     bool            `json:"apagado_por_remetente"`
-	ApagadoPorDestinatario  bool            `json:"apagado_por_destinatario"`
-	RespostaA               *MensagemResumo `json:"resposta_a,omitempty"`
-	CriadoEm                time.Time       `json:"criado_em"`
+	ID                     uint64          `json:"id"`
+	RemetenteID            uint64          `json:"remetente_id"`
+	DestinatarioID         uint64          `json:"destinatario_id"`
+	Conteudo               string          `json:"conteudo"`
+	AnexoURL               *string         `json:"anexo_url,omitempty"`
+	Lida                   bool            `json:"lida"`
+	Editada                bool            `json:"editada"`
+	RespostaAID            *uint64         `json:"resposta_a_id,omitempty"`
+	Reacao                 *string         `json:"reacao,omitempty"`
+	ApagadoPorRemetente    bool            `json:"apagado_por_remetente"`
+	ApagadoPorDestinatario bool            `json:"apagado_por_destinatario"`
+	RespostaA              *MensagemResumo `json:"resposta_a,omitempty"`
+	CriadoEm               time.Time       `json:"criado_em"`
 }
 
 type ConversaResumo struct {
@@ -42,9 +42,9 @@ type ConversaResumo struct {
 }
 
 type EnviarMensagemRequest struct {
-	Conteudo     string `json:"conteudo"`
-	AnexoURL     string `json:"anexo_url"`
-	RespostaAID  *uint64 `json:"resposta_a_id"`
+	Conteudo    string  `json:"conteudo"`
+	AnexoURL    string  `json:"anexo_url"`
+	RespostaAID *uint64 `json:"resposta_a_id"`
 }
 
 type EditarMensagemRequest struct {

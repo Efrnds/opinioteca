@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// Profile dados verificados do id_token do Google.
 type Profile struct {
 	Sub     string
 	Email   string
@@ -31,7 +30,6 @@ type tokenInfo struct {
 
 var httpClient = &http.Client{Timeout: 8 * time.Second}
 
-// VerificarIDToken valida o JWT do Google via tokeninfo e confere o audience (client id).
 func VerificarIDToken(idToken, clientID string) (Profile, error) {
 	idToken = strings.TrimSpace(idToken)
 	clientID = strings.TrimSpace(clientID)

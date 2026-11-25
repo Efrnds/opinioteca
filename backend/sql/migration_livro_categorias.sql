@@ -1,5 +1,4 @@
--- Migração: múltiplas categorias por livro (tabela de junção)
--- Mantém livros.categoria_id como categoria primária (legado / exibição).
+
 
 CREATE TABLE IF NOT EXISTS livro_categorias (
     livro_id INTEGER NOT NULL REFERENCES livros(id) ON DELETE CASCADE,

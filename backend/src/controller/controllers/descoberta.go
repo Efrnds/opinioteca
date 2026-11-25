@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
 	"backend/src/utils/respostas"
 	"net/http"
 	"strconv"

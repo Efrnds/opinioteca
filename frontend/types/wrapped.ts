@@ -2,13 +2,11 @@ export type GeneroWrapped = {
     nome: string;
     total: number;
 };
-
 export type LivroWrappedDestaque = {
     titulo: string;
     autor?: string;
     capa_url?: string;
 };
-
 export type OpinioWrapped = {
     disponivel: boolean;
     teaser?: boolean;

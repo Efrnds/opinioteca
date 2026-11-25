@@ -14,10 +14,10 @@ const colunasUsuarioBase = `id, nome, nick, email, image_url, rank_confiabilidad
 
 var (
 	schemaInativadoOnce sync.Once
-	schemaTemInativado   bool
+	schemaTemInativado  bool
 
 	schemaAssinaturaExpiraOnce sync.Once
-	schemaTemAssinaturaExpira   bool
+	schemaTemAssinaturaExpira  bool
 
 	schemaBannerOnce sync.Once
 	schemaTemBanner  bool
@@ -29,8 +29,6 @@ var (
 	schemaTemGoogleID  bool
 )
 
-// schemaTemInativadoEm detecta se a migration 20260708 já rodou (coluna inativado_em).
-// Sem a coluna, login/listagens continuam funcionando; soft-delete/reativação exigem a migration.
 func schemaTemInativadoEm(db *sql.DB) bool {
 	schemaInativadoOnce.Do(func() {
 		var existe bool
@@ -188,7 +186,6 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	return nil
 }
 
-// AtualizarModoZen persiste a preferência de modo zen do usuário.
 func (repositorio Usuarios) AtualizarModoZen(usuarioID uint64, modoZen bool) error {
 	_, erro := repositorio.db.Exec(
 		`UPDATE usuarios SET modo_zen = $1 WHERE id = $2`,
@@ -197,12 +194,10 @@ func (repositorio Usuarios) AtualizarModoZen(usuarioID uint64, modoZen bool) err
 	return erro
 }
 
-// Usuarios é a struct responsável por representar o repositório de usuários.
 type Usuarios struct {
 	db *sql.DB
 }
 
-// NovoRepositorioDeUsuarios é a função responsável por criar um novo repositório de usuários.
 func NovoRepositorioDeUsuarios(db *sql.DB) *Usuarios {
 	return &Usuarios{db}
 }
@@ -228,7 +223,6 @@ func (repositorio Usuarios) Criar(usuario modelos.Usuario) (uint64, error) {
 	return uint64(id), nil
 }
 
-// Buscar traz todos os usuários que correspondem ao nome ou nick fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error) {
 	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick)
 
@@ -253,7 +247,6 @@ func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error)
 	return usuarios, nil
 }
 
-// FiltrosAdminUsuarios controla busca e paginação da listagem admin.
 type FiltrosAdminUsuarios struct {
 	Query            string
 	AssinaturaFiltro string
@@ -317,13 +310,11 @@ func (repositorio Usuarios) whereAdminUsuarios(filtros FiltrosAdminUsuarios) (st
 	return where, args
 }
 
-// BuscarTodos retorna todos os usuários (ativos e inativos) para o painel admin.
 func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 	usuarios, _, erro := repositorio.BuscarAdmin(FiltrosAdminUsuarios{Limite: 100000, Offset: 0})
 	return usuarios, erro
 }
 
-// BuscarAdmin lista usuários com filtros e paginação para o painel admin.
 func (repositorio Usuarios) BuscarAdmin(filtros FiltrosAdminUsuarios) ([]modelos.Usuario, int, error) {
 	limite := filtros.Limite
 	if limite <= 0 {
@@ -368,7 +359,6 @@ func (repositorio Usuarios) BuscarAdmin(filtros FiltrosAdminUsuarios) ([]modelos
 	return usuarios, total, nil
 }
 
-// ContarStatsAssinaturas retorna contadores do painel de assinaturas.
 func (repositorio Usuarios) ContarStatsAssinaturas() (modelos.AssinaturaStatsAdmin, error) {
 	var stats modelos.AssinaturaStatsAdmin
 	if !schemaTemAssinaturaExpiraEm(repositorio.db) {
@@ -399,7 +389,6 @@ func (repositorio Usuarios) ContarStatsAssinaturas() (modelos.AssinaturaStatsAdm
 	return stats, erro
 }
 
-// BuscarPorID trás um usuário específico do banco de dados, com base no ID fornecido, retornando o usuário e um erro, se houver.
 func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		fmt.Sprintf("SELECT %s FROM usuarios WHERE id = $1", colunasUsuario(repositorio.db)),
@@ -419,7 +408,6 @@ func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, erro
 	return usuario, nil
 }
 
-// BuscarPorNick busca um usuário pelo nick (case insensitive).
 func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		fmt.Sprintf("SELECT %s FROM usuarios WHERE LOWER(nick) = LOWER($1)", colunasUsuario(repositorio.db)),
@@ -440,7 +428,6 @@ func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) 
 	return usuario, nil
 }
 
-// BuscarPorNickParaLogin retorna credenciais do usuário pelo nick (case insensitive).
 func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario, error) {
 	comInativado := schemaTemInativadoEm(repositorio.db)
 	query := "SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(nick) = LOWER($1)"
@@ -477,7 +464,6 @@ func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario
 	return usuario, nil
 }
 
-// BuscarPorNickOuEmailParaLogin resolve credenciais por nick (preferência) ou e-mail.
 func (repositorio Usuarios) BuscarPorNickOuEmailParaLogin(identificador string) (modelos.Usuario, error) {
 	identificador = strings.TrimSpace(identificador)
 	if identificador == "" {
@@ -494,14 +480,13 @@ func (repositorio Usuarios) BuscarPorNickOuEmailParaLogin(identificador string) 
 	return repositorio.BuscarPorEmailParaLogin(identificador)
 }
 
-// Atualizar é a função responsável por atualizar um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
 func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario) error {
 	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, '') WHERE id = $5"
 	args := []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuarioID}
 	comBanner := schemaTemBannerUrl(repositorio.db)
 	comBannerPosicao := schemaTemBannerPosicaoCol(repositorio.db)
 	if comBanner && comBannerPosicao {
-		// Campos de banner vazios preservam o valor atual (outros PUTs não enviam o campo).
+
 		query = "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), banner_url = COALESCE(NULLIF($5, ''), banner_url), banner_posicao = COALESCE(NULLIF($6, ''), banner_posicao) WHERE id = $7"
 		args = []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Banner, usuario.BannerPosicao, usuarioID}
 	} else if comBanner {
@@ -522,7 +507,6 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 	return nil
 }
 
-// AtualizarAdmin atualiza perfil, status e flag de admin (painel administrativo).
 func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usuario) error {
 	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), status = $5, is_admin = $6 WHERE id = $7"
 	args := []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Status, usuario.IsAdmin, usuarioID}
@@ -549,7 +533,6 @@ func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usu
 	return nil
 }
 
-// CriarAdmin cadastra usuário com opção de definir is_admin.
 func (repositorio Usuarios) CriarAdmin(usuario modelos.Usuario, isAdmin bool) (uint64, error) {
 	var id uint64
 
@@ -572,7 +555,6 @@ func (repositorio Usuarios) CriarAdmin(usuario modelos.Usuario, isAdmin bool) (u
 	return id, nil
 }
 
-// Inativar soft-delete: status inativo + timestamp para janela de reativação.
 func (repositorio Usuarios) Inativar(usuarioID uint64) error {
 	if !schemaTemInativadoEm(repositorio.db) {
 		return fmt.Errorf("migration pendente: execute backend/sql/migrations/20260708_producao.sql")
@@ -584,7 +566,6 @@ func (repositorio Usuarios) Inativar(usuarioID uint64) error {
 	return erro
 }
 
-// Reativar restaura conta se ainda dentro da janela de 30 dias.
 func (repositorio Usuarios) Reativar(usuarioID uint64) error {
 	if !schemaTemInativadoEm(repositorio.db) {
 		return fmt.Errorf("migration pendente: execute backend/sql/migrations/20260708_producao.sql")
@@ -611,7 +592,6 @@ func (repositorio Usuarios) Reativar(usuarioID uint64) error {
 	return nil
 }
 
-// PodeReativar indica se a conta inativa ainda está na janela de 30 dias.
 func (repositorio Usuarios) PodeReativar(usuario modelos.Usuario) bool {
 	if usuario.Status != "inativo" || usuario.InativadoEm == nil {
 		return false
@@ -620,7 +600,6 @@ func (repositorio Usuarios) PodeReativar(usuario modelos.Usuario) bool {
 	return !time.Now().After(limite)
 }
 
-// Segue verifica se seguidorID segue seguidoID.
 func (repositorio Usuarios) Segue(seguidorID, seguidoID uint64) (bool, error) {
 	if seguidorID == 0 || seguidoID == 0 || seguidorID == seguidoID {
 		return false, nil
@@ -635,7 +614,6 @@ func (repositorio Usuarios) Segue(seguidorID, seguidoID uint64) (bool, error) {
 	return existe, erro
 }
 
-// BuscarPorEmail é a função responsável por buscar um usuário específico do banco de dados, com base no email fornecido, retornando o usuário e um erro, se houver.
 func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(email) = LOWER($1)",
@@ -661,7 +639,6 @@ func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error
 	return usuario, nil
 }
 
-// BuscarPorEmailParaLogin retorna id/status/admin (+ inativado_em) pelo email.
 func (repositorio Usuarios) BuscarPorEmailParaLogin(email string) (modelos.Usuario, error) {
 	comInativado := schemaTemInativadoEm(repositorio.db)
 	query := "SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(email) = LOWER($1)"
@@ -692,7 +669,6 @@ func (repositorio Usuarios) BuscarPorEmailParaLogin(email string) (modelos.Usuar
 	return usuario, nil
 }
 
-// BuscarPorGoogleID localiza usuário pelo subject OAuth do Google.
 func (repositorio Usuarios) BuscarPorGoogleID(googleID string) (modelos.Usuario, error) {
 	if !schemaTemGoogleIDCol(repositorio.db) || strings.TrimSpace(googleID) == "" {
 		return modelos.Usuario{}, nil
@@ -726,7 +702,6 @@ func (repositorio Usuarios) BuscarPorGoogleID(googleID string) (modelos.Usuario,
 	return usuario, nil
 }
 
-// VincularGoogleID associa o subject Google a uma conta existente.
 func (repositorio Usuarios) VincularGoogleID(usuarioID uint64, googleID string) error {
 	if !schemaTemGoogleIDCol(repositorio.db) {
 		return nil
@@ -739,7 +714,6 @@ func (repositorio Usuarios) VincularGoogleID(usuarioID uint64, googleID string) 
 	return erro
 }
 
-// CriarOAuth cria usuário autenticado via Google (senha aleatória inutilizável).
 func (repositorio Usuarios) CriarOAuth(usuario modelos.Usuario, googleID string) (uint64, error) {
 	if !schemaTemGoogleIDCol(repositorio.db) || strings.TrimSpace(googleID) == "" {
 		return repositorio.Criar(usuario)
@@ -765,7 +739,6 @@ func (repositorio Usuarios) CriarOAuth(usuario modelos.Usuario, googleID string)
 	return id, nil
 }
 
-// NickDisponivel indica se o nick (case insensitive) está livre.
 func (repositorio Usuarios) NickDisponivel(nick string) (bool, error) {
 	var existe bool
 	erro := repositorio.db.QueryRow(
@@ -775,7 +748,6 @@ func (repositorio Usuarios) NickDisponivel(nick string) (bool, error) {
 	return !existe, erro
 }
 
-// Seguir é a função responsável por permitir que um usuário siga outro usuário, com base nos IDs fornecidos, retornando um erro, se houver.
 func (repositorio Usuarios) Seguir(IDSeguido, IDSeguidor uint64) error {
 	statement, erro := repositorio.db.Prepare(
 		"INSERT INTO seguidores (id_seguido, id_seguidor) VALUES ($1,$2) ON CONFLICT (id_seguido, id_seguidor) DO NOTHING",
@@ -792,7 +764,6 @@ func (repositorio Usuarios) Seguir(IDSeguido, IDSeguidor uint64) error {
 	return nil
 }
 
-// DeixarSeguir é a função responsável por permitir que um usuário pare de seguir outro usuário, com base nos IDs fornecidos, retornando um erro, se houver.
 func (repositorio Usuarios) DeixarSeguir(IDSeguido, IDSeguidor uint64) error {
 	statement, erro := repositorio.db.Prepare(
 		"DELETE FROM seguidores WHERE id_seguido = $1 AND id_seguidor = $2",
@@ -809,7 +780,6 @@ func (repositorio Usuarios) DeixarSeguir(IDSeguido, IDSeguidor uint64) error {
 	return nil
 }
 
-// BuscarSeguidores é a função responsável por buscar os seguidores de um usuário específico do banco de dados, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual, u.assinatura_id, u.assinatura_expira_em, u.status
@@ -854,7 +824,6 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 	return usuarios, nil
 }
 
-// BuscarSeguindo é a função responsável por buscar os usuários que um usuário específico está seguindo, com base no ID fornecido, retornando uma lista de usuários e um erro, se houver.
 func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual, u.assinatura_id, u.assinatura_expira_em, u.status
@@ -899,7 +868,6 @@ func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario,
 	return usuarios, nil
 }
 
-// BuscarSenha é a função responsável por buscar a senha de um usuário específico no banco de dados, com base no ID fornecido, retornando a senha e um erro, se houver.
 func (repositorio Usuarios) BuscarSenha(usuarioID uint64) (string, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT senha FROM usuarios WHERE id = $1",
@@ -921,7 +889,6 @@ func (repositorio Usuarios) BuscarSenha(usuarioID uint64) (string, error) {
 	return usuario.Senha, nil
 }
 
-// AtualizarSenha é a função responsável por atualizar a senha de um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
 func (repositorio Usuarios) AtualizarSenha(usuarioID uint64, senha string) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE usuarios SET senha = $1 WHERE id = $2",
@@ -938,7 +905,6 @@ func (repositorio Usuarios) AtualizarSenha(usuarioID uint64, senha string) error
 	return nil
 }
 
-// IsAdmin é a função responsável por verificar se um usuário específico é um administrador, com base no ID fornecido, retornando um booleano e um erro, se houver.
 func (repositorio Usuarios) IsAdmin(usuarioID uint64) (bool, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT is_admin FROM usuarios WHERE id = $1",
@@ -959,7 +925,6 @@ func (repositorio Usuarios) IsAdmin(usuarioID uint64) (bool, error) {
 	return usuario.IsAdmin, nil
 }
 
-// AtualizarStatus é a função responsável por atualizar o status de um usuário específico no banco de dados, com base no ID fornecido, retornando um erro, se houver.
 func (repositorio Usuarios) AtualizarStatus(usuarioID uint64, status string) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE usuarios SET status = $1 WHERE id = $2",
@@ -974,7 +939,6 @@ func (repositorio Usuarios) AtualizarStatus(usuarioID uint64, status string) err
 	return nil
 }
 
-// AtualizarRank ajusta o rank de confiabilidade do autor dentro de uma transação.
 func (repositorio Usuarios) AtualizarRank(tx *sql.Tx, usuarioID uint64, delta int) error {
 	if delta == 0 {
 		return nil
@@ -986,8 +950,6 @@ func (repositorio Usuarios) AtualizarRank(tx *sql.Tx, usuarioID uint64, delta in
 	return erro
 }
 
-// RecalcularRanksFromVotos sincroniza rank_confiabilidade com a soma dos votos nas avaliações.
-// upvote = +1, downvote = -1, mínimo 0.
 func (repositorio Usuarios) RecalcularRanksFromVotos() error {
 	_, erro := repositorio.db.Exec(`
 		UPDATE usuarios u
@@ -1045,7 +1007,6 @@ func (repositorio Usuarios) PesquisarGlobal(termo string, limite int) ([]modelos
 	return resultado, nil
 }
 
-// BuscarPorNickEmailOuID resolve um usuário por ID numérico, e-mail ou nick (admin).
 func (repositorio Usuarios) BuscarPorNickEmailOuID(consulta string) (modelos.Usuario, error) {
 	consulta = strings.TrimSpace(consulta)
 	if consulta == "" {

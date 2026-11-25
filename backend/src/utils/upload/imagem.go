@@ -28,7 +28,7 @@ var extensoesPermitidas = map[string]bool{
 	".gif":  true,
 }
 
-const tamanhoMaximo = 5 << 20 // 5MB
+const tamanhoMaximo = 5 << 20
 
 func detectarExtensaoPorAssinatura(arquivo multipart.File) (string, bool) {
 	if arquivo == nil {
@@ -66,18 +66,14 @@ func resolverExtensao(arquivo multipart.File, header *multipart.FileHeader) (str
 	return "", errors.New("Arquivo de imagem inválido ou corrompido")
 }
 
-// SalvarAvatar salva a imagem em uploads/avatars e retorna a URL pública.
 func SalvarAvatar(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	return salvarImagem(arquivo, header, "avatars", tamanhoMaximo)
 }
 
-// SalvarAnexo salva imagem em uploads/anexos (sem still de avatar).
 func SalvarAnexo(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	return salvarImagem(arquivo, header, "anexos", tamanhoMaximo)
 }
 
-// SalvarBanner salva a imagem de capa em uploads/banners e retorna a URL pública.
-// Aceita JPG, PNG e WEBP (sem GIF) até 5MB, idealmente landscape.
 func SalvarBanner(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	defer arquivo.Close()
 
@@ -155,7 +151,7 @@ func salvarImagem(arquivo multipart.File, header *multipart.FileHeader, pasta st
 	if pasta == "avatars" && (extensao == ".gif" || extensao == ".webp") {
 		previewPath := strings.TrimSuffix(caminhoCompleto, extensao) + ".still.png"
 		if erro := GerarPreviewEstatico(caminhoCompleto, previewPath); erro != nil {
-			// Falha no preview não impede upload do avatar principal.
+
 			fmt.Printf("aviso: falha ao gerar preview estático de avatar (%s): %v\n", nomeArquivo, erro)
 		}
 	}
@@ -164,8 +160,6 @@ func salvarImagem(arquivo multipart.File, header *multipart.FileHeader, pasta st
 	return config.URLPublica(caminhoPublico), nil
 }
 
-// GerarPreviewEstatico decodifica qualquer imagem suportada (GIF/WEBP/PNG/JPEG)
-// e grava o primeiro quadro como PNG estático.
 func GerarPreviewEstatico(caminhoOrigem string, caminhoPreview string) error {
 	origem, erro := os.Open(caminhoOrigem)
 	if erro != nil {

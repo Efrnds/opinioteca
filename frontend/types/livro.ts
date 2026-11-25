@@ -12,7 +12,6 @@ export type LivroBusca = {
     categoria_id?: number;
     categorias_ids?: number[];
 };
-
 export type LivroPublico = {
     id: number;
     isbn?: string;
@@ -28,12 +27,10 @@ export type LivroPublico = {
     google_volume_id?: string;
     criado_em?: string;
 };
-
 export type BuscaLivrosResposta = {
     resultados: LivroBusca[];
     aviso?: string;
 };
-
 export type CriarLivroPayload = {
     livro_id?: number;
     google_volume_id?: string;

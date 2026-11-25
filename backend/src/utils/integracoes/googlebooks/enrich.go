@@ -10,7 +10,6 @@ func extrairPaginas(info volumeInfo) int {
 	return 0
 }
 
-// EnriquecerPaginas completa pageCount quando a busca retorna 0 mas o volume detalhado ou ISBN tem o dado.
 func (c *Client) EnriquecerPaginas(item VolumeItem) (VolumeItem, error) {
 	if extrairPaginas(item.VolumeInfo) > 0 {
 		item.VolumeInfo.PageCount = extrairPaginas(item.VolumeInfo)

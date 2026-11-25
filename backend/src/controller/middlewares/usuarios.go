@@ -1,15 +1,14 @@
 package middlewares
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
 	"backend/src/utils/respostas"
 	"errors"
 	"net/http"
 )
 
-// VerificarAdmin consulta is_admin no banco: fonte de verdade para rotas /admin.
 func VerificarAdmin(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		usuarioID, erro := auth.ExtrairUsuarioID(r)

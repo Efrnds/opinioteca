@@ -5,7 +5,6 @@ import (
 	"net/http"
 )
 
-// Rotas sociais de usuário: perfil acessado pelo nick (estilo Twitter).
 var rotasUsuarios = []Rota{
 	{
 		URI:                "/usuarios",

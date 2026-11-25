@@ -87,7 +87,6 @@ func (repositorio Configuracoes) CriarPadrao(usuarioID uint64) error {
 	return erro
 }
 
-// BuscarOuCriar retorna a config do usuário; cria defaults se não existir.
 func (repositorio Configuracoes) BuscarOuCriar(usuarioID uint64) (modelos.ConfiguracaoUsuario, error) {
 	linha := repositorio.db.QueryRow(
 		`SELECT `+colunasConfig+` FROM usuario_configuracoes WHERE usuario_id = $1`,
@@ -164,7 +163,6 @@ func (repositorio Configuracoes) Atualizar(usuarioID uint64, c modelos.Configura
 	return erro
 }
 
-// NotificacaoPermitida retorna se o destinatário aceita o tipo (sistema sempre true).
 func (repositorio Configuracoes) NotificacaoPermitida(usuarioID uint64, tipo string) bool {
 	switch tipo {
 	case "advertencia", "conta_inativada", "denuncia_resolvida":

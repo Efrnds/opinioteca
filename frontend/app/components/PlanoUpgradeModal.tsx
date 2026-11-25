@@ -1,5 +1,4 @@
 "use client";
-
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PRECOS } from "@/lib/plano";
@@ -7,8 +6,11 @@ import type { RecursoPlano } from "@/types/plano";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
-
-const RECURSOS: Record<RecursoPlano, { titulo: string; descricao: string; plano: "opiniopro" | "opiniotop" }> = {
+const RECURSOS: Record<RecursoPlano, {
+    titulo: string;
+    descricao: string;
+    plano: "opiniopro" | "opiniotop";
+}> = {
     templatesAvaliacao: {
         titulo: "Templates de avaliação",
         descricao: "Seis modelos prontos em português para começar sua avaliação com estrutura e estilo.",
@@ -55,31 +57,21 @@ const RECURSOS: Record<RecursoPlano, { titulo: string; descricao: string; plano:
         plano: "opiniopro",
     },
 };
-
 type PlanoUpgradeModalProps = {
     open: boolean;
     onClose: () => void;
     recurso: RecursoPlano;
 };
-
 export default function PlanoUpgradeModal({ open, onClose, recurso }: PlanoUpgradeModalProps) {
     const info = RECURSOS[recurso];
     const preco = PRECOS[info.plano];
-
-    return (
-        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    return (<Dialog open={open} onOpenChange={(v) => !v && onClose()}>
             <DialogContent className="max-w-md overflow-hidden border-0 p-0">
                 <AnimatePresence>
-                    {open ? (
-                        <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 8 }}
-                            className="p-6"
-                        >
+                    {open ? (<motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="p-6">
                             <DialogHeader>
                                 <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-100 to-azul-100">
-                                    <Sparkles className="h-6 w-6 text-violet-700" />
+                                    <Sparkles className="h-6 w-6 text-violet-700"/>
                                 </div>
                                 <DialogTitle className="font-gabarito-bold text-2xl text-azul-900">
                                     {info.titulo}
@@ -98,26 +90,15 @@ export default function PlanoUpgradeModal({ open, onClose, recurso }: PlanoUpgra
                                 </span>
                             </p>
                             <div className="mt-6 flex flex-wrap gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="rounded-full font-gabarito-medium"
-                                    onClick={onClose}
-                                >
+                                <Button type="button" variant="outline" className="rounded-full font-gabarito-medium" onClick={onClose}>
                                     Agora não
                                 </Button>
-                                <Link
-                                    href="/configuracoes?secao=plano"
-                                    onClick={onClose}
-                                    className="inline-flex h-9 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-azul-600 px-4 font-gabarito-bold text-sm text-white hover:opacity-90"
-                                >
+                                <Link href="/configuracoes?secao=plano" onClick={onClose} className="inline-flex h-9 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-azul-600 px-4 font-gabarito-bold text-sm text-white hover:opacity-90">
                                     Ver planos
                                 </Link>
                             </div>
-                        </motion.div>
-                    ) : null}
+                        </motion.div>) : null}
                 </AnimatePresence>
             </DialogContent>
-        </Dialog>
-    );
+        </Dialog>);
 }

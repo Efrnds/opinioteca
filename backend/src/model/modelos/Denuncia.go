@@ -40,16 +40,16 @@ type ResolverDenunciaRequest struct {
 }
 
 type DenunciaListItem struct {
-	ID                   uint64    `json:"id"`
-	TipoEntidade         string    `json:"tipo_entidade"`
-	ReferenciaID         uint64    `json:"referencia_id"`
-	Motivo               string    `json:"motivo"`
-	Status               string    `json:"status"`
-	CriadoEm             time.Time `json:"criado_em"`
-	DenuncianteNick      string    `json:"denunciante_nick"`
-	DenuncianteNome      string    `json:"denunciante_nome"`
-	DenunciasContraUsuario int     `json:"denuncias_contra_usuario"`
-	DenunciasProcedentes   int     `json:"denuncias_procedentes"`
+	ID                     uint64    `json:"id"`
+	TipoEntidade           string    `json:"tipo_entidade"`
+	ReferenciaID           uint64    `json:"referencia_id"`
+	Motivo                 string    `json:"motivo"`
+	Status                 string    `json:"status"`
+	CriadoEm               time.Time `json:"criado_em"`
+	DenuncianteNick        string    `json:"denunciante_nick"`
+	DenuncianteNome        string    `json:"denunciante_nome"`
+	DenunciasContraUsuario int       `json:"denuncias_contra_usuario"`
+	DenunciasProcedentes   int       `json:"denuncias_procedentes"`
 }
 
 type DenunciaListagemResposta struct {
@@ -79,12 +79,12 @@ type DenunciaContextoAvaliacao struct {
 }
 
 type DenunciaContextoComentario struct {
-	ID           uint64 `json:"id"`
-	Texto        string `json:"texto"`
-	AvaliacaoID  uint64 `json:"avaliacao_id"`
-	AutorID      uint64 `json:"autor_id"`
-	AutorNick    string `json:"autor_nick"`
-	AutorNome    string `json:"autor_nome"`
+	ID          uint64 `json:"id"`
+	Texto       string `json:"texto"`
+	AvaliacaoID uint64 `json:"avaliacao_id"`
+	AutorID     uint64 `json:"autor_id"`
+	AutorNick   string `json:"autor_nick"`
+	AutorNome   string `json:"autor_nome"`
 }
 
 type DenunciaContextoUsuario struct {
@@ -95,20 +95,20 @@ type DenunciaContextoUsuario struct {
 }
 
 type DenunciaContextoMensagem struct {
-	ID             uint64    `json:"id"`
-	Texto          string    `json:"texto"`
-	RemetenteID    uint64    `json:"remetente_id"`
-	RemetenteNick  string    `json:"remetente_nick"`
-	RemetenteNome  string    `json:"remetente_nome"`
-	CriadoEm       time.Time `json:"criado_em"`
+	ID            uint64    `json:"id"`
+	Texto         string    `json:"texto"`
+	RemetenteID   uint64    `json:"remetente_id"`
+	RemetenteNick string    `json:"remetente_nick"`
+	RemetenteNome string    `json:"remetente_nome"`
+	CriadoEm      time.Time `json:"criado_em"`
 }
 
 var motivosDenunciaValidos = map[string]bool{
-	"spam":                 true,
-	"ofensivo":             true,
-	"conteudo_inadequado":  true,
-	"informacao_falsa":     true,
-	"outro":                true,
+	"spam":                true,
+	"ofensivo":            true,
+	"conteudo_inadequado": true,
+	"informacao_falsa":    true,
+	"outro":               true,
 }
 
 var tiposEntidadeValidos = map[string]bool{
@@ -119,10 +119,10 @@ var tiposEntidadeValidos = map[string]bool{
 }
 
 var acoesResolucaoValidas = map[string]bool{
-	"rejeitar":          true,
-	"remover_conteudo":  true,
-	"advertir":          true,
-	"inativar_usuario":  true,
+	"rejeitar":         true,
+	"remover_conteudo": true,
+	"advertir":         true,
+	"inativar_usuario": true,
 }
 
 func (req *CriarDenunciaRequest) Preparar() error {

@@ -3,7 +3,6 @@ export type VisibilidadePerfil = "publico" | "privado";
 export type TemaAparencia = "claro" | "escuro" | "leitor" | "custom" | "daltonismo";
 export type DaltonismoTipo = "protanopia" | "deuteranopia" | "tritanopia" | "acromatopsia";
 export type CorDestaquePreset = "azul" | "verde" | "rosa" | "roxo" | "laranja" | "amarelo";
-
 export type ConfiguracaoUsuario = {
     usuarioId?: number;
     ocultarSpoilersPadrao: boolean;
@@ -25,7 +24,6 @@ export type ConfiguracaoUsuario = {
     corHover: string | null;
     atualizadoEm?: string;
 };
-
 export const CONFIG_PADRAO: ConfiguracaoUsuario = {
     ocultarSpoilersPadrao: true,
     mostrarStreak: true,
@@ -45,8 +43,10 @@ export const CONFIG_PADRAO: ConfiguracaoUsuario = {
     corTexto: null,
     corHover: null,
 };
-
-export const OPCOES_PRIVACIDADE: { value: NivelPrivacidade; label: string }[] = [
+export const OPCOES_PRIVACIDADE: {
+    value: NivelPrivacidade;
+    label: string;
+}[] = [
     { value: "todos", label: "Todos" },
     { value: "seguidores", label: "Seguidores" },
     { value: "ninguem", label: "Ninguém" },

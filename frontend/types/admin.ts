@@ -1,5 +1,4 @@
 import type { PlanoStatus } from "@/types/plano";
-
 export type UsuarioAdmin = {
     id: number;
     nome: string;
@@ -17,7 +16,6 @@ export type UsuarioAdmin = {
     status: string;
     isAdmin: boolean;
 };
-
 export type LivroAdmin = {
     id: number;
     isbn?: string;
@@ -35,14 +33,12 @@ export type LivroAdmin = {
     origem: string;
     criado_em: string;
 };
-
 export type CategoriaAdmin = {
     id: number;
     nome_categoria: string;
     ativo: boolean;
     criado_em: string;
 };
-
 export type ComentarioRelatorio = {
     id: number;
     texto: string;
@@ -53,7 +49,6 @@ export type ComentarioRelatorio = {
     categoria_nome: string;
     avaliacao_id: number;
 };
-
 export type UsuarioRelatorioResumo = {
     id: number;
     nome: string;
@@ -61,13 +56,11 @@ export type UsuarioRelatorioResumo = {
     email: string;
     image?: string;
 };
-
 export type SeguidoresSeguindoRelatorio = {
     usuario: UsuarioRelatorioResumo;
     seguidores: UsuarioRelatorioResumo[];
     seguindo: UsuarioRelatorioResumo[];
 };
-
 export type HistoricoLeituraRelatorio = {
     usuario: UsuarioRelatorioResumo;
     historico: {
@@ -84,7 +77,6 @@ export type HistoricoLeituraRelatorio = {
         };
     }[];
 };
-
 export type CriarUsuarioAdminPayload = {
     nome: string;
     nick: string;
@@ -92,7 +84,6 @@ export type CriarUsuarioAdminPayload = {
     senha: string;
     isAdmin?: boolean;
 };
-
 export type AtualizarUsuarioAdminPayload = {
     nome?: string;
     nick?: string;
@@ -100,7 +91,6 @@ export type AtualizarUsuarioAdminPayload = {
     status?: string;
     isAdmin?: boolean;
 };
-
 export type DenunciaAdminListItem = {
     id: number;
     tipo_entidade: string;
@@ -113,12 +103,10 @@ export type DenunciaAdminListItem = {
     denuncias_contra_usuario: number;
     denuncias_procedentes: number;
 };
-
 export type DenunciaAdminListagem = {
     itens: DenunciaAdminListItem[];
     pendentes: number;
 };
-
 export type DenunciaContextoAvaliacao = {
     id: number;
     texto: string;
@@ -127,7 +115,6 @@ export type DenunciaContextoAvaliacao = {
     autor_nick: string;
     autor_nome: string;
 };
-
 export type DenunciaContextoComentario = {
     id: number;
     texto: string;
@@ -136,14 +123,12 @@ export type DenunciaContextoComentario = {
     autor_nick: string;
     autor_nome: string;
 };
-
 export type DenunciaContextoUsuario = {
     id: number;
     nick: string;
     email: string;
     nome: string;
 };
-
 export type DenunciaContextoMensagem = {
     id: number;
     texto: string;
@@ -152,7 +137,6 @@ export type DenunciaContextoMensagem = {
     remetente_nome: string;
     criado_em: string;
 };
-
 export type DenunciaAdminDetalhe = {
     id: number;
     denunciante_id: number;
@@ -169,15 +153,6 @@ export type DenunciaAdminDetalhe = {
     denunciante_nome: string;
     denuncias_contra_usuario: number;
     denuncias_procedentes: number;
-    contexto:
-        | DenunciaContextoAvaliacao
-        | DenunciaContextoComentario
-        | DenunciaContextoUsuario
-        | DenunciaContextoMensagem;
+    contexto: DenunciaContextoAvaliacao | DenunciaContextoComentario | DenunciaContextoUsuario | DenunciaContextoMensagem;
 };
-
-export type AcaoResolucaoDenuncia =
-    | "rejeitar"
-    | "remover_conteudo"
-    | "advertir"
-    | "inativar_usuario";
+export type AcaoResolucaoDenuncia = "rejeitar" | "remover_conteudo" | "advertir" | "inativar_usuario";

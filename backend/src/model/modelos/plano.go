@@ -8,7 +8,6 @@ const (
 	PlanoOpinioProID uint64 = 3
 )
 
-// PlanoStatus resume o plano efetivo do usuário (considera expiração).
 type PlanoStatus struct {
 	Codigo             string     `json:"codigo"`
 	Nome               string     `json:"nome"`
@@ -35,14 +34,11 @@ var planoIDPorCodigo = map[string]uint64{
 	"opiniopro": PlanoOpinioProID,
 }
 
-// PlanoIDPorCodigo resolve o ID do plano pelo código (gratuito, opiniotop, opiniopro).
 func PlanoIDPorCodigo(codigo string) (uint64, bool) {
 	id, ok := planoIDPorCodigo[codigo]
 	return id, ok
 }
 
-// PlanoAtivo indica se o plano pago do usuário ainda está vigente.
-// Gratuito é sempre considerado ativo; plano pago sem data de expiração é vitalício.
 func PlanoAtivo(usuario Usuario) bool {
 	if usuario.AssinaturaID == PlanoGratuitoID {
 		return true
@@ -54,7 +50,6 @@ func PlanoAtivo(usuario Usuario) bool {
 	return expira.After(time.Now())
 }
 
-// PlanoVitalicio indica assinatura paga sem data de expiração (nunca expira).
 func PlanoVitalicio(usuario Usuario) bool {
 	if usuario.AssinaturaID == PlanoGratuitoID {
 		return false
@@ -62,7 +57,6 @@ func PlanoVitalicio(usuario Usuario) bool {
 	return PtrTempoJSON(usuario.AssinaturaExpiraEm) == nil
 }
 
-// PlanoEfetivoID retorna o ID do plano em vigor (downgrade para gratuito se expirado).
 func PlanoEfetivoID(usuario Usuario) uint64 {
 	if usuario.AssinaturaID == PlanoGratuitoID {
 		return PlanoGratuitoID
@@ -73,18 +67,15 @@ func PlanoEfetivoID(usuario Usuario) uint64 {
 	return PlanoGratuitoID
 }
 
-// TemPlanoTop indica acesso a recursos do OpinioTop (inclui OpinioPro).
 func TemPlanoTop(usuario Usuario) bool {
 	id := PlanoEfetivoID(usuario)
 	return id == PlanoOpinioTopID || id == PlanoOpinioProID
 }
 
-// TemPlanoPro indica acesso a recursos exclusivos do OpinioPro.
 func TemPlanoPro(usuario Usuario) bool {
 	return PlanoEfetivoID(usuario) == PlanoOpinioProID
 }
 
-// StatusPlano monta o objeto exposto nas respostas da API.
 func StatusPlano(usuario Usuario) PlanoStatus {
 	efetivoID := PlanoEfetivoID(usuario)
 	info := planosPorID[efetivoID]
@@ -102,7 +93,6 @@ func StatusPlano(usuario Usuario) PlanoStatus {
 	}
 }
 
-// AssinaturaCatalogo descreve um plano disponível no catálogo.
 type AssinaturaCatalogo struct {
 	ID                    uint64  `json:"id"`
 	Codigo                string  `json:"codigo"`

@@ -15,7 +15,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ListarTemplatesAvaliacao retorna modelos ativos para a criação de avaliações.
 func ListarTemplatesAvaliacao(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -38,7 +37,6 @@ func ListarTemplatesAvaliacao(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, resultado)
 }
 
-// AdminListarTemplates lista todos os templates (admin).
 func AdminListarTemplates(w http.ResponseWriter, r *http.Request) {
 	pagina, limite, offset := paginacaoAdmin(r)
 
@@ -66,7 +64,6 @@ func AdminListarTemplates(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// AdminBuscarTemplatePorID retorna um template pelo ID (admin).
 func AdminBuscarTemplatePorID(w http.ResponseWriter, r *http.Request) {
 	id, erro := templateIDDaURL(r)
 	if erro != nil {
@@ -94,7 +91,6 @@ func AdminBuscarTemplatePorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, template)
 }
 
-// AdminCriarTemplate cria um novo template (admin).
 func AdminCriarTemplate(w http.ResponseWriter, r *http.Request) {
 	payload, erro := lerPayloadTemplate(r, "criacao")
 	if erro != nil {
@@ -125,7 +121,6 @@ func AdminCriarTemplate(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, criado)
 }
 
-// AdminAtualizarTemplate atualiza um template (admin).
 func AdminAtualizarTemplate(w http.ResponseWriter, r *http.Request) {
 	id, erro := templateIDDaURL(r)
 	if erro != nil {
@@ -175,7 +170,6 @@ func AdminAtualizarTemplate(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusNoContent, nil)
 }
 
-// AdminExcluirTemplate remove ou inativa um template (admin).
 func AdminExcluirTemplate(w http.ResponseWriter, r *http.Request) {
 	id, erro := templateIDDaURL(r)
 	if erro != nil {

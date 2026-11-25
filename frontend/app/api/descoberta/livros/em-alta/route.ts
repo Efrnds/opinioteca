@@ -1,6 +1,5 @@
 import { proxyResposta, requireSessionToken } from "@/lib/api-proxy";
 import { NextRequest, NextResponse } from "next/server";
-
 async function proxyDescoberta(path: string, token: string) {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -8,7 +7,6 @@ async function proxyDescoberta(path: string, token: string) {
     });
     return proxyResposta(res);
 }
-
 export async function GET(req: NextRequest) {
     const session = await requireSessionToken();
     if (!session) {

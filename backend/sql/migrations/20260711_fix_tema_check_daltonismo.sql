@@ -1,8 +1,4 @@
--- Corrige CHECK de tema para incluir 'daltonismo'
--- (migrations anteriores de tema_custom/temas_aparencia omitiram o valor).
---
--- Uso:
---   psql "$DATABASE_URL" -f backend/sql/migrations/20260711_fix_tema_check_daltonismo.sql
+
 
 DO $$
 BEGIN

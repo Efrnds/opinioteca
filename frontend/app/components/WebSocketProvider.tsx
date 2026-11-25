@@ -1,22 +1,14 @@
 "use client";
-
 import { toWsUrl, wsBaseUrl } from "@/lib/media";
 import { contarNotificacoesNaoLidas, notificacaoEstaLida } from "@/lib/notificacoes";
 import { wsClient } from "@/lib/ws/client";
-import {
-    isNotificacao,
-    notificacaoEhMensagem,
-    parseNovaMensagem,
-    type WsListener,
-} from "@/lib/ws/types";
+import { isNotificacao, notificacaoEhMensagem, parseNovaMensagem, type WsListener, } from "@/lib/ws/types";
 import type { Notificacao } from "@/types/notificacao";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-
 export const LIMITE_NOTIFICACOES = 20;
-
 type WebSocketContextValue = {
     subscribe: (fn: WsListener) => () => void;
     setChatAtivo: (id: number | null) => void;
@@ -34,35 +26,34 @@ type WebSocketContextValue = {
     marcarNotificacaoLida: (id: number) => void;
     marcarTodasNotificacoesLidas: () => Promise<void>;
 };
-
 const WebSocketContext = createContext<WebSocketContextValue>({
-    subscribe: () => () => {},
-    setChatAtivo: () => {},
+    subscribe: () => () => { },
+    setChatAtivo: () => { },
     contagemNaoLidas: 0,
     mensagensNaoLidasTotal: 0,
-    decrementarContagem: () => {},
-    recarregarContagem: async () => {},
-    recarregarMensagensNaoLidas: async () => {},
+    decrementarContagem: () => { },
+    recarregarContagem: async () => { },
+    recarregarMensagensNaoLidas: async () => { },
     notificacoes: [],
     notificacoesCarregando: false,
     notificacoesCarregandoMais: false,
     temMaisNotificacoes: false,
-    carregarNotificacoes: async () => {},
-    carregarMaisNotificacoes: async () => {},
-    marcarNotificacaoLida: () => {},
-    marcarTodasNotificacoesLidas: async () => {},
+    carregarNotificacoes: async () => { },
+    carregarMaisNotificacoes: async () => { },
+    marcarNotificacaoLida: () => { },
+    marcarTodasNotificacoesLidas: async () => { },
 });
-
 export function useWebSocket() {
     return useContext(WebSocketContext);
 }
-
 function chatAtivoComRemetente(pathname: string, chatAtivo: number | null, remetenteId: number) {
-    if (!pathname.startsWith("/mensagens") || !chatAtivo) return false;
+    if (!pathname.startsWith("/mensagens") || !chatAtivo)
+        return false;
     return chatAtivo === remetenteId;
 }
-
-export default function WebSocketProvider({ children }: { children: React.ReactNode }) {
+export default function WebSocketProvider({ children }: {
+    children: React.ReactNode;
+}) {
     const { data: session } = useSession();
     const pathname = usePathname();
     const chatAtivoRef = useRef<number | null>(null);
@@ -75,9 +66,7 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
     const [notificacoesCarregando, setNotificacoesCarregando] = useState(false);
     const [notificacoesCarregandoMais, setNotificacoesCarregandoMais] = useState(false);
     const [temMaisNotificacoes, setTemMaisNotificacoes] = useState(false);
-
     pathnameRef.current = pathname;
-
     const recarregarContagem = useCallback(async () => {
         try {
             const res = await fetch("/api/notificacoes");
@@ -87,57 +76,56 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
                     setContagemNaoLidas(contarNotificacoesNaoLidas(data as Notificacao[]));
                 }
             }
-        } catch {
-            /* ignore */
+        }
+        catch {
         }
     }, []);
-
     const recarregarMensagensNaoLidas = useCallback(async () => {
         try {
             const res = await fetch("/api/mensagens/contagem-nao-lidas");
             if (res.ok) {
-                const data = (await res.json()) as { total?: number };
+                const data = (await res.json()) as {
+                    total?: number;
+                };
                 setMensagensNaoLidasTotal(data.total ?? 0);
             }
-        } catch {
-            /* ignore */
+        }
+        catch {
         }
     }, []);
-
     const carregarNotificacoes = useCallback(async () => {
         setNotificacoesCarregando(true);
         try {
-            const res = await fetch(
-                `/api/notificacoes?todas=true&limite=${LIMITE_NOTIFICACOES}&offset=0`,
-            );
+            const res = await fetch(`/api/notificacoes?todas=true&limite=${LIMITE_NOTIFICACOES}&offset=0`);
             if (res.ok) {
                 const data: unknown = await res.json();
-                if (!Array.isArray(data)) return;
+                if (!Array.isArray(data))
+                    return;
                 const lista = data as Notificacao[];
                 const visiveis = lista.filter((n) => !notificacaoEhMensagem(n));
                 offsetApiRef.current = lista.length;
                 setNotificacoes(visiveis);
                 setTemMaisNotificacoes(lista.length >= LIMITE_NOTIFICACOES);
             }
-        } catch {
-            /* ignore */
-        } finally {
+        }
+        catch {
+        }
+        finally {
             setNotificacoesCarregando(false);
         }
     }, []);
-
     const carregarMaisNotificacoes = useCallback(async () => {
-        if (carregandoMaisRef.current || !temMaisNotificacoes) return;
+        if (carregandoMaisRef.current || !temMaisNotificacoes)
+            return;
         carregandoMaisRef.current = true;
         setNotificacoesCarregandoMais(true);
         try {
             const offset = offsetApiRef.current;
-            const res = await fetch(
-                `/api/notificacoes?todas=true&limite=${LIMITE_NOTIFICACOES}&offset=${offset}`,
-            );
+            const res = await fetch(`/api/notificacoes?todas=true&limite=${LIMITE_NOTIFICACOES}&offset=${offset}`);
             if (res.ok) {
                 const data: unknown = await res.json();
-                if (!Array.isArray(data)) return;
+                if (!Array.isArray(data))
+                    return;
                 const lista = data as Notificacao[];
                 const visiveis = lista.filter((n) => !notificacaoEhMensagem(n));
                 offsetApiRef.current = offset + lista.length;
@@ -147,52 +135,43 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
                 });
                 setTemMaisNotificacoes(lista.length >= LIMITE_NOTIFICACOES);
             }
-        } catch {
-            /* ignore */
-        } finally {
+        }
+        catch {
+        }
+        finally {
             carregandoMaisRef.current = false;
             setNotificacoesCarregandoMais(false);
         }
     }, [temMaisNotificacoes]);
-
     const decrementarContagem = useCallback(() => {
         setContagemNaoLidas((c) => Math.max(0, c - 1));
     }, []);
-
-    const marcarNotificacaoLida = useCallback(
-        (id: number) => {
-            setNotificacoes((atual) => {
-                const alvo = atual.find((n) => n.id === id);
-                if (alvo && !notificacaoEstaLida(alvo.lida)) {
-                    decrementarContagem();
-                }
-                return atual.map((n) => (n.id === id ? { ...n, lida: true } : n));
-            });
-            fetch(`/api/notificacoes/${id}/ler`, { method: "PUT" }).catch(() => {});
-        },
-        [decrementarContagem],
-    );
-
+    const marcarNotificacaoLida = useCallback((id: number) => {
+        setNotificacoes((atual) => {
+            const alvo = atual.find((n) => n.id === id);
+            if (alvo && !notificacaoEstaLida(alvo.lida)) {
+                decrementarContagem();
+            }
+            return atual.map((n) => (n.id === id ? { ...n, lida: true } : n));
+        });
+        fetch(`/api/notificacoes/${id}/ler`, { method: "PUT" }).catch(() => { });
+    }, [decrementarContagem]);
     const marcarTodasNotificacoesLidas = useCallback(async () => {
         setNotificacoes((atual) => atual.map((n) => ({ ...n, lida: true })));
         setContagemNaoLidas(0);
         try {
             await fetch("/api/notificacoes/lidas", { method: "PUT" });
-        } catch {
-            /* ignore */
+        }
+        catch {
         }
     }, []);
-
     const subscribe = useCallback((fn: WsListener) => wsClient.subscribe(fn), []);
-
     const setChatAtivo = useCallback((id: number | null) => {
         chatAtivoRef.current = id;
     }, []);
-
     const marcarMensagemLidaSilenciosa = useCallback((id: number) => {
-        fetch(`/api/mensagens/msg/${id}/ler`, { method: "PUT" }).catch(() => {});
+        fetch(`/api/mensagens/msg/${id}/ler`, { method: "PUT" }).catch(() => { });
     }, []);
-
     useEffect(() => {
         const token = session?.accessToken;
         if (!token) {
@@ -204,7 +183,6 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
             wsClient.disconnect();
             return;
         }
-
         setContagemNaoLidas(0);
         setMensagensNaoLidasTotal(0);
         setNotificacoes([]);
@@ -214,56 +192,50 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
         recarregarMensagensNaoLidas();
         carregarNotificacoes();
     }, [session?.accessToken, recarregarContagem, recarregarMensagensNaoLidas, carregarNotificacoes]);
-
     useEffect(() => {
         const token = session?.accessToken;
         if (!token) {
             wsClient.disconnect();
             return;
         }
-
-        // Singleton: não dá disconnect no cleanup do effect — remount (Strict Mode /
-        // navegação) cortava o handshake e o Firefox logava "interrupted while loading".
-        // Logout / troca de conta já chama disconnect em session-cleanup / SessionScopeReset.
         const wsUrl = `${toWsUrl(wsBaseUrl())}/ws`;
         wsClient.connect(wsUrl, token);
     }, [session?.accessToken]);
-
     useEffect(() => {
-        if (!session?.accessToken) return;
-
+        if (!session?.accessToken)
+            return;
         return wsClient.subscribe((tipo, payload) => {
             const chatAtivo = chatAtivoRef.current;
             const rota = pathnameRef.current;
-
             if (tipo === "NOVA_MENSAGEM") {
                 const parsed = parseNovaMensagem(payload);
-                if (!parsed) return;
-
+                if (!parsed)
+                    return;
                 const { mensagem, nao_lidas_total } = parsed;
                 const silenciar = chatAtivoComRemetente(rota, chatAtivo, mensagem.remetente_id);
-
                 if (silenciar) {
                     marcarMensagemLidaSilenciosa(mensagem.id);
-                } else {
+                }
+                else {
                     setMensagensNaoLidasTotal(nao_lidas_total);
                 }
                 return;
             }
-
             if (tipo === "CONVERSA_LIDA" && typeof payload === "object" && payload !== null) {
-                const p = payload as { nao_lidas_total?: number };
+                const p = payload as {
+                    nao_lidas_total?: number;
+                };
                 if (typeof p.nao_lidas_total === "number") {
                     setMensagensNaoLidasTotal(p.nao_lidas_total);
                 }
                 return;
             }
-
             if (tipo === "NOVA_NOTIFICACAO" && isNotificacao(payload)) {
-                if (notificacaoEhMensagem(payload)) return;
-
+                if (notificacaoEhMensagem(payload))
+                    return;
                 setNotificacoes((atual) => {
-                    if (atual.some((n) => n.id === payload.id)) return atual;
+                    if (atual.some((n) => n.id === payload.id))
+                        return atual;
                     return [payload, ...atual];
                 });
                 setContagemNaoLidas((c) => c + 1);
@@ -271,28 +243,23 @@ export default function WebSocketProvider({ children }: { children: React.ReactN
             }
         });
     }, [session?.accessToken, marcarMensagemLidaSilenciosa]);
-
-    return (
-        <WebSocketContext.Provider
-            value={{
-                subscribe,
-                setChatAtivo,
-                contagemNaoLidas,
-                mensagensNaoLidasTotal,
-                decrementarContagem,
-                recarregarContagem,
-                recarregarMensagensNaoLidas,
-                notificacoes,
-                notificacoesCarregando,
-                notificacoesCarregandoMais,
-                temMaisNotificacoes,
-                carregarNotificacoes,
-                carregarMaisNotificacoes,
-                marcarNotificacaoLida,
-                marcarTodasNotificacoesLidas,
-            }}
-        >
+    return (<WebSocketContext.Provider value={{
+            subscribe,
+            setChatAtivo,
+            contagemNaoLidas,
+            mensagensNaoLidasTotal,
+            decrementarContagem,
+            recarregarContagem,
+            recarregarMensagensNaoLidas,
+            notificacoes,
+            notificacoesCarregando,
+            notificacoesCarregandoMais,
+            temMaisNotificacoes,
+            carregarNotificacoes,
+            carregarMaisNotificacoes,
+            marcarNotificacaoLida,
+            marcarTodasNotificacoesLidas,
+        }}>
             {children}
-        </WebSocketContext.Provider>
-    );
+        </WebSocketContext.Provider>);
 }

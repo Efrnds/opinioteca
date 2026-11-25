@@ -1,6 +1,4 @@
--- Acessibilidade: tema para daltonismo e tipo selecionável por usuário.
--- Uso:
---   psql "$DATABASE_URL" -f backend/sql/migrations/20260710_acessibilidade_daltonismo.sql
+
 
 ALTER TABLE usuario_configuracoes
     ADD COLUMN IF NOT EXISTS daltonismo_tipo VARCHAR(20) NOT NULL DEFAULT 'deuteranopia';

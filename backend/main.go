@@ -1,8 +1,8 @@
 package main
 
 import (
-	"backend/src/utils/config"
 	"backend/src/controller/router"
+	"backend/src/utils/config"
 	"fmt"
 	"log"
 	"net/http"

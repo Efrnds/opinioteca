@@ -6,12 +6,10 @@ import (
 	"encoding/json"
 )
 
-// Templates repositório de modelos de avaliação.
 type Templates struct {
 	db *sql.DB
 }
 
-// NovoRepositorioDeTemplates cria o repositório.
 func NovoRepositorioDeTemplates(db *sql.DB) *Templates {
 	return &Templates{db}
 }
@@ -50,13 +48,11 @@ const selectTemplatesBase = `
 	FROM templates t
 	JOIN assinaturas a ON a.id = t.assinatura_minima_id`
 
-// ListarAdmin retorna todos os templates para o painel admin.
 func (repositorio Templates) ListarAdmin() ([]modelos.Template, error) {
 	templates, _, erro := repositorio.ListarAdminPaginado(100000, 0)
 	return templates, erro
 }
 
-// ListarAdminPaginado retorna templates paginados para o painel admin.
 func (repositorio Templates) ListarAdminPaginado(limite, offset int) ([]modelos.Template, int, error) {
 	if limite <= 0 {
 		limite = 20
@@ -91,9 +87,8 @@ func (repositorio Templates) ListarAdminPaginado(limite, offset int) ([]modelos.
 	return templates, total, nil
 }
 
-// ListarAtivos retorna templates ativos para uso na avaliação.
 func (repositorio Templates) ListarAtivos() ([]modelos.Template, error) {
-	linhas, erro := repositorio.db.Query(selectTemplatesBase+` WHERE t.ativo = TRUE ORDER BY t.ordem, t.id`)
+	linhas, erro := repositorio.db.Query(selectTemplatesBase + ` WHERE t.ativo = TRUE ORDER BY t.ordem, t.id`)
 	if erro != nil {
 		return nil, erro
 	}
@@ -110,7 +105,6 @@ func (repositorio Templates) ListarAtivos() ([]modelos.Template, error) {
 	return templates, nil
 }
 
-// BuscarPorID retorna um template pelo ID.
 func (repositorio Templates) BuscarPorID(id uint64) (modelos.Template, error) {
 	linha := repositorio.db.QueryRow(selectTemplatesBase+` WHERE t.id = $1`, id)
 	template, erro := repositorio.scanLinha(linha.Scan)
@@ -120,7 +114,6 @@ func (repositorio Templates) BuscarPorID(id uint64) (modelos.Template, error) {
 	return template, erro
 }
 
-// Criar insere um novo template.
 func (repositorio Templates) Criar(template modelos.Template) (uint64, error) {
 	estruturaJSON, erro := json.Marshal(template.Estrutura)
 	if erro != nil {
@@ -141,7 +134,6 @@ func (repositorio Templates) Criar(template modelos.Template) (uint64, error) {
 	return id, erro
 }
 
-// Atualizar altera um template existente.
 func (repositorio Templates) Atualizar(id uint64, template modelos.Template) error {
 	estruturaJSON, erro := json.Marshal(template.Estrutura)
 	if erro != nil {
@@ -162,7 +154,6 @@ func (repositorio Templates) Atualizar(id uint64, template modelos.Template) err
 	return erro
 }
 
-// ContarUsoEmAvaliacoes conta avaliações que referenciam o template.
 func (repositorio Templates) ContarUsoEmAvaliacoes(id uint64) (int64, error) {
 	var total int64
 	erro := repositorio.db.QueryRow(
@@ -172,13 +163,11 @@ func (repositorio Templates) ContarUsoEmAvaliacoes(id uint64) (int64, error) {
 	return total, erro
 }
 
-// Inativar desativa um template (soft delete).
 func (repositorio Templates) Inativar(id uint64) error {
 	_, erro := repositorio.db.Exec(`UPDATE templates SET ativo = FALSE WHERE id = $1`, id)
 	return erro
 }
 
-// Excluir remove um template do banco.
 func (repositorio Templates) Excluir(id uint64) error {
 	_, erro := repositorio.db.Exec(`DELETE FROM templates WHERE id = $1`, id)
 	return erro

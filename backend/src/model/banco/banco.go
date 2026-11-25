@@ -116,7 +116,6 @@ func garantirSchemaCitacoes(db *sql.DB) error {
 	return erro
 }
 
-// Conectar abre uma conexão com o banco de dados e retorna a instância do sql.DB
 func Conectar() (*sql.DB, error) {
 	db, erro := sql.Open("pgx", config.StringConexaoBanco)
 	if erro != nil {

@@ -1,11 +1,9 @@
 import { Bell, Compass, Home, Mail, Settings, User, type LucideIcon } from "lucide-react";
-
 export type ItemMenu = {
     href: string;
     rotulo: string;
     icone: LucideIcon;
 };
-
 export const itensMenu: ItemMenu[] = [
     { href: "/home", rotulo: "Home", icone: Home },
     { href: "/explorar", rotulo: "Explorar", icone: Compass },
@@ -14,7 +12,6 @@ export const itensMenu: ItemMenu[] = [
     { href: "/perfil", rotulo: "Perfil", icone: User },
     { href: "/configuracoes", rotulo: "Configurações", icone: Settings },
 ];
-
 export function itemAtivo(pathname: string, href: string) {
     if (href === "/home") {
         return pathname === "/home";

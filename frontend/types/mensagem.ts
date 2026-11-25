@@ -4,7 +4,6 @@ export type MensagemResumo = {
     conteudo: string;
     anexo_url?: string;
 };
-
 export type ConversaResumo = {
     usuario_id: number;
     nome: string;
@@ -16,7 +15,6 @@ export type ConversaResumo = {
     fixada: boolean;
     nao_lidas?: number;
 };
-
 export type Mensagem = {
     id: number;
     remetente_id: number;

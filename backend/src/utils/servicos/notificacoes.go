@@ -19,7 +19,6 @@ func DispararNotificacao(db *sql.DB, destinatarioID, autorID uint64, tipo, titul
 	criarEEnviarNotificacao(db, destinatarioID, tipo, titulo, conteudo, referenciaID)
 }
 
-// DispararNotificacaoSistema envia notificações de moderação/sistema (sem autor humano).
 func DispararNotificacaoSistema(db *sql.DB, destinatarioID uint64, tipo, titulo, conteudo string, referenciaID *uint64) {
 	if destinatarioID == 0 {
 		return

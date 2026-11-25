@@ -5,8 +5,6 @@ import (
 	"database/sql"
 )
 
-// PodeVerConteudoDoPerfil retorna true se o viewer pode ver avaliações/comentários
-// do dono (público, dono, ou seguidor de perfil privado).
 func PodeVerConteudoDoPerfil(db *sql.DB, viewerID, donoID uint64) (bool, error) {
 	if donoID == 0 {
 		return false, nil
@@ -29,7 +27,6 @@ func PodeVerConteudoDoPerfil(db *sql.DB, viewerID, donoID uint64) (bool, error) 
 const joinConfigVisibilidade = `
  LEFT JOIN usuario_configuracoes uc ON uc.usuario_id = a.usuario_id`
 
-// condicaoVisibilidadePerfil usa o placeholder informado (ex.: "$1") para o viewerID.
 func condicaoVisibilidadePerfil(paramViewer string) string {
 	return `(
    COALESCE(uc.visibilidade_perfil, 'publico') = 'publico'

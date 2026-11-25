@@ -28,7 +28,6 @@
     ('opiniotop', 'OpinioTop', 2, FALSE, FALSE, TRUE,   9.99,  89.99),
     ('opiniopro', 'OpinioPro', 3, TRUE,  TRUE,  TRUE,  19.99, 189.99);
 
-
     DROP TABLE IF EXISTS templates CASCADE;
 
     CREATE TABLE templates (

@@ -1,29 +1,24 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
-
 async function proxyResposta(res: Response) {
     if (res.status === 204) {
         return new NextResponse(null, { status: res.status });
     }
-
     const texto = await res.text();
     let data: unknown;
-
     try {
         data = texto ? JSON.parse(texto) : null;
-    } catch {
+    }
+    catch {
         return NextResponse.json({ erro: "Resposta inválida do servidor" }, { status: res.status || 502 });
     }
-
     return NextResponse.json(data, { status: res.status });
 }
-
 export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.accessToken) {
         return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
     }
-
     const body = await req.json();
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/denuncias`, {
         method: "POST",
@@ -34,6 +29,5 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify(body),
         cache: "no-store",
     });
-
     return proxyResposta(res);
 }

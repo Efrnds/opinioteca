@@ -9,32 +9,30 @@ import (
 	"github.com/badoux/checkmail"
 )
 
-// Usuario representa a estrutura de um usuário da aplicação
 type Usuario struct {
-	ID                 uint64     `json:"id,omitempty"`
-	Nome               string     `json:"nome,omitempty"`
-	Nick               string     `json:"nick,omitempty"`
-	Email              string     `json:"email,omitempty"`
-	Senha              string     `json:"senha,omitempty"`
-	CriadoEm           time.Time  `json:"criadoEm,omitempty"`
-	RankConfiabilidade int        `json:"rankConfiabilidade"`
-	AssinaturaID       uint64     `json:"assinaturaId"`
-	AssinaturaExpiraEm *time.Time `json:"assinaturaExpiraEm,omitempty"`
+	ID                 uint64      `json:"id,omitempty"`
+	Nome               string      `json:"nome,omitempty"`
+	Nick               string      `json:"nick,omitempty"`
+	Email              string      `json:"email,omitempty"`
+	Senha              string      `json:"senha,omitempty"`
+	CriadoEm           time.Time   `json:"criadoEm,omitempty"`
+	RankConfiabilidade int         `json:"rankConfiabilidade"`
+	AssinaturaID       uint64      `json:"assinaturaId"`
+	AssinaturaExpiraEm *time.Time  `json:"assinaturaExpiraEm,omitempty"`
 	Plano              PlanoStatus `json:"plano,omitempty"`
-	SequenciaAtual     int        `json:"sequenciaAtual"`
-	MaiorSequencia     int        `json:"maiorSequencia"`
-	ModoZen            bool       `json:"modoZen"`
-	Status             string     `json:"status"`
-	Image              string     `json:"image,omitempty"`
-	Banner             string     `json:"banner,omitempty"`
-	BannerPosicao      string     `json:"bannerPosicao,omitempty"`
-	InativadoEm        *time.Time `json:"inativadoEm,omitempty"`
-	IsAdmin            bool       `json:"-"`
-	ContaApagada       bool       `json:"contaApagada,omitempty"`
-	PerfilPrivado      bool       `json:"perfilPrivado,omitempty"`
+	SequenciaAtual     int         `json:"sequenciaAtual"`
+	MaiorSequencia     int         `json:"maiorSequencia"`
+	ModoZen            bool        `json:"modoZen"`
+	Status             string      `json:"status"`
+	Image              string      `json:"image,omitempty"`
+	Banner             string      `json:"banner,omitempty"`
+	BannerPosicao      string      `json:"bannerPosicao,omitempty"`
+	InativadoEm        *time.Time  `json:"inativadoEm,omitempty"`
+	IsAdmin            bool        `json:"-"`
+	ContaApagada       bool        `json:"contaApagada,omitempty"`
+	PerfilPrivado      bool        `json:"perfilPrivado,omitempty"`
 }
 
-// Preparar é responsável por validar e formatar os dados do usuário antes de serem persistidos no banco de dados.
 func (usuario *Usuario) Preparar(etapa string) error {
 	if erro := usuario.validar(etapa); erro != nil {
 		return erro
@@ -141,7 +139,6 @@ func (usuario *Usuario) ListarPublico() Usuario {
 	}
 }
 
-// ListarPerfilPrivadoReduzido retorna só nick/foto para visitantes de perfil privado.
 func (usuario *Usuario) ListarPerfilPrivadoReduzido() Usuario {
 	return Usuario{
 		ID:            usuario.ID,
@@ -175,23 +172,22 @@ func (usuario *Usuario) ListarPrivado() Usuario {
 	}
 }
 
-// UsuarioAdmin expõe dados completos para o painel admin (inclui isAdmin).
 type UsuarioAdmin struct {
-	ID                 uint64    `json:"id"`
-	Nome               string    `json:"nome"`
-	Nick               string    `json:"nick"`
-	Email              string    `json:"email"`
-	Image              string    `json:"image,omitempty"`
-	CriadoEm           time.Time `json:"criadoEm"`
-	RankConfiabilidade int       `json:"rankConfiabilidade"`
-	AssinaturaID       uint64     `json:"assinaturaId"`
-	AssinaturaExpiraEm *time.Time `json:"assinaturaExpiraEm,omitempty"`
+	ID                 uint64      `json:"id"`
+	Nome               string      `json:"nome"`
+	Nick               string      `json:"nick"`
+	Email              string      `json:"email"`
+	Image              string      `json:"image,omitempty"`
+	CriadoEm           time.Time   `json:"criadoEm"`
+	RankConfiabilidade int         `json:"rankConfiabilidade"`
+	AssinaturaID       uint64      `json:"assinaturaId"`
+	AssinaturaExpiraEm *time.Time  `json:"assinaturaExpiraEm,omitempty"`
 	Plano              PlanoStatus `json:"plano"`
-	SequenciaAtual     int        `json:"sequenciaAtual"`
-	MaiorSequencia     int       `json:"maiorSequencia"`
-	ModoZen            bool      `json:"modoZen"`
-	Status             string    `json:"status"`
-	IsAdmin            bool      `json:"isAdmin"`
+	SequenciaAtual     int         `json:"sequenciaAtual"`
+	MaiorSequencia     int         `json:"maiorSequencia"`
+	ModoZen            bool        `json:"modoZen"`
+	Status             string      `json:"status"`
+	IsAdmin            bool        `json:"isAdmin"`
 }
 
 func (usuario *Usuario) ListarAdmin() UsuarioAdmin {

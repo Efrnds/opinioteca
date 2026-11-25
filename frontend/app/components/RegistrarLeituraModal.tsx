@@ -1,5 +1,4 @@
 "use client";
-
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { EstanteItem } from "@/types/estante";
@@ -8,9 +7,7 @@ import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { calcularProgressoLeitura, formatarPorcentagemLeitura, paginasPorPorcentagem, type TipoProgressoLeitura } from "@/lib/progresso-leitura";
 import type { RegistrarDiarioResposta } from "@/types/diario";
-import AdicionarLivroEstanteModal, {
-    type LivroAdicionadoEstante,
-} from "@/app/components/AdicionarLivroEstanteModal";
+import AdicionarLivroEstanteModal, { type LivroAdicionadoEstante, } from "@/app/components/AdicionarLivroEstanteModal";
 import ConviteAvaliacaoModal from "@/app/components/ConviteAvaliacaoModal";
 import EstanteCarousel from "@/app/components/EstanteCarousel";
 import NovaAvaliacaoModal from "@/app/components/NovaAvaliacaoModal";
@@ -19,20 +16,16 @@ import { ArrowLeft, Check, Loader2, Minus, Plus } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-
 type RegistrarLeituraModalProps = {
     open: boolean;
     onClose: () => void;
 };
-
 type Passo = 1 | 2 | 3;
-
 const PASSOS = [
     { id: 1 as const, rotulo: "Livro" },
     { id: 2 as const, rotulo: "Progresso" },
     { id: 3 as const, rotulo: "Confirmar" },
 ];
-
 const slideVariants = {
     enter: (dir: number) => ({
         x: dir > 0 ? 48 : -48,
@@ -47,93 +40,46 @@ const slideVariants = {
         opacity: 0,
     }),
 };
-
-function CapaHero({
-    livro,
-    tamanho = "md",
-}: {
+function CapaHero({ livro, tamanho = "md", }: {
     livro: EstanteItem["livro"];
     tamanho?: "sm" | "md" | "lg";
 }) {
-    const dims =
-        tamanho === "lg"
-            ? { w: 140, h: 210, className: "h-[210px] w-[140px]" }
-            : tamanho === "md"
-              ? { w: 96, h: 144, className: "h-36 w-24" }
-              : { w: 64, h: 96, className: "h-24 w-16" };
-
+    const dims = tamanho === "lg"
+        ? { w: 140, h: 210, className: "h-[210px] w-[140px]" }
+        : tamanho === "md"
+            ? { w: 96, h: 144, className: "h-36 w-24" }
+            : { w: 64, h: 96, className: "h-24 w-16" };
     if (mediaUrl(livro.capa_url)) {
-        return (
-            <Image
-                src={mediaUrl(livro.capa_url)!}
-                alt={livro.titulo}
-                width={dims.w}
-                height={dims.h}
-                className={cn(dims.className, "shrink-0 rounded-xl object-cover shadow-lg ring-1 ring-black/5")}
-                unoptimized
-            />
-        );
+        return (<Image src={mediaUrl(livro.capa_url)!} alt={livro.titulo} width={dims.w} height={dims.h} className={cn(dims.className, "shrink-0 rounded-xl object-cover shadow-lg ring-1 ring-black/5")} unoptimized/>);
     }
-
-    return (
-        <div
-            className={cn(
-                dims.className,
-                "flex shrink-0 items-center justify-center rounded-xl bg-azul-200 text-4xl shadow-lg",
-            )}
-        >
+    return (<div className={cn(dims.className, "flex shrink-0 items-center justify-center rounded-xl bg-azul-200 text-4xl shadow-lg")}>
             📖
-        </div>
-    );
+        </div>);
 }
-
-function IndicadorPassos({ passo }: { passo: Passo }) {
-    return (
-        <div className="flex items-center justify-center gap-2" aria-label={`Passo ${passo} de 3`}>
+function IndicadorPassos({ passo }: {
+    passo: Passo;
+}) {
+    return (<div className="flex items-center justify-center gap-2" aria-label={`Passo ${passo} de 3`}>
             {PASSOS.map((p, i) => {
-                const ativo = p.id === passo;
-                const feito = p.id < passo;
-                return (
-                    <div key={p.id} className="flex items-center gap-2">
-                        {i > 0 && (
-                            <div
-                                className={cn(
-                                    "h-px w-6 sm:w-8",
-                                    feito || ativo ? "bg-azul-600" : "bg-cinza-200",
-                                )}
-                            />
-                        )}
+            const ativo = p.id === passo;
+            const feito = p.id < passo;
+            return (<div key={p.id} className="flex items-center gap-2">
+                        {i > 0 && (<div className={cn("h-px w-6 sm:w-8", feito || ativo ? "bg-azul-600" : "bg-cinza-200")}/>)}
                         <div className="flex flex-col items-center gap-1">
-                            <div
-                                className={cn(
-                                    "flex h-7 w-7 items-center justify-center rounded-full font-gabarito-bold text-xs transition-colors",
-                                    feito && "bg-azul-600 text-white",
-                                    ativo && "bg-azul-600 text-white ring-4 ring-azul-100",
-                                    !feito && !ativo && "bg-cinza-200 text-cinza-700",
-                                )}
-                            >
-                                {feito ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : p.id}
+                            <div className={cn("flex h-7 w-7 items-center justify-center rounded-full font-gabarito-bold text-xs transition-colors", feito && "bg-azul-600 text-white", ativo && "bg-azul-600 text-white ring-4 ring-azul-100", !feito && !ativo && "bg-cinza-200 text-cinza-700")}>
+                                {feito ? <Check className="h-3.5 w-3.5" strokeWidth={3}/> : p.id}
                             </div>
-                            <span
-                                className={cn(
-                                    "hidden font-gabarito-medium text-[10px] uppercase tracking-wide sm:block",
-                                    ativo || feito ? "text-azul-600" : "text-cinza-700",
-                                )}
-                            >
+                            <span className={cn("hidden font-gabarito-medium text-[10px] uppercase tracking-wide sm:block", ativo || feito ? "text-azul-600" : "text-cinza-700")}>
                                 {p.rotulo}
                             </span>
                         </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
+                    </div>);
+        })}
+        </div>);
 }
-
 export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeituraModalProps) {
     const { data: session } = useSession();
     const nick = session?.user?.nick ?? "";
-
     const [estante, setEstante] = useState<EstanteItem[]>([]);
     const [carregandoEstante, setCarregandoEstante] = useState(false);
     const [passo, setPasso] = useState<Passo>(1);
@@ -148,7 +94,6 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const [livroConcluido, setLivroConcluido] = useState<EstanteItem["livro"] | null>(null);
     const [avaliacaoAberta, setAvaliacaoAberta] = useState(false);
     const [adicionarLivroAberto, setAdicionarLivroAberto] = useState(false);
-
     const carregarEstante = useCallback(async () => {
         if (!nick) {
             setEstante([]);
@@ -161,19 +106,23 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                 setEstante([]);
                 return;
             }
-            const data = (await res.json()) as { livros?: EstanteItem[] };
+            const data = (await res.json()) as {
+                livros?: EstanteItem[];
+            };
             setEstante(Array.isArray(data.livros) ? data.livros : []);
-        } catch {
+        }
+        catch {
             setEstante([]);
-        } finally {
+        }
+        finally {
             setCarregandoEstante(false);
         }
     }, [nick]);
-
     useEffect(() => {
         if (open) {
             void carregarEstante();
-        } else {
+        }
+        else {
             setPasso(1);
             setDirecao(1);
             setLivroSelecionado(null);
@@ -187,13 +136,11 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             setAdicionarLivroAberto(false);
         }
     }, [open, carregarEstante]);
-
     function irPara(proximo: Passo) {
         setDirecao(proximo > passo ? 1 : -1);
         setErro("");
         setPasso(proximo);
     }
-
     function selecionarLivro(item: EstanteItem) {
         setLivroSelecionado(item);
         setTipoProgresso(null);
@@ -204,11 +151,10 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         setDirecao(1);
         setPasso(2);
     }
-
     async function aoLivroAdicionadoNaEstante(resultado?: LivroAdicionadoEstante) {
         await carregarEstante();
-        if (!resultado) return;
-
+        if (!resultado)
+            return;
         const item: EstanteItem = {
             livro: {
                 id: resultado.livroId,
@@ -224,7 +170,6 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         };
         selecionarLivro(item);
     }
-
     function voltar() {
         if (passo === 2) {
             setLivroSelecionado(null);
@@ -238,7 +183,6 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             irPara(2);
         }
     }
-
     const pctAtualLivro = livroSelecionado?.porcentagem_atual ?? 0;
     const totalPaginasLivro = livroSelecionado?.livro.paginas ?? 0;
     const paginaAnterior = totalPaginasLivro > 0 ? paginasPorPorcentagem(pctAtualLivro, totalPaginasLivro) : 0;
@@ -250,7 +194,6 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const porcentagemCalculada = progresso?.porcentagem ?? pctAtualLivro;
     const pctValida = progresso !== null;
     const paginasRestantes = Math.max(0, totalPaginasLivro - paginaAnterior);
-
     function escolherTipoProgresso(tipo: TipoProgressoLeitura) {
         if (progresso) {
             setPorcentagem(progresso.porcentagem);
@@ -259,12 +202,10 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         setTipoProgresso(tipo);
         setErro("");
     }
-
     function ajustarPct(delta: number) {
         setPorcentagem((atual) => Math.max(minPct, Math.min(100, atual + delta)));
         setErro("");
     }
-
     function validarProgresso(): boolean {
         if (!livroSelecionado) {
             setErro("Selecione um livro da sua estante.");
@@ -290,18 +231,17 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         }
         return true;
     }
-
     function avancarParaConfirmacao() {
-        if (!validarProgresso()) return;
+        if (!validarProgresso())
+            return;
         irPara(3);
     }
-
     async function confirmarRegistro() {
         setErro("");
-        if (!livroSelecionado || !validarProgresso()) return;
-
-        if (!progresso) return;
-
+        if (!livroSelecionado || !validarProgresso())
+            return;
+        if (!progresso)
+            return;
         setEnviando(true);
         try {
             const res = await fetch("/api/diario", {
@@ -313,15 +253,14 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                     porcentagem_leitura: progresso.porcentagem,
                 }),
             });
-            const data = (await res.json()) as RegistrarDiarioResposta & { erro?: string };
-
+            const data = (await res.json()) as RegistrarDiarioResposta & {
+                erro?: string;
+            };
             if (!res.ok) {
                 setErro(data.erro || "Não foi possível registrar a leitura.");
                 return;
             }
-
             window.dispatchEvent(new Event("diario:refresh"));
-
             if (data.porcentagem_leitura >= 100 && !livroSelecionado.tem_avaliacao) {
                 setLivroConcluido(livroSelecionado.livro);
                 setConviteAvaliacaoAberto(true);
@@ -331,58 +270,45 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                 setTipoProgresso(null);
                 setPaginas("1");
                 void carregarEstante();
-            } else {
+            }
+            else {
                 onClose();
             }
-        } catch (err) {
+        }
+        catch (err) {
             setErro(err instanceof Error ? err.message : "Não foi possível registrar a leitura.");
-        } finally {
+        }
+        finally {
             setEnviando(false);
         }
     }
-
     const livroInicialAvaliacao = livroConcluido
         ? dadosDeLivroBusca({
-              id: livroConcluido.id,
-              titulo: livroConcluido.titulo,
-              autor: livroConcluido.autor,
-              paginas: livroConcluido.paginas,
-              capa_url: livroConcluido.capa_url,
-          })
+            id: livroConcluido.id,
+            titulo: livroConcluido.titulo,
+            autor: livroConcluido.autor,
+            paginas: livroConcluido.paginas,
+            capa_url: livroConcluido.capa_url,
+        })
         : null;
-
-    const tituloPasso =
-        passo === 1
-            ? "O que você leu hoje?"
-            : passo === 2
-              ? "Até onde você chegou?"
-              : "Tudo certo?";
-
-    const subtituloPasso =
-        passo === 1
-            ? "Escolha um livro da sua estante e registre o momento."
-            : passo === 2
-              ? "Escolha como informar sua leitura. Mostramos páginas e porcentagem."
-              : "Confira o resumo e salve sua leitura de hoje.";
-
-    return (
-        <>
-            <Dialog
-                open={open && !adicionarLivroAberto && !conviteAvaliacaoAberto && !avaliacaoAberta}
-                onOpenChange={(value) => !value && onClose()}
-            >
-                <DialogContent
-                    showCloseButton
-                    className="flex h-[min(92vh,720px)] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:max-w-xl sm:rounded-[2rem]"
-                >
+    const tituloPasso = passo === 1
+        ? "O que você leu hoje?"
+        : passo === 2
+            ? "Até onde você chegou?"
+            : "Tudo certo?";
+    const subtituloPasso = passo === 1
+        ? "Escolha um livro da sua estante e registre o momento."
+        : passo === 2
+            ? "Escolha como informar sua leitura. Mostramos páginas e porcentagem."
+            : "Confira o resumo e salve sua leitura de hoje.";
+    return (<>
+            <Dialog open={open && !adicionarLivroAberto && !conviteAvaliacaoAberto && !avaliacaoAberta} onOpenChange={(value) => !value && onClose()}>
+                <DialogContent showCloseButton className="flex h-[min(92vh,720px)] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:max-w-xl sm:rounded-[2rem]">
                     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-                        <div
-                            aria-hidden
-                            className="pointer-events-none absolute inset-0 overflow-hidden"
-                        >
-                            <div className="absolute -left-20 -top-24 h-56 w-56 rounded-full bg-azul-100/80 blur-3xl" />
-                            <div className="absolute -right-16 top-32 h-48 w-48 rounded-full bg-azul-50 blur-3xl" />
-                            <div className="absolute bottom-0 left-1/3 h-40 w-64 rounded-full bg-azul-100/40 blur-3xl" />
+                        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+                            <div className="absolute -left-20 -top-24 h-56 w-56 rounded-full bg-azul-100/80 blur-3xl"/>
+                            <div className="absolute -right-16 top-32 h-48 w-48 rounded-full bg-azul-50 blur-3xl"/>
+                            <div className="absolute bottom-0 left-1/3 h-40 w-64 rounded-full bg-azul-100/40 blur-3xl"/>
                         </div>
 
                         <div className="relative z-10 flex shrink-0 flex-col gap-4 px-5 pb-2 pt-5 sm:px-7 sm:pt-6">
@@ -397,54 +323,26 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                     {subtituloPasso}
                                 </p>
                             </div>
-                            <IndicadorPassos passo={passo} />
+                            <IndicadorPassos passo={passo}/>
                         </div>
 
                         <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-7">
                             <AnimatePresence mode="wait" custom={direcao}>
-                                <motion.div
-                                    key={passo}
-                                    custom={direcao}
-                                    variants={slideVariants}
-                                    initial="enter"
-                                    animate="center"
-                                    exit="exit"
-                                    transition={{ type: "spring", stiffness: 380, damping: 34, mass: 0.85 }}
-                                    className="flex min-h-full flex-col"
-                                >
-                                    {passo === 1 && (
-                                        <div className="flex flex-1 flex-col justify-center gap-2 py-2">
-                                            {carregandoEstante ? (
-                                                <div className="flex flex-col items-center justify-center gap-3 py-16">
-                                                    <Loader2 className="h-9 w-9 animate-spin text-azul-600" />
+                                <motion.div key={passo} custom={direcao} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ type: "spring", stiffness: 380, damping: 34, mass: 0.85 }} className="flex min-h-full flex-col">
+                                    {passo === 1 && (<div className="flex flex-1 flex-col justify-center gap-2 py-2">
+                                            {carregandoEstante ? (<div className="flex flex-col items-center justify-center gap-3 py-16">
+                                                    <Loader2 className="h-9 w-9 animate-spin text-azul-600"/>
                                                     <p className="font-gabarito-regular text-sm text-cinza-700">
                                                         Abrindo sua estante...
                                                     </p>
-                                                </div>
-                                            ) : (
-                                                <EstanteCarousel
-                                                    livros={estante}
-                                                    onSelecionar={selecionarLivro}
-                                                    onAdicionarLivro={
-                                                        nick
-                                                            ? () => setAdicionarLivroAberto(true)
-                                                            : undefined
-                                                    }
-                                                    dica="Arraste ou toque no livro que você leu hoje"
-                                                />
-                                            )}
-                                        </div>
-                                    )}
+                                                </div>) : (<EstanteCarousel livros={estante} onSelecionar={selecionarLivro} onAdicionarLivro={nick
+                    ? () => setAdicionarLivroAberto(true)
+                    : undefined} dica="Arraste ou toque no livro que você leu hoje"/>)}
+                                        </div>)}
 
-                                    {passo === 2 && livroSelecionado && (
-                                        <div className="flex flex-1 flex-col items-center gap-4 py-2">
-                                            <motion.div
-                                                initial={{ scale: 0.92, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                transition={{ type: "spring", stiffness: 320, damping: 24 }}
-                                                className="flex w-full max-w-sm items-center gap-3 text-left"
-                                            >
-                                                <CapaHero livro={livroSelecionado.livro} tamanho="sm" />
+                                    {passo === 2 && livroSelecionado && (<div className="flex flex-1 flex-col items-center gap-4 py-2">
+                                            <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 320, damping: 24 }} className="flex w-full max-w-sm items-center gap-3 text-left">
+                                                <CapaHero livro={livroSelecionado.livro} tamanho="sm"/>
                                                 <div className="min-w-0 max-w-[280px]">
                                                     <p className="line-clamp-2 font-gabarito-bold text-lg text-azul-900">
                                                         {livroSelecionado.livro.titulo}
@@ -458,68 +356,32 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                             <fieldset className="w-full max-w-sm">
                                                 <legend className="mb-2 font-gabarito-bold text-sm text-azul-900">Como você quer registrar?</legend>
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    {([{ tipo: "porcentagem", rotulo: "Porcentagem lida" }, { tipo: "paginas", rotulo: "Páginas lidas" }] as const).map(({ tipo, rotulo }) => (
-                                                        <label key={tipo} className={cn(
-                                                            "flex cursor-pointer items-center gap-2 rounded-2xl border-2 px-3 py-3 font-gabarito-medium text-sm text-azul-900",
-                                                            tipoProgresso === tipo ? "border-azul-600 bg-azul-50" : "border-cinza-200 bg-white hover:border-azul-300",
-                                                        )}>
-                                                            <input type="radio" name="tipo-progresso" value={tipo} checked={tipoProgresso === tipo} onChange={() => escolherTipoProgresso(tipo)} className="accent-azul-600" />
+                                                    {([{ tipo: "porcentagem", rotulo: "Porcentagem lida" }, { tipo: "paginas", rotulo: "Páginas lidas" }] as const).map(({ tipo, rotulo }) => (<label key={tipo} className={cn("flex cursor-pointer items-center gap-2 rounded-2xl border-2 px-3 py-3 font-gabarito-medium text-sm text-azul-900", tipoProgresso === tipo ? "border-azul-600 bg-azul-50" : "border-cinza-200 bg-white hover:border-azul-300")}>
+                                                            <input type="radio" name="tipo-progresso" value={tipo} checked={tipoProgresso === tipo} onChange={() => escolherTipoProgresso(tipo)} className="accent-azul-600"/>
                                                             {rotulo}
-                                                        </label>
-                                                    ))}
+                                                        </label>))}
                                                 </div>
                                             </fieldset>
 
-                                            {totalPaginasLivro <= 0 && (
-                                                <p role="status" className="w-full max-w-sm font-gabarito-regular text-sm text-cinza-700">
+                                            {totalPaginasLivro <= 0 && (<p role="status" className="w-full max-w-sm font-gabarito-regular text-sm text-cinza-700">
                                                     Complete o total de páginas do livro para calcular páginas e porcentagem.
-                                                </p>
-                                            )}
+                                                </p>)}
 
-                                            {tipoProgresso === "paginas" && totalPaginasLivro > 0 && (
-                                                <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
+                                            {tipoProgresso === "paginas" && totalPaginasLivro > 0 && (<div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
                                                     <label htmlFor="paginas-leitura" className="mb-2 block font-gabarito-bold text-sm text-azul-900">Quantas páginas você leu nesta sessão?</label>
-                                                    <input
-                                                        id="paginas-leitura"
-                                                        type="number"
-                                                        inputMode="numeric"
-                                                        min={1}
-                                                        max={paginasRestantes}
-                                                        step={1}
-                                                        value={paginas}
-                                                        onChange={(event) => { setPaginas(event.target.value); setErro(""); }}
-                                                        className="w-full rounded-2xl border-2 border-cinza-300 bg-white px-4 py-3 font-gabarito-regular text-base text-azul-900 outline-none focus:border-azul-600"
-                                                    />
+                                                    <input id="paginas-leitura" type="number" inputMode="numeric" min={1} max={paginasRestantes} step={1} value={paginas} onChange={(event) => { setPaginas(event.target.value); setErro(""); }} className="w-full rounded-2xl border-2 border-cinza-300 bg-white px-4 py-3 font-gabarito-regular text-base text-azul-900 outline-none focus:border-azul-600"/>
                                                     <p className="mt-2 font-gabarito-regular text-xs text-cinza-700">Restam {paginasRestantes} páginas. O progresso anterior é {formatarPorcentagemLeitura(pctAtualLivro)}%.</p>
-                                                </div>
-                                            )}
+                                                </div>)}
 
-                                            {tipoProgresso === "porcentagem" && totalPaginasLivro > 0 && (
-                                                <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
+                                            {tipoProgresso === "porcentagem" && totalPaginasLivro > 0 && (<div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
                                                     <div className="flex items-center justify-between gap-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => ajustarPct(-1)}
-                                                            disabled={porcentagem <= minPct}
-                                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40"
-                                                            aria-label="Diminuir porcentagem"
-                                                        >
-                                                            <Minus className="h-5 w-5" />
+                                                        <button type="button" onClick={() => ajustarPct(-1)} disabled={porcentagem <= minPct} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40" aria-label="Diminuir porcentagem">
+                                                            <Minus className="h-5 w-5"/>
                                                         </button>
 
                                                         <div className="flex min-w-0 flex-1 flex-col items-center">
                                                             <div className="flex w-full min-w-0 items-baseline justify-center gap-1">
-                                                                <input
-                                                                    type="number"
-                                                                    inputMode="decimal"
-                                                                    min={0}
-                                                                    max={100}
-                                                                    step="any"
-                                                                    value={Number(porcentagem.toFixed(6))}
-                                                                    onChange={(event) => { setPorcentagem(Number(event.target.value)); setErro(""); }}
-                                                                    aria-label="Porcentagem total lida"
-                                                                    className="w-full min-w-0 max-w-28 rounded-lg bg-transparent text-center font-gabarito-black text-3xl sm:text-4xl text-azul-900 outline-none focus-visible:ring-2 focus-visible:ring-azul-600"
-                                                                />
+                                                                <input type="number" inputMode="decimal" min={0} max={100} step="any" value={Number(porcentagem.toFixed(6))} onChange={(event) => { setPorcentagem(Number(event.target.value)); setErro(""); }} aria-label="Porcentagem total lida" className="w-full min-w-0 max-w-28 rounded-lg bg-transparent text-center font-gabarito-black text-3xl sm:text-4xl text-azul-900 outline-none focus-visible:ring-2 focus-visible:ring-azul-600"/>
                                                                 <span className="font-gabarito-bold text-2xl text-azul-600">%</span>
                                                             </div>
                                                             <span className="mt-2 font-gabarito-regular text-xs text-cinza-700">
@@ -527,31 +389,16 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                             </span>
                                                         </div>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => ajustarPct(1)}
-                                                            disabled={porcentagem >= 100}
-                                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40"
-                                                            aria-label="Aumentar porcentagem"
-                                                        >
-                                                            <Plus className="h-5 w-5" />
+                                                        <button type="button" onClick={() => ajustarPct(1)} disabled={porcentagem >= 100} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40" aria-label="Aumentar porcentagem">
+                                                            <Plus className="h-5 w-5"/>
                                                         </button>
                                                     </div>
 
                                                     <div className="mt-5">
-                                                        <input
-                                                            type="range"
-                                                            min={pctAtualLivro}
-                                                            max={100}
-                                                            step="any"
-                                                            value={porcentagem}
-                                                            onChange={(e) => {
-                                                                setPorcentagem(Number(e.target.value));
-                                                                setErro("");
-                                                            }}
-                                                            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-azul-200 accent-azul-600 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-azul-600 [&::-webkit-slider-thumb]:shadow-md"
-                                                            aria-label="Porcentagem lida"
-                                                        />
+                                                        <input type="range" min={pctAtualLivro} max={100} step="any" value={porcentagem} onChange={(e) => {
+                    setPorcentagem(Number(e.target.value));
+                    setErro("");
+                }} className="h-2 w-full cursor-pointer appearance-none rounded-full bg-azul-200 accent-azul-600 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-azul-600 [&::-webkit-slider-thumb]:shadow-md" aria-label="Porcentagem lida"/>
                                                         <div className="mt-1.5 flex justify-between font-gabarito-regular text-[10px] text-cinza-700">
                                                             <span>{formatarPorcentagemLeitura(pctAtualLivro)}%</span>
                                                             <span>100%</span>
@@ -560,32 +407,19 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
 
                                                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                                                         {[25, 50, 75, 100]
-                                                            .filter((v) => v >= minPct)
-                                                            .map((v) => (
-                                                                <button
-                                                                    key={v}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setPorcentagem(v);
-                                                                        setErro("");
-                                                                    }}
-                                                                    className={cn(
-                                                                        "rounded-full px-3 py-1 font-gabarito-bold text-xs transition",
-                                                                        porcentagem === v
-                                                                            ? "bg-azul-600 text-white"
-                                                                            : "bg-white text-azul-700 ring-1 ring-azul-200 hover:bg-azul-100",
-                                                                    )}
-                                                                >
+                    .filter((v) => v >= minPct)
+                    .map((v) => (<button key={v} type="button" onClick={() => {
+                        setPorcentagem(v);
+                        setErro("");
+                    }} className={cn("rounded-full px-3 py-1 font-gabarito-bold text-xs transition", porcentagem === v
+                        ? "bg-azul-600 text-white"
+                        : "bg-white text-azul-700 ring-1 ring-azul-200 hover:bg-azul-100")}>
                                                                     {v}%
-                                                                </button>
-                                                            ))}
+                                                                </button>))}
                                                     </div>
-                                                </div>
+                                                </div>)}
 
-                                            )}
-
-                                            {progresso && (
-                                                <div aria-live="polite" className="w-full max-w-sm text-center">
+                                            {progresso && (<div aria-live="polite" className="w-full max-w-sm text-center">
                                                     <p className="font-gabarito-bold text-base text-azul-900">
                                                         {formatarPorcentagemLeitura(progresso.porcentagem)}% do livro lido
                                                     </p>
@@ -593,19 +427,11 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                         {progresso.paginasLidas} {progresso.paginasLidas === 1 ? "página lida" : "páginas lidas"} nesta sessão
                                                     </p>
                                                     <p className="mt-1 font-gabarito-regular text-xs text-cinza-700">Página {progresso.paginaAtual} de {totalPaginasLivro}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                                </div>)}
+                                        </div>)}
 
-                                    {passo === 3 && livroSelecionado && (
-                                        <div className="flex flex-1 flex-col items-center justify-center gap-6 py-4">
-                                            <motion.div
-                                                initial={{ y: 12, opacity: 0 }}
-                                                animate={{ y: 0, opacity: 1 }}
-                                                transition={{ type: "spring", stiffness: 300, damping: 26 }}
-                                                className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-cinza-200"
-                                            >
+                                    {passo === 3 && livroSelecionado && (<div className="flex flex-1 flex-col items-center justify-center gap-6 py-4">
+                                            <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 300, damping: 26 }} className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-cinza-200">
                                                 <div className="bg-gradient-to-br from-azul-600 to-azul-800 px-5 py-4 text-white">
                                                     <p className="font-gabarito-medium text-[11px] uppercase tracking-[0.16em] text-white/70">
                                                         Resumo do dia
@@ -616,7 +442,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                 </div>
 
                                                 <div className="flex gap-4 p-5">
-                                                    <CapaHero livro={livroSelecionado.livro} tamanho="sm" />
+                                                    <CapaHero livro={livroSelecionado.livro} tamanho="sm"/>
                                                     <div className="min-w-0 flex-1">
                                                         <p className="line-clamp-2 font-gabarito-bold text-base text-azul-900">
                                                             {livroSelecionado.livro.titulo}
@@ -644,104 +470,55 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                             </div>
                                                         </div>
 
-                                                        {porcentagemCalculada >= 100 && (
-                                                            <p className="mt-3 font-gabarito-bold text-xs text-azul-600">
+                                                        {porcentagemCalculada >= 100 && (<p className="mt-3 font-gabarito-bold text-xs text-azul-600">
                                                                 Você vai concluir este livro!
-                                                            </p>
-                                                        )}
+                                                            </p>)}
                                                     </div>
                                                 </div>
                                             </motion.div>
-                                        </div>
-                                    )}
+                                        </div>)}
                                 </motion.div>
                             </AnimatePresence>
 
-                            {erro && (
-                                <p className="mt-2 text-center font-gabarito-regular text-sm text-red-600">{erro}</p>
-                            )}
+                            {erro && (<p className="mt-2 text-center font-gabarito-regular text-sm text-red-600">{erro}</p>)}
                         </div>
 
-                        {passo > 1 && (
-                            <div className="relative z-10 shrink-0 border-t border-cinza-200/80 bg-background/90 px-5 py-4 backdrop-blur-sm sm:px-7">
+                        {passo > 1 && (<div className="relative z-10 shrink-0 border-t border-cinza-200/80 bg-background/90 px-5 py-4 backdrop-blur-sm sm:px-7">
                                 <div className="flex gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={voltar}
-                                        disabled={enviando}
-                                        className="rounded-full px-4 font-gabarito-bold text-azul-700"
-                                    >
-                                        <ArrowLeft className="mr-1 h-4 w-4" />
+                                    <Button type="button" variant="ghost" onClick={voltar} disabled={enviando} className="rounded-full px-4 font-gabarito-bold text-azul-700">
+                                        <ArrowLeft className="mr-1 h-4 w-4"/>
                                         Voltar
                                     </Button>
 
-                                    {passo === 2 ? (
-                                        <Button
-                                            type="button"
-                                            onClick={avancarParaConfirmacao}
-                                            disabled={!pctValida}
-                                            className="flex-1 rounded-full bg-azul-600 py-6 font-gabarito-bold text-base hover:bg-azul-700 disabled:opacity-50"
-                                        >
+                                    {passo === 2 ? (<Button type="button" onClick={avancarParaConfirmacao} disabled={!pctValida} className="flex-1 rounded-full bg-azul-600 py-6 font-gabarito-bold text-base hover:bg-azul-700 disabled:opacity-50">
                                             Continuar
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            type="button"
-                                            onClick={() => void confirmarRegistro()}
-                                            disabled={enviando || !pctValida}
-                                            className="flex-1 rounded-full bg-azul-600 py-6 font-gabarito-bold text-base hover:bg-azul-700"
-                                        >
-                                            {enviando ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        </Button>) : (<Button type="button" onClick={() => void confirmarRegistro()} disabled={enviando || !pctValida} className="flex-1 rounded-full bg-azul-600 py-6 font-gabarito-bold text-base hover:bg-azul-700">
+                                            {enviando ? (<>
+                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin"/>
                                                     Salvando...
-                                                </>
-                                            ) : (
-                                                "Salvar leitura"
-                                            )}
-                                        </Button>
-                                    )}
+                                                </>) : ("Salvar leitura")}
+                                        </Button>)}
                                 </div>
-                            </div>
-                        )}
+                            </div>)}
                     </div>
                 </DialogContent>
             </Dialog>
 
-            <ConviteAvaliacaoModal
-                open={conviteAvaliacaoAberto}
-                livro={livroConcluido}
-                onAceitar={() => {
-                    setConviteAvaliacaoAberto(false);
-                    setAvaliacaoAberta(true);
-                }}
-                onDispensar={() => {
-                    setConviteAvaliacaoAberto(false);
-                    setLivroConcluido(null);
-                    onClose();
-                }}
-            />
+            <ConviteAvaliacaoModal open={conviteAvaliacaoAberto} livro={livroConcluido} onAceitar={() => {
+            setConviteAvaliacaoAberto(false);
+            setAvaliacaoAberta(true);
+        }} onDispensar={() => {
+            setConviteAvaliacaoAberto(false);
+            setLivroConcluido(null);
+            onClose();
+        }}/>
 
-            <NovaAvaliacaoModal
-                open={avaliacaoAberta}
-                livroInicial={livroInicialAvaliacao}
-                onClose={() => {
-                    setAvaliacaoAberta(false);
-                    setLivroConcluido(null);
-                    onClose();
-                }}
-            />
+            <NovaAvaliacaoModal open={avaliacaoAberta} livroInicial={livroInicialAvaliacao} onClose={() => {
+            setAvaliacaoAberta(false);
+            setLivroConcluido(null);
+            onClose();
+        }}/>
 
-            {nick ? (
-                <AdicionarLivroEstanteModal
-                    open={adicionarLivroAberto}
-                    onClose={() => setAdicionarLivroAberto(false)}
-                    nick={nick}
-                    omitirConviteAvaliacao
-                    onAdicionado={(resultado) => void aoLivroAdicionadoNaEstante(resultado)}
-                />
-            ) : null}
-        </>
-    );
+            {nick ? (<AdicionarLivroEstanteModal open={adicionarLivroAberto} onClose={() => setAdicionarLivroAberto(false)} nick={nick} omitirConviteAvaliacao onAdicionado={(resultado) => void aoLivroAdicionadoNaEstante(resultado)}/>) : null}
+        </>);
 }

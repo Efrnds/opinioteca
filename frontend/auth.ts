@@ -1,21 +1,13 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import {
-    opiniotecaCookieNames,
-    opiniotecaCookieOptions,
-    useSecureAuthCookies,
-} from "@/lib/auth-cookies";
+import { opiniotecaCookieNames, opiniotecaCookieOptions, useSecureAuthCookies, } from "@/lib/auth-cookies";
 import { headersLoginBackend, ipClienteDosHeaders } from "@/lib/login-client-ip";
 import { mediaUrl } from "@/lib/media";
-
-/** Alinhado ao JWT do backend (6h). Sessões longas deixavam identidade “fantasma” em browsers compartilhados. */
 const SESSION_MAX_AGE_SEC = 60 * 60 * 6;
-
 const secureCookies = useSecureAuthCookies();
 const cookieNames = opiniotecaCookieNames(secureCookies);
 const cookieOpts = opiniotecaCookieOptions(secureCookies);
-
 type BackendLogin = {
     token?: string;
     isAdmin?: boolean;
@@ -28,7 +20,6 @@ type BackendLogin = {
         assinaturaId?: number;
     };
 };
-
 function sessaoDoBackend(data: BackendLogin) {
     const usuario = data.usuario;
     const id = usuario?.id != null && String(usuario.id) !== "" ? String(usuario.id) : null;
@@ -47,7 +38,6 @@ function sessaoDoBackend(data: BackendLogin) {
         assinaturaId: usuario.assinaturaId ?? undefined,
     };
 }
-
 async function loginGoogleNoBackend(idToken: string) {
     const clientIp = await ipClienteDosHeaders();
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login/google`, {
@@ -55,36 +45,27 @@ async function loginGoogleNoBackend(idToken: string) {
         headers: headersLoginBackend(clientIp),
         body: JSON.stringify({ idToken }),
     });
-
-    let data: BackendLogin & { erro?: string } = {};
+    let data: BackendLogin & {
+        erro?: string;
+    } = {};
     try {
         data = await res.json();
-    } catch {
+    }
+    catch {
         throw new Error("Resposta inválida do servidor ao entrar com Google.");
     }
-
     if (!res.ok) {
-        throw new Error(
-            typeof data.erro === "string" ? data.erro : "Não foi possível entrar com Google.",
-        );
+        throw new Error(typeof data.erro === "string" ? data.erro : "Não foi possível entrar com Google.");
     }
-
     const sessao = sessaoDoBackend(data);
     if (!sessao) {
         throw new Error("Login Google incompleto.");
     }
     return sessao;
 }
-
 const googleId = process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID;
 const googleSecret = process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
-    /**
-     * Cookies host-only (sem `domain`) + nomes únicos da Opinioteca.
-     * Em produção: prefixo `__Host-` (Secure + Path=/ + sem Domain).
-     * Nunca reutilize AUTH_SECRET com calmera-os / outros apps em prismapp.
-     */
     cookies: {
         sessionToken: {
             name: cookieNames.sessionToken,
@@ -103,11 +84,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     providers: [
         ...(googleId && googleSecret
             ? [
-                  Google({
-                      clientId: googleId,
-                      clientSecret: googleSecret,
-                  }),
-              ]
+                Google({
+                    clientId: googleId,
+                    clientSecret: googleSecret,
+                }),
+            ]
             : []),
         CredentialsProvider({
             name: "Credentials",
@@ -125,20 +106,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         senha: credentials?.password,
                     }),
                 });
-
-                // Não use res.json() sem try: backend 500 / HTML quebra o authorize → 500 no Auth.js
-                // e o AuthModal chama /api/login de novo (aparece 500 depois CredentialsSignin/401).
                 let data: BackendLogin | null = null;
                 try {
                     data = await res.json();
-                } catch {
+                }
+                catch {
                     return null;
                 }
-
                 if (res.ok && data?.token) {
                     const usuario = data.usuario;
-                    const id =
-                        usuario?.id != null && String(usuario.id) !== "" ? String(usuario.id) : null;
+                    const id = usuario?.id != null && String(usuario.id) !== "" ? String(usuario.id) : null;
                     if (!id || !usuario?.nick) {
                         return null;
                     }
@@ -156,7 +133,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         isAdmin: Boolean(data.isAdmin),
                     };
                 }
-
                 return null;
             },
         }),
@@ -173,8 +149,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 }
                 return sessao;
             }
-
-            // Login: objeto NOVO — nunca espalhar/mesclar o token anterior (campos órfãos vazavam identidade).
             if (user) {
                 return {
                     sub: user.id,
@@ -189,12 +163,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 };
             }
             if (trigger === "update" && session) {
-                // update() só pode alterar perfil; id/sub/accessToken vêm só do token atual.
-                if (session.name !== undefined) token.name = session.name as string;
+                if (session.name !== undefined)
+                    token.name = session.name as string;
                 if (session.image !== undefined) {
                     token.image = session.image ? mediaUrl(session.image as string) : undefined;
                 }
-                if (session.nick !== undefined) token.nick = session.nick as string;
+                if (session.nick !== undefined)
+                    token.nick = session.nick as string;
                 if (session.assinaturaId !== undefined) {
                     token.assinaturaId = session.assinaturaId as number | undefined;
                 }
@@ -212,7 +187,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 nick?: string;
                 assinaturaId?: number;
             };
-            // Identidade só do token — nunca preservar leftovers de session.user.
             user.id = (token.id as string) ?? (token.sub as string);
             user.email = (token.email as string | null | undefined) ?? null;
             user.name = (token.name as string | null | undefined) ?? null;

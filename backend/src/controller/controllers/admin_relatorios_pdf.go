@@ -3,8 +3,8 @@ package controllers
 import (
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
-	"backend/src/utils/pdf"
 	"backend/src/model/repositorios"
+	"backend/src/utils/pdf"
 	"backend/src/utils/respostas"
 	"errors"
 	"fmt"
@@ -72,7 +72,6 @@ func simNao(v bool) string {
 	return "Não"
 }
 
-// AdminRelatorioPDFUsuarios gera PDF geral de usuários.
 func AdminRelatorioPDFUsuarios(w http.ResponseWriter, r *http.Request) {
 	periodo, filtrosPeriodo, erro := periodoDaRequest(r)
 	if erro != nil {
@@ -141,7 +140,6 @@ func AdminRelatorioPDFUsuarios(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
-// AdminRelatorioPDFAvaliacoes gera PDF geral de avaliações.
 func AdminRelatorioPDFAvaliacoes(w http.ResponseWriter, r *http.Request) {
 	periodo, filtrosPeriodo, erro := periodoDaRequest(r)
 	if erro != nil {
@@ -213,7 +211,6 @@ func AdminRelatorioPDFAvaliacoes(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
-// AdminRelatorioPDFAssinaturas gera PDF de assinaturas pagas.
 func AdminRelatorioPDFAssinaturas(w http.ResponseWriter, r *http.Request) {
 	plano := strings.TrimSpace(r.URL.Query().Get("plano"))
 	filtro := strings.TrimSpace(r.URL.Query().Get("filtro"))
@@ -280,7 +277,6 @@ func AdminRelatorioPDFAssinaturas(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
-// AdminRelatorioPDFDenuncias gera PDF de denúncias.
 func AdminRelatorioPDFDenuncias(w http.ResponseWriter, r *http.Request) {
 	periodo, filtrosPeriodo, erro := periodoDaRequest(r)
 	if erro != nil {
@@ -349,7 +345,6 @@ func AdminRelatorioPDFDenuncias(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
-// AdminRelatorioPDFComentarios gera PDF dos comentários filtrados (relatório específico).
 func AdminRelatorioPDFComentarios(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	tipo := tipoRelatorio(r)
@@ -414,7 +409,6 @@ func AdminRelatorioPDFComentarios(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
-// AdminRelatorioPDFLivros gera PDF de livros filtrados (relatório específico).
 func AdminRelatorioPDFLivros(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	tipo := tipoRelatorio(r)
@@ -478,7 +472,6 @@ func AdminRelatorioPDFLivros(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
-// AdminRelatorioPDFSeguidoresSeguindo gera PDF de seguidores/seguindo de um leitor.
 func AdminRelatorioPDFSeguidoresSeguindo(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	if strings.TrimSpace(consulta) == "" {
@@ -547,7 +540,6 @@ func AdminRelatorioPDFSeguidoresSeguindo(w http.ResponseWriter, r *http.Request)
 	escreverPDF(w, doc)
 }
 
-// AdminRelatorioPDFHistoricoLeitura gera PDF do histórico de leitura de um leitor.
 func AdminRelatorioPDFHistoricoLeitura(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	if strings.TrimSpace(consulta) == "" {

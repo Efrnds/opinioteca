@@ -67,7 +67,6 @@ func VolumeParaLivroBusca(item VolumeItem) (modelos.LivroBusca, error) {
 	return livro, nil
 }
 
-// httpsCapaURL normaliza capas do Google Books (API costuma devolver http://).
 func httpsCapaURL(raw string) string {
 	url := strings.TrimSpace(raw)
 	if strings.HasPrefix(url, "http://") {

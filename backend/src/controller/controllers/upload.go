@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
 	"backend/src/utils/respostas"
 	"backend/src/utils/upload"
 	"errors"
@@ -58,7 +58,7 @@ func arquivoEhWebPAnimado(arquivo multipart.File) bool {
 	if strings.Contains(amostra, "ANIM") || strings.Contains(amostra, "ANMF") {
 		return true
 	}
-	// VP8X: bit 1 do byte de flags indica animação.
+
 	if n >= 21 && string(buf[12:16]) == "VP8X" {
 		return buf[20]&0x02 != 0
 	}
@@ -69,7 +69,6 @@ func arquivoEhAvatarAnimado(arquivo multipart.File, header *multipart.FileHeader
 	return arquivoEhGIF(arquivo, header) || arquivoEhWebPAnimado(arquivo)
 }
 
-// UploadAvatar recebe uma imagem e salva em uploads/avatars.
 func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	if erro := r.ParseMultipartForm(5 << 20); erro != nil {
 		respostas.Erro(w, http.StatusBadRequest, erro)
@@ -112,7 +111,6 @@ func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, uploadResposta{URL: url})
 }
 
-// UploadBanner recebe uma imagem de capa e salva em uploads/banners.
 func UploadBanner(w http.ResponseWriter, r *http.Request) {
 	if erro := r.ParseMultipartForm(5 << 20); erro != nil {
 		respostas.Erro(w, http.StatusBadRequest, erro)
@@ -134,7 +132,6 @@ func UploadBanner(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, uploadResposta{URL: url})
 }
 
-// UploadAnexo salva imagem em uploads/anexos (sem gate Pro de avatar animado).
 func UploadAnexo(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 6<<20)
 	if erro := r.ParseMultipartForm(5 << 20); erro != nil {

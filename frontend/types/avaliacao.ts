@@ -3,7 +3,6 @@ export type ContadoresVoto = {
     downvotes: number;
     score: number;
 };
-
 export type UsuarioAvaliacao = {
     id: number;
     nome: string;
@@ -14,7 +13,6 @@ export type UsuarioAvaliacao = {
     temPlanoPro?: boolean;
     rankConfiabilidade?: number;
 };
-
 export type AvaliacaoFeed = {
     id: number;
     nota: number;
@@ -34,7 +32,6 @@ export type AvaliacaoFeed = {
     comentario_destaque?: ComentarioAvaliacao;
     qtd_comentarios?: number;
 };
-
 export type ComentarioAvaliacao = {
     id: number;
     pai_id?: number;

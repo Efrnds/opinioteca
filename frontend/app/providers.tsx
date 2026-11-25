@@ -1,5 +1,4 @@
 "use client";
-
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import AuthenticatedLayout from "./components/AuthenticatedLayout";
@@ -12,10 +11,10 @@ import SessionIdentityGuard from "./components/SessionIdentityGuard";
 import SessionScopeReset from "./components/SessionScopeReset";
 import SessaoExpiradaProvider from "./components/SessaoExpiradaProvider";
 import WebSocketProvider from "./components/WebSocketProvider";
-
-export default function Providers({ children }: { children: React.ReactNode }) {
-    return (
-        <SessionProvider refetchOnWindowFocus refetchInterval={5 * 60}>
+export default function Providers({ children }: {
+    children: React.ReactNode;
+}) {
+    return (<SessionProvider refetchOnWindowFocus refetchInterval={5 * 60}>
             <SessionScopeReset>
                 <AcessibilidadeProvider>
                     <SessionIdentityGuard />
@@ -27,7 +26,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                                         <AuthenticatedLayout>
                                             <SessaoExpiradaProvider>
                                                 {children}
-                                                <Toaster position="top-right" richColors closeButton />
+                                                <Toaster position="top-right" richColors closeButton/>
                                             </SessaoExpiradaProvider>
                                         </AuthenticatedLayout>
                                     </WebSocketProvider>
@@ -37,6 +36,5 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                     </AuthTransitionProvider>
                 </AcessibilidadeProvider>
             </SessionScopeReset>
-        </SessionProvider>
-    );
+        </SessionProvider>);
 }

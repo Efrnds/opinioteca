@@ -1,11 +1,11 @@
 package controllers
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
-	"backend/src/utils/integracoes/googlebooks"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
+	"backend/src/utils/integracoes/googlebooks"
 	"backend/src/utils/respostas"
 	"backend/src/utils/servicos"
 	"database/sql"
@@ -22,8 +22,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// feedCursorPayload é o JSON opaco embutido em next_cursor (base64url).
-// Formato: {"criadoEm":"<RFC3339Nano>","id":<uint64>}
 type feedCursorPayload struct {
 	CriadoEm string `json:"criadoEm"`
 	ID       uint64 `json:"id"`
@@ -118,7 +116,7 @@ func BuscarFeed(w http.ResponseWriter, r *http.Request) {
 	if usuarioID != nil {
 		viewerID = *usuarioID
 	}
-	// Busca limite+1 para saber se há próxima página sem OFFSET.
+
 	if tipo == "seguindo" && usuarioID != nil {
 		feed, erro = repoAvaliacoes.BuscarFeedSeguindo(*usuarioID, limite+1, cursorCriadoEm, cursorID)
 	} else {

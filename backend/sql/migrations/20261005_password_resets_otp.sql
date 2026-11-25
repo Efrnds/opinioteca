@@ -1,7 +1,4 @@
--- Recuperação de senha por OTP (e-mail SMTP).
---
--- Uso:
---   psql "$DATABASE_URL" -f backend/sql/migrations/20261005_password_resets_otp.sql
+
 
 CREATE TABLE IF NOT EXISTS password_resets (
     id BIGSERIAL PRIMARY KEY,

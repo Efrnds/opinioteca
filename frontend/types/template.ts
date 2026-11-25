@@ -4,12 +4,10 @@ export type TemplateAvaliacao = {
     descricao: string;
     texto: string;
 };
-
 export type TemplateEstrutura = {
     descricao: string;
     texto: string;
 };
-
 export type TemplateAdmin = {
     id: number;
     nome: string;
@@ -21,7 +19,6 @@ export type TemplateAdmin = {
     assinatura_minima_nome?: string;
     assinatura_minima_codigo?: string;
 };
-
 export type TemplateAdminPayload = {
     nome: string;
     descricao: string;
@@ -30,9 +27,9 @@ export type TemplateAdminPayload = {
     ativo?: boolean;
     ordem?: number;
 };
-
 export function previewTemplate(texto: string, max = 80) {
     const limpo = texto.replace(/\s+/g, " ").trim();
-    if (limpo.length <= max) return limpo;
+    if (limpo.length <= max)
+        return limpo;
     return `${limpo.slice(0, max)}…`;
 }

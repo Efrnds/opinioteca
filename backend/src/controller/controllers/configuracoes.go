@@ -1,11 +1,11 @@
 package controllers
 
 import (
-	"backend/src/utils/respostas"
-	"backend/src/utils/security"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
+	"backend/src/utils/respostas"
+	"backend/src/utils/security"
 	"encoding/json"
 	"errors"
 	"io"
@@ -13,7 +13,6 @@ import (
 	"strings"
 )
 
-// BuscarConfiguracoes retorna as preferências do próprio usuário.
 func BuscarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -48,7 +47,6 @@ func BuscarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, config)
 }
 
-// AtualizarConfiguracoes atualiza as preferências do próprio usuário.
 func AtualizarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -113,7 +111,6 @@ func AtualizarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, atualizado)
 }
 
-// ReativarUsuario reativa conta soft-deleted dentro da janela de 30 dias.
 func ReativarUsuario(w http.ResponseWriter, r *http.Request) {
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {

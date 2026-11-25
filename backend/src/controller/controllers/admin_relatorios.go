@@ -18,7 +18,6 @@ func tipoRelatorio(r *http.Request) string {
 	return r.URL.Query().Get("tipo")
 }
 
-// AdminRelatorioComentarios lista comentários filtrados por livro, usuário ou categoria.
 func AdminRelatorioComentarios(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	tipo := tipoRelatorio(r)
@@ -56,7 +55,6 @@ func AdminRelatorioComentarios(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, itens)
 }
 
-// AdminRelatorioLivros lista livros filtrados por autor, editora ou categoria.
 func AdminRelatorioLivros(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	tipo := tipoRelatorio(r)
@@ -94,7 +92,6 @@ func AdminRelatorioLivros(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, livros)
 }
 
-// AdminRelatorioSeguidoresSeguindo retorna seguidores e seguindo de um leitor.
 func AdminRelatorioSeguidoresSeguindo(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 
@@ -134,7 +131,6 @@ func AdminRelatorioSeguidoresSeguindo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// AdminRelatorioHistoricoLeitura retorna o histórico de leitura de um leitor.
 func AdminRelatorioHistoricoLeitura(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	limite := 100

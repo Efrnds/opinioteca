@@ -19,7 +19,6 @@ func usuarioIDDaURL(r *http.Request) (uint64, error) {
 	return strconv.ParseUint(mux.Vars(r)["usuarioId"], 10, 64)
 }
 
-// AdminBuscarUsuarios lista usuários com paginação e filtros opcionais (moderação).
 func AdminBuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	pagina, limite, offset := paginacaoAdmin(r)
 
@@ -66,7 +65,6 @@ func AdminBuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, resposta)
 }
 
-// AdminBuscarUsuarioPorID retorna um usuário pelo ID com dados completos.
 func AdminBuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := usuarioIDDaURL(r)
 	if erro != nil {
@@ -95,7 +93,6 @@ func AdminBuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuario.ListarAdmin())
 }
 
-// AdminCriarUsuario cadastra um novo usuário (admin).
 func AdminCriarUsuario(w http.ResponseWriter, r *http.Request) {
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -141,7 +138,6 @@ func AdminCriarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, payload.Usuario.ListarAdmin())
 }
 
-// AdminAtualizarUsuario atualiza qualquer usuário (perfil, status, isAdmin).
 func AdminAtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := usuarioIDDaURL(r)
 	if erro != nil {
@@ -224,7 +220,6 @@ func AdminAtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
-// AdminInativarUsuario inativa qualquer conta pelo ID.
 func AdminInativarUsuario(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := usuarioIDDaURL(r)
 	if erro != nil {

@@ -26,12 +26,12 @@ func hostnameSemPorta(hostport string) string {
 
 func origemPermitida(origin, requestHost string) bool {
 	if origin == "" {
-		// Em produção, rejeita Origin vazio (clientes não-browser / CSRF fraco).
+
 		env := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
 		if env == "production" || env == "prod" {
 			return false
 		}
-		// Dev: curl/wscat sem Origin.
+
 		return true
 	}
 	parsed, erro := url.Parse(origin)
@@ -43,7 +43,6 @@ func origemPermitida(origin, requestHost string) bool {
 		return true
 	}
 
-	// Same-origin atrás do NPM: Origin do browser == Host do pedido (opinioteca.prismapp.com.br).
 	if reqHost := hostnameSemPorta(requestHost); reqHost != "" && strings.EqualFold(reqHost, host) {
 		return true
 	}
@@ -71,7 +70,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// cliente guarda a conn + mutex de escrita (gorilla não permite WriteMessage concorrente).
 type cliente struct {
 	conn *websocket.Conn
 	mu   sync.Mutex
@@ -103,7 +101,6 @@ func Remover(usuarioID uint64) {
 	hub.mu.Unlock()
 }
 
-// RemoverConn só remove se ainda for a mesma conexão (evita race no reconnect).
 func RemoverConn(usuarioID uint64, conn *websocket.Conn) {
 	hub.mu.Lock()
 	if atual, ok := hub.conns[usuarioID]; ok && atual.conn == conn {
@@ -112,7 +109,6 @@ func RemoverConn(usuarioID uint64, conn *websocket.Conn) {
 	hub.mu.Unlock()
 }
 
-// IDsConectados retorna os usuários com WS ativo.
 func IDsConectados() []uint64 {
 	hub.mu.RLock()
 	defer hub.mu.RUnlock()
@@ -167,7 +163,6 @@ func Broadcast(tipoEvento string, payload interface{}) {
 	}
 }
 
-// BroadcastParaUsuarios envia só para a lista informada.
 func BroadcastParaUsuarios(usuarioIDs []uint64, tipoEvento string, payload interface{}) {
 	for _, id := range usuarioIDs {
 		EnviarParaUsuario(id, tipoEvento, payload)

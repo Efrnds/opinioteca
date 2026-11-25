@@ -210,7 +210,6 @@ const filtroDenunciasContraUsuario = `
 	OR (d.tipo_entidade = 'mensagem' AND d.referencia_id IN (SELECT id FROM mensagens WHERE remetente_id = $1))
 `
 
-// UsuarioDenunciadoID resolve o usuário alvo de uma denúncia a partir do tipo e referência.
 func (repositorio Denuncias) UsuarioDenunciadoID(tipoEntidade string, referenciaID uint64) (uint64, error) {
 	switch tipoEntidade {
 	case modelos.TipoEntidadeAvaliacao:
@@ -253,7 +252,6 @@ func (repositorio Denuncias) UsuarioDenunciadoID(tipoEntidade string, referencia
 	}
 }
 
-// ContarDenunciasContraUsuario totaliza denúncias feitas contra um usuário (qualquer status).
 func (repositorio Denuncias) ContarDenunciasContraUsuario(usuarioID uint64) (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(
@@ -263,8 +261,6 @@ func (repositorio Denuncias) ContarDenunciasContraUsuario(usuarioID uint64) (int
 	return total, erro
 }
 
-// ContarDenunciasProcedentesContraUsuario conta denúncias resolvidas (procedentes),
-// agrupando por entidade denunciada para evitar contagem duplicada do mesmo conteúdo.
 func (repositorio Denuncias) ContarDenunciasProcedentesContraUsuario(usuarioID uint64) (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(

@@ -1,22 +1,18 @@
 "use client";
-
 import { destinoPosLogin, limparStorageCliente, purgeCookiesAuth } from "@/lib/session-cleanup";
 import { signIn, signOut } from "next-auth/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AuthModal, { type AuthMode } from "./AuthModal";
-
 type Citacao = {
     texto: string;
     autor: string;
 };
-
 type LandingProps = {
     initialAuth?: string;
     callbackUrl?: string;
 };
-
 export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingProps) {
     const router = useRouter();
     const authInicial = initialAuth === "login" || initialAuth === "cadastro" ? initialAuth : null;
@@ -24,82 +20,66 @@ export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingP
     const [modo, setModo] = useState<AuthMode>(() => authInicial ?? "login");
     const [citacao, setCitacao] = useState<Citacao>({ texto: "", autor: "" });
     const entrandoGoogleRef = useRef(false);
-
     useEffect(() => {
         fetch("/api/citacoes/aleatoria")
             .then((res) => (res.ok ? res.json() : null))
             .then((data: Citacao | null) => {
-                if (data?.texto) {
-                    setCitacao({ texto: data.texto, autor: data.autor });
-                }
-            })
-            .catch(() => {});
-    }, []);
-
-    const abrirModal = useCallback(
-        (mode: AuthMode) => {
-            setModo(mode);
-            setModalAberto(true);
-            const params = new URLSearchParams();
-            params.set("auth", mode);
-            if (callbackUrl !== "/home") {
-                params.set("callbackUrl", callbackUrl);
+            if (data?.texto) {
+                setCitacao({ texto: data.texto, autor: data.autor });
             }
-            router.push(`/?${params.toString()}`);
-        },
-        [router, callbackUrl],
-    );
-
+        })
+            .catch(() => { });
+    }, []);
+    const abrirModal = useCallback((mode: AuthMode) => {
+        setModo(mode);
+        setModalAberto(true);
+        const params = new URLSearchParams();
+        params.set("auth", mode);
+        if (callbackUrl !== "/home") {
+            params.set("callbackUrl", callbackUrl);
+        }
+        router.push(`/?${params.toString()}`);
+    }, [router, callbackUrl]);
     const fecharModal = useCallback(() => {
         setModalAberto(false);
         router.replace("/");
     }, [router]);
-
-    const trocarModo = useCallback(
-        (mode: AuthMode) => {
-            setModo(mode);
-            if (mode === "recuperar") {
-                // Não polui a URL com auth=recuperar
-                return;
-            }
-            const params = new URLSearchParams();
-            params.set("auth", mode);
-            if (callbackUrl !== "/home") {
-                params.set("callbackUrl", callbackUrl);
-            }
-            router.replace(`/?${params.toString()}`);
-        },
-        [router, callbackUrl],
-    );
-
-    /** Limpa sessão anterior antes de redirecionar ao Google (mesmo fluxo do AuthModal). */
+    const trocarModo = useCallback((mode: AuthMode) => {
+        setModo(mode);
+        if (mode === "recuperar") {
+            return;
+        }
+        const params = new URLSearchParams();
+        params.set("auth", mode);
+        if (callbackUrl !== "/home") {
+            params.set("callbackUrl", callbackUrl);
+        }
+        router.replace(`/?${params.toString()}`);
+    }, [router, callbackUrl]);
     const entrarComGoogle = useCallback(async () => {
         if (entrandoGoogleRef.current) {
             return;
         }
         entrandoGoogleRef.current = true;
-
         limparStorageCliente();
         try {
             await signOut({ redirect: false });
-        } catch {
-            /* ignore */
+        }
+        catch {
         }
         await purgeCookiesAuth();
-
         try {
             await signIn("google", { callbackUrl: destinoPosLogin(callbackUrl) });
-        } catch {
+        }
+        catch {
             entrandoGoogleRef.current = false;
         }
     }, [callbackUrl]);
-
-    return (
-        <>
+    return (<>
             <div className="lg:flex grid grid-cols-1 justify-between h-screen w-screen lg:p-36 p-18 ">
                 <section className="flex flex-col my-auto gap-8">
                     <div className="flex flex-col gap-2 items-center md:items-start">
-                        <Image src="/assets/images/Vector.svg" width={200} height={163} alt="Logo da opinioteca" />
+                        <Image src="/assets/images/Vector.svg" width={200} height={163} alt="Logo da opinioteca"/>
                         <h1 className="font-gabarito-bold text-5xl">opinioteca</h1>
                     </div>
                     <p className="mx-auto hidden max-w-lg text-lg wrap-break-word text-wrap font-inria-regular md:block">
@@ -109,33 +89,21 @@ export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingP
                 </section>
                 <section className="flex flex-col my-auto gap-16 items-center md:items-start">
                     <div className="flex flex-col gap-2.5 items-center md:items-start w-fit md:w-full ">
-                        <button
-                            type="button"
-                            onClick={() => void entrarComGoogle()}
-                            className="flex gap-2 justify-center px-6 py-2 rounded-full text-white font-bold text-2xl bg-azul-600 w-full cursor-pointer transition hover:bg-azul-600/75"
-                        >
-                            <Image src="/assets/images/google.svg" width={24} height={24} alt="" />
+                        <button type="button" onClick={() => void entrarComGoogle()} className="flex gap-2 justify-center px-6 py-2 rounded-full text-white font-bold text-2xl bg-azul-600 w-full cursor-pointer transition hover:bg-azul-600/75">
+                            <Image src="/assets/images/google.svg" width={24} height={24} alt=""/>
                             Entrar com o google
                         </button>
                         <div className="w-full gap-2 align-middle hidden md:flex">
-                            <hr className="my-auto border border-black flex-1" />
+                            <hr className="my-auto border border-black flex-1"/>
                             <p>ou</p>
-                            <hr className="my-auto border border-black flex-1" />
+                            <hr className="my-auto border border-black flex-1"/>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => abrirModal("cadastro")}
-                            className="flex gap-2 justify-center px-6 py-2 rounded-full text-white font-bold text-2xl bg-azul-600 w-full cursor-pointer transition hover:bg-azul-600/75"
-                        >
+                        <button type="button" onClick={() => abrirModal("cadastro")} className="flex gap-2 justify-center px-6 py-2 rounded-full text-white font-bold text-2xl bg-azul-600 w-full cursor-pointer transition hover:bg-azul-600/75">
                             Criar conta
                         </button>
                     <div className="flex flex-col gap-2 w-full my-10 ">
                         <p className="font-bold 2xl:text-2xl text-xl">Já possui uma conta?</p>
-                        <button
-                            type="button"
-                            onClick={() => abrirModal("login")}
-                            className="flex gap-2 justify-center px-7 2xl:py-2.5 py-1 rounded-full text-azul-600 bg-background font-bold text-2xl border-4 border-azul-600 hover:bg-azul-600 transition hover:text-white cursor-pointer"
-                        >
+                        <button type="button" onClick={() => abrirModal("login")} className="flex gap-2 justify-center px-7 2xl:py-2.5 py-1 rounded-full text-azul-600 bg-background font-bold text-2xl border-4 border-azul-600 hover:bg-azul-600 transition hover:text-white cursor-pointer">
                             Entrar
                         </button>
                     </div>
@@ -143,13 +111,6 @@ export default function Landing({ initialAuth, callbackUrl = "/home" }: LandingP
                 </section>
             </div>
 
-            <AuthModal
-                open={modalAberto}
-                mode={modo}
-                onClose={fecharModal}
-                onSwitchMode={trocarModo}
-                callbackUrl={callbackUrl}
-            />
-        </>
-    );
+            <AuthModal open={modalAberto} mode={modo} onClose={fecharModal} onSwitchMode={trocarModo} callbackUrl={callbackUrl}/>
+        </>);
 }

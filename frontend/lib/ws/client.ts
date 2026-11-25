@@ -1,12 +1,8 @@
 import type { WsEnvelope, WsListener } from "./types";
-
 type Status = "idle" | "connecting" | "open" | "closed" | "degraded";
-
-const MAX_BACKOFF_MS = 60_000;
-const BASE_BACKOFF_MS = 1_500;
-/** Após N falhas consecutivas, para de reconectar em loop (evita spam no console). */
+const MAX_BACKOFF_MS = 60000;
+const BASE_BACKOFF_MS = 1500;
 const DEGRADE_AFTER_ATTEMPTS = 6;
-
 export class WsClient {
     private ws: WebSocket | null = null;
     private url = "";
@@ -17,16 +13,12 @@ export class WsClient {
     private disposed = false;
     private status: Status = "idle";
     private resumeBound = false;
-
     connect(url: string, token: string) {
-        if (
-            this.url === url &&
+        if (this.url === url &&
             this.token === token &&
-            (this.status === "open" || this.status === "connecting")
-        ) {
+            (this.status === "open" || this.status === "connecting")) {
             return;
         }
-
         this.teardownSocket();
         this.url = url;
         this.token = token;
@@ -35,7 +27,6 @@ export class WsClient {
         this.bindResumeListeners();
         this.openSocket();
     }
-
     disconnect() {
         this.disposed = true;
         this.unbindResumeListeners();
@@ -45,34 +36,27 @@ export class WsClient {
         this.token = "";
         this.backoffAttempt = 0;
     }
-
     subscribe(listener: WsListener) {
         this.listeners.add(listener);
         return () => {
             this.listeners.delete(listener);
         };
     }
-
     getStatus() {
         return this.status;
     }
-
     private openSocket() {
-        if (this.disposed || !this.url || !this.token) return;
+        if (this.disposed || !this.url || !this.token)
+            return;
         if (typeof navigator !== "undefined" && navigator.onLine === false) {
             this.status = "degraded";
             return;
         }
-
         this.clearReconnect();
         this.status = "connecting";
-
         let ws: WebSocket;
         try {
-            // Preferir subprotocolo; também manda ?token= porque NPM/custom location
-            // às vezes stripa Sec-WebSocket-Protocol e o Go responde "Token não informado".
-            const proto =
-                "jwt." +
+            const proto = "jwt." +
                 btoa(this.token)
                     .replace(/\+/g, "-")
                     .replace(/\//g, "_")
@@ -80,98 +64,90 @@ export class WsClient {
             const sep = this.url.includes("?") ? "&" : "?";
             const urlComToken = `${this.url}${sep}token=${encodeURIComponent(this.token)}`;
             ws = new WebSocket(urlComToken, [proto]);
-        } catch {
+        }
+        catch {
             this.status = "closed";
             this.scheduleReconnect();
             return;
         }
         this.ws = ws;
-
         ws.onopen = () => {
-            if (this.ws !== ws) return;
+            if (this.ws !== ws)
+                return;
             this.status = "open";
             this.backoffAttempt = 0;
         };
-
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data as string) as WsEnvelope;
                 this.listeners.forEach((fn) => fn(data.tipo, data.payload));
-            } catch {
-                /* ignore malformed */
+            }
+            catch {
             }
         };
-
         ws.onclose = () => {
-            if (this.ws !== ws) return;
+            if (this.ws !== ws)
+                return;
             this.status = "closed";
             this.ws = null;
             this.scheduleReconnect();
         };
-
         ws.onerror = () => {
-            // Não chama close() aqui: no Firefox isso gera "interrupted while the page
-            // was loading" durante handshake; o onclose já cuida do reconnect.
         };
     }
-
     private teardownSocket() {
         this.clearReconnect();
         if (this.ws) {
             const socket = this.ws;
             this.ws = null;
-            // Evita onclose agendar reconnect depois de teardown intencional.
             socket.onclose = null;
             socket.onerror = null;
             socket.onopen = null;
             socket.onmessage = null;
             try {
-                // 1000 = normal closure; reduz ruído no console do Firefox.
                 socket.close(1000, "teardown");
-            } catch {
-                /* ignore */
+            }
+            catch {
             }
         }
     }
-
     private scheduleReconnect() {
-        if (this.disposed) return;
-
+        if (this.disposed)
+            return;
         if (this.backoffAttempt >= DEGRADE_AFTER_ATTEMPTS) {
             this.status = "degraded";
-            // Sem timer: retoma em online / aba visível (bindResumeListeners).
             return;
         }
-
         const delay = Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * 2 ** this.backoffAttempt);
         this.backoffAttempt += 1;
         this.reconnectTimer = setTimeout(() => this.openSocket(), delay);
     }
-
     private tryResume = () => {
-        if (this.disposed || !this.url || !this.token) return;
-        if (this.status === "open" || this.status === "connecting") return;
-        if (typeof navigator !== "undefined" && navigator.onLine === false) return;
-        if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-
+        if (this.disposed || !this.url || !this.token)
+            return;
+        if (this.status === "open" || this.status === "connecting")
+            return;
+        if (typeof navigator !== "undefined" && navigator.onLine === false)
+            return;
+        if (typeof document !== "undefined" && document.visibilityState === "hidden")
+            return;
         this.backoffAttempt = 0;
         this.openSocket();
     };
-
     private bindResumeListeners() {
-        if (this.resumeBound || typeof window === "undefined") return;
+        if (this.resumeBound || typeof window === "undefined")
+            return;
         window.addEventListener("online", this.tryResume);
         document.addEventListener("visibilitychange", this.tryResume);
         this.resumeBound = true;
     }
-
     private unbindResumeListeners() {
-        if (!this.resumeBound || typeof window === "undefined") return;
+        if (!this.resumeBound || typeof window === "undefined")
+            return;
         window.removeEventListener("online", this.tryResume);
         document.removeEventListener("visibilitychange", this.tryResume);
         this.resumeBound = false;
     }
-
     private clearReconnect() {
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer);
@@ -179,5 +155,4 @@ export class WsClient {
         }
     }
 }
-
 export const wsClient = new WsClient();

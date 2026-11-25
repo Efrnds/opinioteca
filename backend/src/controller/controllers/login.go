@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"backend/src/utils/auth"
-	"backend/src/utils/respostas"
-	"backend/src/utils/security"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
+	"backend/src/utils/respostas"
+	"backend/src/utils/security"
 	"encoding/json"
 	"errors"
 	"io"
@@ -14,7 +14,6 @@ import (
 	"strings"
 )
 
-// Login é a função responsável por autenticar um usuário e retornar um token de acesso.
 func Login(w http.ResponseWriter, r *http.Request) {
 	corpoRequisicao, erro := io.ReadAll(r.Body)
 	if erro != nil {

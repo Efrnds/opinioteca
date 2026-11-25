@@ -22,7 +22,7 @@ func configurarChaveTeste(t *testing.T) {
 
 func TestTokenCompativelComSessoesExistentes(t *testing.T) {
 	configurarChaveTeste(t)
-	// Mesmo formato HS256/MapClaims emitido pela biblioteca anterior.
+
 	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256","typ":"JWT"}`))
 	claims, err := json.Marshal(map[string]any{
 		"authorized": true, "exp": time.Now().Add(time.Hour).Unix(),

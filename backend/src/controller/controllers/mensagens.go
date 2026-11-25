@@ -1,9 +1,6 @@
 package controllers
 
-
-
 import (
-
 	"backend/src/utils/auth"
 
 	"backend/src/model/banco"
@@ -30,10 +27,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-
 )
-
-
 
 func BuscarInboxMensagens(w http.ResponseWriter, r *http.Request) {
 
@@ -47,8 +41,6 @@ func BuscarInboxMensagens(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	db, erro := banco.Conectar()
 
 	if erro != nil {
@@ -60,8 +52,6 @@ func BuscarInboxMensagens(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer db.Close()
-
-
 
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
@@ -75,21 +65,15 @@ func BuscarInboxMensagens(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if conversas == nil {
 
 		conversas = []modelos.ConversaResumo{}
 
 	}
 
-
-
 	respostas.JSON(w, http.StatusOK, conversas)
 
 }
-
-
 
 func ContarMensagensNaoLidas(w http.ResponseWriter, r *http.Request) {
 
@@ -103,8 +87,6 @@ func ContarMensagensNaoLidas(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	db, erro := banco.Conectar()
 
 	if erro != nil {
@@ -117,8 +99,6 @@ func ContarMensagensNaoLidas(w http.ResponseWriter, r *http.Request) {
 
 	defer db.Close()
 
-
-
 	total, erro := repositorios.NovoRepositorioDeMensagens(db).ContarNaoLidasTotal(meuID)
 
 	if erro != nil {
@@ -129,13 +109,9 @@ func ContarMensagensNaoLidas(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	respostas.JSON(w, http.StatusOK, map[string]int{"total": total})
 
 }
-
-
 
 func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 
@@ -149,8 +125,6 @@ func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	outroID, erro := strconv.ParseUint(mux.Vars(r)["usuarioId"], 10, 64)
 
 	if erro != nil || outroID == 0 {
@@ -160,8 +134,6 @@ func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	db, erro := banco.Conectar()
 
@@ -175,8 +147,6 @@ func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 
 	defer db.Close()
 
-
-
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
 	mensagens, erro := repo.BuscarHistorico(meuID, outroID)
@@ -188,8 +158,6 @@ func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	if mensagens == nil {
 
@@ -207,8 +175,6 @@ func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -221,8 +187,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	destinatarioID, erro := strconv.ParseUint(mux.Vars(r)["usuarioId"], 10, 64)
 
 	if erro != nil || destinatarioID == 0 {
@@ -233,8 +197,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if destinatarioID == meuID {
 
 		respostas.Erro(w, http.StatusBadRequest, errors.New("não é possível enviar mensagem para si mesmo"))
@@ -242,8 +204,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	corpo, erro := io.ReadAll(r.Body)
 
@@ -254,8 +214,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	var req modelos.EnviarMensagemRequest
 
@@ -275,8 +233,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if req.RespostaAID != nil && *req.RespostaAID > 0 {
 
 		db, erro := banco.Conectar()
@@ -291,8 +247,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 		defer db.Close()
 
-
-
 		repo := repositorios.NovoRepositorioDeMensagens(db)
 
 		if _, erro = repo.BuscarMensagemPorID(meuID, *req.RespostaAID); erro != nil {
@@ -304,8 +258,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-
 
 	db, erro := banco.Conectar()
 
@@ -319,8 +271,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	defer db.Close()
 
-
-
 	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
 
 	destinatario, erro := repoUsuarios.BuscarPorID(destinatarioID)
@@ -333,8 +283,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	config, _ := repositorios.NovoRepositorioDeConfiguracoes(db).BuscarOuCriar(destinatarioID)
 
 	segue, _ := repoUsuarios.Segue(meuID, destinatarioID)
@@ -346,8 +294,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
@@ -367,8 +313,6 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func ApagarConversaMensagens(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -381,8 +325,6 @@ func ApagarConversaMensagens(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	outroID, erro := strconv.ParseUint(mux.Vars(r)["outroId"], 10, 64)
 
 	if erro != nil || outroID == 0 {
@@ -392,8 +334,6 @@ func ApagarConversaMensagens(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	db, erro := banco.Conectar()
 
@@ -407,8 +347,6 @@ func ApagarConversaMensagens(w http.ResponseWriter, r *http.Request) {
 
 	defer db.Close()
 
-
-
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
 	if erro = repo.ApagarConversa(meuID, outroID); erro != nil {
@@ -419,13 +357,9 @@ func ApagarConversaMensagens(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	respostas.JSON(w, http.StatusOK, map[string]string{"mensagem": "Conversa apagada"})
 
 }
-
-
 
 func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 
@@ -439,8 +373,6 @@ func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	mensagemID, erro := strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 
 	if erro != nil || mensagemID == 0 {
@@ -450,8 +382,6 @@ func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	db, erro := banco.Conectar()
 
@@ -464,8 +394,6 @@ func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer db.Close()
-
-
 
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
@@ -504,8 +432,6 @@ func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -518,8 +444,6 @@ func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	mensagemID, erro := strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 
 	if erro != nil || mensagemID == 0 {
@@ -530,8 +454,6 @@ func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	corpo, erro := io.ReadAll(r.Body)
 
 	if erro != nil {
@@ -541,8 +463,6 @@ func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	var req modelos.EditarMensagemRequest
 
@@ -562,8 +482,6 @@ func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	db, erro := banco.Conectar()
 
 	if erro != nil {
@@ -575,8 +493,6 @@ func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer db.Close()
-
-
 
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
@@ -607,8 +523,6 @@ func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -621,8 +535,6 @@ func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	mensagemID, erro := strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 
 	if erro != nil || mensagemID == 0 {
@@ -633,8 +545,6 @@ func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	corpo, erro := io.ReadAll(r.Body)
 
 	if erro != nil {
@@ -644,8 +554,6 @@ func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	var req modelos.ReagirMensagemRequest
 
@@ -665,8 +573,6 @@ func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	db, erro := banco.Conectar()
 
 	if erro != nil {
@@ -678,8 +584,6 @@ func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer db.Close()
-
-
 
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
@@ -710,8 +614,6 @@ func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func ToggleFixarConversa(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -724,8 +626,6 @@ func ToggleFixarConversa(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	outroID, erro := strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 
 	if erro != nil || outroID == 0 {
@@ -735,8 +635,6 @@ func ToggleFixarConversa(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	db, erro := banco.Conectar()
 
@@ -750,8 +648,6 @@ func ToggleFixarConversa(w http.ResponseWriter, r *http.Request) {
 
 	defer db.Close()
 
-
-
 	repo := repositorios.NovoRepositorioDeMensagens(db)
 
 	fixada, erro := repo.ToggleFixarConversa(meuID, outroID)
@@ -763,8 +659,6 @@ func ToggleFixarConversa(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	respostas.JSON(w, http.StatusOK, map[string]bool{"fixada": fixada})
 
@@ -812,4 +706,3 @@ func MarcarMensagemComoLida(w http.ResponseWriter, r *http.Request) {
 
 	respostas.NoContent(w)
 }
-

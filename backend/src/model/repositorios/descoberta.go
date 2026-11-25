@@ -102,7 +102,7 @@ func (repositorio Descoberta) UsuariosSugeridos(viewerID uint64, limite int) ([]
 	}
 
 	cols := colunasUsuario(repositorio.db)
-	// Prefixa com alias u. para o JOIN.
+
 	partes := strings.Split(cols, ", ")
 	for i, p := range partes {
 		partes[i] = "u." + p
@@ -143,7 +143,6 @@ func (repositorio Descoberta) UsuariosSugeridos(viewerID uint64, limite int) ([]
 	return usuarios, nil
 }
 
-// UsuariosPorRank lista críticos públicos ordenados pelo rank de confiabilidade.
 func (repositorio Descoberta) UsuariosPorRank(limite int) ([]modelos.Usuario, error) {
 	if limite <= 0 || limite > 50 {
 		limite = 12

@@ -4,13 +4,9 @@ import "./globals.css";
 import { Figtree } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { SCRIPT_TEMA_ANTES_PAINT } from "@/lib/tema";
-
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
-
-/** Evita cache de HTML/RSC com sessão embutida (session bleed via proxy/CDN). */
+const figtree = Figtree({ subsets: ['latin'], variable: '--font-sans' });
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-
 export const metadata: Metadata = {
     title: "Opinioteca",
     description: "A rede social para amantes de livros.",
@@ -23,8 +19,6 @@ export const metadata: Metadata = {
         apple: "/assets/images/Vector.svg",
     },
 };
-
-/** Blocks iOS Safari auto-zoom on focus / pinch; viewport-fit for notches. */
 export const viewport: Viewport = {
     width: "device-width",
     initialScale: 1,
@@ -32,20 +26,15 @@ export const viewport: Viewport = {
     userScalable: false,
     viewportFit: "cover",
 };
-
-export default function RootLayout({
-    children,
-}: Readonly<{
+export default function RootLayout({ children, }: Readonly<{
     children: React.ReactNode;
 }>) {
-    return (
-        <html lang="pt-br" className={cn("font-sans", figtree.variable)} data-tema="claro" suppressHydrationWarning>
+    return (<html lang="pt-br" className={cn("font-sans", figtree.variable)} data-tema="claro" suppressHydrationWarning>
             <head>
-                <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_PAINT }} />
+                <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_PAINT }}/>
             </head>
             <body className="antialiased">
                 <Providers>{children}</Providers>
             </body>
-        </html>
-    );
+        </html>);
 }

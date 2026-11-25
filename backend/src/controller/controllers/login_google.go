@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
-	"backend/src/utils/config"
-	"backend/src/utils/integracoes/googleoauth"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
+	"backend/src/utils/config"
+	"backend/src/utils/integracoes/googleoauth"
 	"backend/src/utils/respostas"
 	"backend/src/utils/security"
 	"crypto/rand"
@@ -21,7 +21,6 @@ import (
 
 var nickInvalidoRegex = regexp.MustCompile(`[^a-z0-9_]+`)
 
-// LoginGoogle autentica (ou cria) usuário a partir de um id_token verificado do Google.
 func LoginGoogle(w http.ResponseWriter, r *http.Request) {
 	corpoRequisicao, erro := io.ReadAll(r.Body)
 	if erro != nil {

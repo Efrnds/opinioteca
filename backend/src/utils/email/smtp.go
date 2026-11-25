@@ -13,8 +13,6 @@ func configurado() bool {
 		strings.TrimSpace(os.Getenv("EMAIL_PASSWORD")) != ""
 }
 
-// EnviarOTPRecuperacaoSenha manda o código por Gmail SMTP.
-// Sem EMAIL_* no .env, registra no log (dev) e não falha.
 func EnviarOTPRecuperacaoSenha(destinatario, codigo string, validadeMinutos int) error {
 	destinatario = strings.TrimSpace(destinatario)
 	if destinatario == "" {

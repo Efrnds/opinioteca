@@ -2,36 +2,30 @@ export type DiaSemana = {
     dia: string;
     leu: boolean;
 };
-
 export type DiarioResposta = {
     sequencia_atual: number;
     semana: DiaSemana[];
 };
-
 export type RegistrarDiarioResposta = DiarioResposta & {
     paginas_lidas: number;
     porcentagem_leitura: number;
 };
-
 export type DiaAtividadeLeitura = {
     dia: string;
     paginas: number;
     registros: number;
 };
-
 export type DiarioAtividadeResposta = {
     dias: DiaAtividadeLeitura[];
     periodo_inicio: string;
     periodo_fim: string;
 };
-
 export type DiarioLivro = {
     id: number;
     titulo: string;
     autor: string;
     capa_url?: string;
 };
-
 export type DiarioRegistro = {
     id: number;
     livro_id: number;
@@ -40,7 +34,6 @@ export type DiarioRegistro = {
     data_registro: string;
     livro: DiarioLivro;
 };
-
 export type DiarioLivroResumo = {
     livro: DiarioLivro;
     porcentagem_atual: number;
@@ -48,15 +41,12 @@ export type DiarioLivroResumo = {
     total_registros: number;
     paginas_lidas: number;
 };
-
 export type DiarioHistoricoResposta = {
     registros: DiarioRegistro[];
     livros: DiarioLivroResumo[];
     historico_limitado?: boolean;
 };
-
 export type PeriodoEstatisticasLeitura = "hoje" | "semana" | "mes" | "ano" | "tudo";
-
 export type EstatisticasLeituraResposta = {
     periodo?: PeriodoEstatisticasLeitura;
     periodo_inicio?: string;

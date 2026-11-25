@@ -5,7 +5,6 @@ import (
 	"net/http"
 )
 
-// Rotas admin: gestão de acervo e moderação (prefixo /admin).
 var rotasAdmin = []Rota{
 	{
 		URI:                "/admin/usuarios",

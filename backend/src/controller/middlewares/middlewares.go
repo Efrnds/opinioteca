@@ -1,9 +1,9 @@
 package middlewares
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
 	"backend/src/utils/respostas"
 	"errors"
 	"log"
@@ -25,7 +25,6 @@ func caminhoLogSeguro(r *http.Request) string {
 	return path
 }
 
-// Logger registra método e caminho sem vazar JWT da query.
 func Logger(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("\n Requisição recebida: %s %s %s", r.Method, caminhoLogSeguro(r), r.Host)
@@ -33,7 +32,6 @@ func Logger(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Autenticar valida o JWT e exige conta ativa no banco.
 func Autenticar(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if erro := auth.ValidarToken(r); erro != nil {

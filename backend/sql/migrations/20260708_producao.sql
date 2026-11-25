@@ -1,15 +1,4 @@
--- Migração única de produção (2026-07-08)
--- Consolida: configuracoes_descoberta, planos_assinatura, opiniopro_features,
---            templates_avaliacao, templates_admin, usuario_estante
---
--- Idempotente: seguro em bancos parcialmente migrados (IF NOT EXISTS, ON CONFLICT).
--- Não necessário em instalação nova via sql.sql.
---
--- psql $DATABASE_URL -f backend/sql/migrations/20260708_producao.sql
 
--- =============================================================================
--- 1. Configurações de usuário, privacidade e soft-delete
--- =============================================================================
 
 ALTER TABLE usuarios
   ADD COLUMN IF NOT EXISTS inativado_em TIMESTAMP NULL;
@@ -41,10 +30,6 @@ INSERT INTO usuario_configuracoes (usuario_id)
 SELECT id FROM usuarios
 ON CONFLICT (usuario_id) DO NOTHING;
 
--- =============================================================================
--- 2. Planos e assinatura manual
--- =============================================================================
-
 ALTER TABLE usuarios
   ADD COLUMN IF NOT EXISTS assinatura_expira_em TIMESTAMP NULL;
 
@@ -60,10 +45,6 @@ UPDATE assinaturas SET modo_zen = FALSE, templates_enriquecidos = FALSE WHERE co
 UPDATE assinaturas SET modo_zen = FALSE, templates_enriquecidos = TRUE  WHERE codigo = 'opiniotop';
 UPDATE assinaturas SET modo_zen = TRUE,  templates_enriquecidos = TRUE  WHERE codigo = 'opiniopro';
 
--- =============================================================================
--- 3. OpinioPro: meta de leitura e modo zen por usuário
--- =============================================================================
-
 ALTER TABLE usuarios
   ADD COLUMN IF NOT EXISTS modo_zen BOOLEAN NOT NULL DEFAULT FALSE;
 
@@ -76,10 +57,6 @@ CREATE TABLE IF NOT EXISTS usuario_meta_leitura (
     meta INTEGER NOT NULL CHECK (meta > 0),
     atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- =============================================================================
--- 4. Templates de avaliação (seed + colunas admin + corpo completo)
--- =============================================================================
 
 ALTER TABLE templates
     ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE,
@@ -168,10 +145,6 @@ Leitores que buscam [experiência] e toleram [tom/ritmo].
 ) WHERE id = 6;
 
 SELECT setval(pg_get_serial_sequence('templates', 'id'), COALESCE((SELECT MAX(id) FROM templates), 1));
-
--- =============================================================================
--- 5. Estante pessoal + backfill a partir do diário e avaliações
--- =============================================================================
 
 CREATE TABLE IF NOT EXISTS usuario_estante (
     usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,

@@ -7,13 +7,11 @@ import (
 	"time"
 )
 
-// TemplateEstrutura conteúdo editável do template (armazenado em estrutura_json).
 type TemplateEstrutura struct {
 	Descricao string `json:"descricao"`
 	Texto     string `json:"texto"`
 }
 
-// Template representa um modelo de avaliação.
 type Template struct {
 	ID                     uint64            `json:"id"`
 	Nome                   string            `json:"nome"`
@@ -26,7 +24,6 @@ type Template struct {
 	AssinaturaMinimaCodigo string            `json:"assinatura_minima_codigo,omitempty"`
 }
 
-// TemplateAvaliacao formato público para seleção na avaliação.
 type TemplateAvaliacao struct {
 	ID        uint64 `json:"id"`
 	Nome      string `json:"nome"`
@@ -34,7 +31,6 @@ type TemplateAvaliacao struct {
 	Texto     string `json:"texto"`
 }
 
-// TemplatePayload corpo de criação/atualização admin.
 type TemplatePayload struct {
 	Nome               string `json:"nome"`
 	Descricao          string `json:"descricao"`

@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
 	"backend/src/utils/respostas"
 	"database/sql"
 	"encoding/json"
@@ -166,7 +166,7 @@ func RegistrarDiario(w http.ResponseWriter, r *http.Request) {
 
 	var novaSequencia int
 	if jaLeuHoje {
-		// Já leu hoje: permite novo registro sem alterar a sequência.
+
 		novaSequencia = usuario.SequenciaAtual
 		if novaSequencia <= 0 {
 			novaSequencia = 1

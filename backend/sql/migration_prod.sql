@@ -1,19 +1,5 @@
--- =============================================================================
--- Opinioteca: migração incremental para produção
--- =============================================================================
--- Idempotente: pode rodar mais de uma vez com segurança (IF NOT EXISTS).
--- Destinada a bancos criados com o schema antigo, antes das features recentes.
---
--- Uso:
---   psql "$DATABASE_URL" -f backend/sql/migration_prod.sql
---
--- Se ainda não rodou a migração de livros/Google Books, este arquivo já inclui
--- os passos equivalentes ao migration_livros_avaliacoes.sql.
--- =============================================================================
 
--- -----------------------------------------------------------------------------
--- 1) Livros: Google Books e campos opcionais
--- -----------------------------------------------------------------------------
+
 INSERT INTO categorias (nome_categoria)
 VALUES ('Outros')
 ON CONFLICT (nome_categoria) DO NOTHING;
@@ -46,18 +32,12 @@ BEGIN
     END IF;
 END $$;
 
--- -----------------------------------------------------------------------------
--- 2) Avaliações: spoiler e mídia (imagem/GIF na avaliação)
--- -----------------------------------------------------------------------------
 ALTER TABLE avaliacoes
     ADD COLUMN IF NOT EXISTS contem_spoiler BOOLEAN NOT NULL DEFAULT FALSE;
 
 ALTER TABLE avaliacoes
     ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512);
 
--- -----------------------------------------------------------------------------
--- 3) Comentários: threads (respostas) e mídia
--- -----------------------------------------------------------------------------
 ALTER TABLE comentarios
     ADD COLUMN IF NOT EXISTS pai_id INTEGER;
 
@@ -75,9 +55,6 @@ BEGIN
     END IF;
 END $$;
 
--- -----------------------------------------------------------------------------
--- 4) Votos em comentários
--- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS voto_comentarios (
     id SERIAL PRIMARY KEY,
     usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -87,9 +64,6 @@ CREATE TABLE IF NOT EXISTS voto_comentarios (
     UNIQUE (usuario_id, comentario_id)
 );
 
--- -----------------------------------------------------------------------------
--- 5) Cache do comentário em destaque (feed / WebSocket)
--- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS comentario_destaque_cache (
     avaliacao_id INTEGER PRIMARY KEY REFERENCES avaliacoes(id) ON DELETE CASCADE,
     comentario_id INTEGER REFERENCES comentarios(id) ON DELETE CASCADE,
@@ -97,9 +71,6 @@ CREATE TABLE IF NOT EXISTS comentario_destaque_cache (
     atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- -----------------------------------------------------------------------------
--- 6) Mensagens: mídia, edição, respostas, reações e exclusão suave
--- -----------------------------------------------------------------------------
 ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512);
 ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS editada BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS resposta_a_id INTEGER REFERENCES mensagens(id) ON DELETE SET NULL;
@@ -107,18 +78,12 @@ ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS reacao VARCHAR(50);
 ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS apagado_por_remetente BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS apagado_por_destinatario BOOLEAN NOT NULL DEFAULT FALSE;
 
--- -----------------------------------------------------------------------------
--- 7) Conversas fixadas (chat)
--- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS conversas_fixadas (
     usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
     outro_usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
     UNIQUE (usuario_id, outro_usuario_id)
 );
 
--- -----------------------------------------------------------------------------
--- 8) Citações do feed (opcional: o backend também cria via startup)
--- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS citacoes (
     id SERIAL PRIMARY KEY,
     texto TEXT NOT NULL,
@@ -128,9 +93,6 @@ CREATE TABLE IF NOT EXISTS citacoes (
 ALTER TABLE avaliacoes ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512);
 ALTER TABLE avaliacoes ADD COLUMN IF NOT EXISTS contem_spoiler BOOLEAN NOT NULL DEFAULT FALSE;
 
--- -----------------------------------------------------------------------------
--- 9) CASCADE ao apagar avaliação (votos e comentários)
--- -----------------------------------------------------------------------------
 ALTER TABLE voto_avaliacoes DROP CONSTRAINT IF EXISTS voto_avaliacoes_avaliacao_id_fkey;
 ALTER TABLE voto_avaliacoes
     ADD CONSTRAINT voto_avaliacoes_avaliacao_id_fkey
@@ -140,8 +102,4 @@ ALTER TABLE comentarios DROP CONSTRAINT IF EXISTS comentarios_avaliacao_id_fkey;
 ALTER TABLE comentarios
     ADD CONSTRAINT comentarios_avaliacao_id_fkey
     FOREIGN KEY (avaliacao_id) REFERENCES avaliacoes(id) ON DELETE CASCADE;
-
--- -----------------------------------------------------------------------------
--- Fim da migração
--- =============================================================================
 

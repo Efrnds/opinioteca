@@ -6,13 +6,12 @@ import (
 	"backend/src/model/repositorios"
 	"backend/src/utils/respostas"
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"io"
 	"net/http"
 	"strconv"
-	"github.com/gorilla/mux"
 )
 
-// CriarCategoria é a função responsável por criar uma nova categoria.
 func CriarCategoria(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -47,9 +46,6 @@ func CriarCategoria(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, categoria)
 }
 
-// BuscarCategorias lista categorias ativas.
-// Sem parâmetros de paginação, retorna o array completo (compatível com /categorias público).
-// Com pagina/limite, retorna envelope { itens, total, pagina, limite }.
 func BuscarCategorias(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -93,7 +89,6 @@ func BuscarCategorias(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// BuscarCategoriaPorID é a função responsável por buscar uma categoria específica pelo seu ID.
 func BuscarCategoriaPorID(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 
@@ -119,7 +114,6 @@ func BuscarCategoriaPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, categoria)
 }
 
-// AtualizarCategoria é a função responsável por atualizar uma categoria específica pelo seu ID.
 func AtualizarCategoria(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 
@@ -161,7 +155,6 @@ func AtualizarCategoria(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusNoContent, nil)
 }
 
-// InativarCategoria é a função responsável por inativar uma categoria específica pelo seu ID.
 func InativarCategoria(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 

@@ -1,9 +1,6 @@
 package controllers
 
-
-
 import (
-
 	"backend/src/model/banco"
 
 	"backend/src/model/modelos"
@@ -23,12 +20,7 @@ import (
 	"strings"
 
 	"time"
-
 )
-
-
-
-// ListarPlanos retorna o catálogo de planos disponíveis.
 
 func ListarPlanos(w http.ResponseWriter, r *http.Request) {
 
@@ -44,8 +36,6 @@ func ListarPlanos(w http.ResponseWriter, r *http.Request) {
 
 	defer db.Close()
 
-
-
 	repositorio := repositorios.NovoRepositorioDeAssinaturas(db)
 
 	planos, erro := repositorio.Listar()
@@ -58,21 +48,13 @@ func ListarPlanos(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	respostas.JSON(w, http.StatusOK, planos)
 
 }
 
-
-
-// BuscarPlanoUsuario retorna o status do plano do usuário autenticado.
-
 func BuscarPlanoUsuario(w http.ResponseWriter, r *http.Request) {
 
 	nick := nickDaURL(r)
-
-
 
 	db, erro := banco.Conectar()
 
@@ -86,8 +68,6 @@ func BuscarPlanoUsuario(w http.ResponseWriter, r *http.Request) {
 
 	defer db.Close()
 
-
-
 	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
 
 	usuarioToken, erro := usuarioDoToken(r, repoUsuarios)
@@ -100,8 +80,6 @@ func BuscarPlanoUsuario(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if !ehProprioPerfil(usuarioToken, nick) {
 
 		respostas.Erro(w, http.StatusForbidden, errors.New("Acesso negado"))
@@ -109,8 +87,6 @@ func BuscarPlanoUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	usuario, erro := repoUsuarios.BuscarPorNick(nick)
 
@@ -130,37 +106,25 @@ func BuscarPlanoUsuario(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	respostas.JSON(w, http.StatusOK, modelos.StatusPlano(usuario))
 
 }
 
-
-
 type atribuirPlanoPayload struct {
+	Codigo string `json:"codigo"`
 
-	Codigo       string `json:"codigo"`
+	DuracaoDias *int `json:"duracaoDias"`
 
-	DuracaoDias  *int   `json:"duracaoDias"`
+	DuracaoMeses *int `json:"duracaoMeses"`
 
-	DuracaoMeses *int   `json:"duracaoMeses"`
+	ExpiraEm string `json:"expiraEm"`
 
-	ExpiraEm     string `json:"expiraEm"`
-
-	Vitalicia    bool   `json:"vitalicia"`
-
+	Vitalicia bool `json:"vitalicia"`
 }
-
-
-
-// calcularExpiracao define a data de fim a partir de agora (troca de plano não estende expiração anterior).
 
 func calcularExpiracao(payload atribuirPlanoPayload) (*time.Time, error) {
 
 	agora := time.Now()
-
-
 
 	if payload.ExpiraEm != "" {
 
@@ -188,8 +152,6 @@ func calcularExpiracao(payload atribuirPlanoPayload) (*time.Time, error) {
 
 	}
 
-
-
 	if payload.DuracaoDias != nil && *payload.DuracaoDias > 0 {
 
 		t := agora.AddDate(0, 0, *payload.DuracaoDias)
@@ -203,8 +165,6 @@ func calcularExpiracao(payload atribuirPlanoPayload) (*time.Time, error) {
 		return &t, nil
 
 	}
-
-
 
 	if payload.DuracaoMeses != nil && *payload.DuracaoMeses > 0 {
 
@@ -220,15 +180,9 @@ func calcularExpiracao(payload atribuirPlanoPayload) (*time.Time, error) {
 
 	}
 
-
-
 	return nil, nil
 
 }
-
-
-
-// AdminAtribuirPlano substitui plano e duração de um usuário (upsert: não exige revogar antes).
 
 func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
@@ -242,8 +196,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	corpo, erro := io.ReadAll(r.Body)
 
 	if erro != nil {
@@ -254,8 +206,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	var payload atribuirPlanoPayload
 
 	if erro = json.Unmarshal(corpo, &payload); erro != nil {
@@ -265,8 +215,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	codigo := strings.ToLower(strings.TrimSpace(payload.Codigo))
 
@@ -280,8 +228,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	var expiraEm *time.Time
 
 	switch {
@@ -291,8 +237,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 		expiraEm = nil
 
 	case payload.Vitalicia:
-
-		// Vitalícia: NULL no banco; plano pago nunca expira.
 
 		expiraEm = nil
 
@@ -318,8 +262,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	db, erro := banco.Conectar()
 
 	if erro != nil {
@@ -331,8 +273,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer db.Close()
-
-
 
 	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
 
@@ -354,8 +294,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if erro = repoUsuarios.AtribuirPlano(usuarioID, assinaturaID, expiraEm); erro != nil {
 
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -363,8 +301,6 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	usuario, erro = repoUsuarios.BuscarPorID(usuarioID)
 
@@ -376,15 +312,9 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	respostas.JSON(w, http.StatusOK, modelos.StatusPlano(usuario))
 
 }
-
-
-
-// AdminRevogarPlano remove assinatura paga e volta ao gratuito.
 
 func AdminRevogarPlano(w http.ResponseWriter, r *http.Request) {
 
@@ -398,8 +328,6 @@ func AdminRevogarPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	db, erro := banco.Conectar()
 
 	if erro != nil {
@@ -411,8 +339,6 @@ func AdminRevogarPlano(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer db.Close()
-
-
 
 	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
 
@@ -434,8 +360,6 @@ func AdminRevogarPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if erro = repoUsuarios.RevogarPlano(usuarioID); erro != nil {
 
 		respostas.Erro(w, http.StatusInternalServerError, erro)
@@ -443,8 +367,6 @@ func AdminRevogarPlano(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	usuario, erro = repoUsuarios.BuscarPorID(usuarioID)
 
@@ -456,10 +378,6 @@ func AdminRevogarPlano(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	respostas.JSON(w, http.StatusOK, modelos.StatusPlano(usuario))
 
 }
-
-

@@ -1,61 +1,56 @@
 import type { NextConfig } from "next";
-
-const NO_STORE =
-    "private, no-store, no-cache, max-age=0, must-revalidate";
-
+const NO_STORE = "private, no-store, no-cache, max-age=0, must-revalidate";
 type RemotePattern = {
     protocol?: "http" | "https";
     hostname: string;
     port?: string;
     pathname?: string;
 };
-
 function patternDeUrl(raw: string | undefined, pathname = "/**"): RemotePattern | null {
-    if (!raw?.trim()) return null;
+    if (!raw?.trim())
+        return null;
     try {
         const u = new URL(raw);
-        if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+        if (u.protocol !== "http:" && u.protocol !== "https:")
+            return null;
         const pattern: RemotePattern = {
             protocol: u.protocol.replace(":", "") as "http" | "https",
             hostname: u.hostname,
             pathname,
         };
-        if (u.port) pattern.port = u.port;
+        if (u.port)
+            pattern.port = u.port;
         return pattern;
-    } catch {
+    }
+    catch {
         return null;
     }
 }
-
 function remotePatternsDaApi(): RemotePattern[] {
     const candidatos = [
         process.env.AUTH_URL,
         process.env.NEXT_PUBLIC_API_URL,
         process.env.API_INTERNAL_URL,
-        // Host público de produção (uploads via nginx no mesmo domínio).
         "https://opinioteca.prismapp.com.br",
     ];
-
     const vistos = new Set<string>();
     const patterns: RemotePattern[] = [];
-
     for (const raw of candidatos) {
         const p = patternDeUrl(raw, "/uploads/**");
-        if (!p) continue;
+        if (!p)
+            continue;
         const chave = `${p.protocol}|${p.hostname}|${p.port ?? ""}`;
-        if (vistos.has(chave)) continue;
+        if (vistos.has(chave))
+            continue;
         vistos.add(chave);
         patterns.push(p);
     }
-
     return patterns;
 }
-
 const nextConfig: NextConfig = {
     async headers() {
         return [
             {
-                // Auth.js + validação — nunca cachear (NPM Cache Assets / CDN).
                 source: "/api/auth/:path*",
                 headers: [
                     { key: "Cache-Control", value: NO_STORE },
@@ -66,7 +61,6 @@ const nextConfig: NextConfig = {
                 ],
             },
             {
-                // HTML autenticado / RSC — reforço além do middleware.
                 source: "/:path*",
                 headers: [
                     { key: "Vary", value: "Cookie" },
@@ -78,7 +72,6 @@ const nextConfig: NextConfig = {
         dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
         remotePatterns: [
             ...remotePatternsDaApi(),
-            // Google Books costuma devolver capas em http(s)://books.google.com/...
             {
                 protocol: "http",
                 hostname: "books.google.com",
@@ -104,7 +97,6 @@ const nextConfig: NextConfig = {
                 hostname: "*.googleusercontent.com",
                 pathname: "/**",
             },
-            // Giphy (anexos / picker — se algum <Image> usar URL absoluta)
             {
                 protocol: "https",
                 hostname: "*.giphy.com",
@@ -136,5 +128,4 @@ const nextConfig: NextConfig = {
         ],
     },
 };
-
 export default nextConfig;

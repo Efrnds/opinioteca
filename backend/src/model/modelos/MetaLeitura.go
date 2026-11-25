@@ -3,10 +3,10 @@ package modelos
 import "errors"
 
 type MetaLeitura struct {
-	Tipo      string `json:"tipo"`
-	Periodo   string `json:"periodo"`
-	Meta      int    `json:"meta"`
-	Progresso int    `json:"progresso"`
+	Tipo       string  `json:"tipo"`
+	Periodo    string  `json:"periodo"`
+	Meta       int     `json:"meta"`
+	Progresso  int     `json:"progresso"`
 	Percentual float64 `json:"percentual"`
 }
 

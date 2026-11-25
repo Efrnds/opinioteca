@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"backend/src/model/banco"
-	"backend/src/utils/email"
 	"backend/src/model/repositorios"
+	"backend/src/utils/email"
 	"backend/src/utils/respostas"
 	"backend/src/utils/security"
 	"crypto/rand"
@@ -55,7 +55,6 @@ func erroOTP(reset *repositorios.PasswordReset) string {
 	return ""
 }
 
-// SolicitarRecuperacaoSenha gera OTP e envia por e-mail (resposta sempre genérica).
 func SolicitarRecuperacaoSenha(w http.ResponseWriter, r *http.Request) {
 	if !security.LoginPermitido(r, "recuperar") {
 		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
@@ -95,7 +94,6 @@ func SolicitarRecuperacaoSenha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Conta inexistente ou inativa: mesma mensagem (não vaza existência).
 	if usuario.ID == 0 || !strings.EqualFold(usuario.Status, "ativo") {
 		respostas.JSON(w, http.StatusOK, map[string]string{"mensagem": msgRecuperacaoOK})
 		return
@@ -123,7 +121,6 @@ func SolicitarRecuperacaoSenha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Busca e-mail canônico no perfil completo.
 	completo, erro := repositorios.NovoRepositorioDeUsuarios(db).BuscarPorID(usuario.ID)
 	if erro != nil || completo.Email == "" {
 		respostas.JSON(w, http.StatusOK, map[string]string{"mensagem": msgRecuperacaoOK})
@@ -139,7 +136,6 @@ func SolicitarRecuperacaoSenha(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, map[string]string{"mensagem": msgRecuperacaoOK})
 }
 
-// VerificarCodigoRecuperacao confere o OTP sem consumi-lo.
 func VerificarCodigoRecuperacao(w http.ResponseWriter, r *http.Request) {
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -205,7 +201,6 @@ func VerificarCodigoRecuperacao(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// RedefinirSenhaComCodigo troca a senha após revalidar o OTP e o consome.
 func RedefinirSenhaComCodigo(w http.ResponseWriter, r *http.Request) {
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -214,10 +209,10 @@ func RedefinirSenhaComCodigo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Email           string `json:"email"`
-		Codigo          string `json:"codigo"`
-		Senha           string `json:"senha"`
-		ConfirmarSenha  string `json:"confirmarSenha"`
+		Email          string `json:"email"`
+		Codigo         string `json:"codigo"`
+		Senha          string `json:"senha"`
+		ConfirmarSenha string `json:"confirmarSenha"`
 	}
 	if erro = json.Unmarshal(corpo, &req); erro != nil {
 		respostas.Erro(w, http.StatusBadRequest, errors.New("JSON inválido"))

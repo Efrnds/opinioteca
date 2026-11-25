@@ -1,5 +1,4 @@
--- Produção: expande tipos de notificação para o módulo de denúncias.
--- Execute uma vez no banco existente (não necessário em instalação nova via sql.sql).
+
 
 ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_notificacao_check;
 

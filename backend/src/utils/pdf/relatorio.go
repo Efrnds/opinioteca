@@ -14,7 +14,6 @@ import (
 //go:embed logo.png
 var logoPNG []byte
 
-// Meta descreve o cabeçalho padrão de um relatório PDF.
 type Meta struct {
 	Titulo      string
 	Descricao   string
@@ -22,7 +21,6 @@ type Meta struct {
 	NomeArquivo string
 }
 
-// Documento encapsula um PDF de relatório Opinioteca.
 type Documento struct {
 	pdf        *gofpdf.Fpdf
 	tr         func(string) string
@@ -31,7 +29,6 @@ type Documento struct {
 	pagina     int
 }
 
-// Novo cria um documento A4 com cabeçalho (logo, título, descrição, filtros, data).
 func Novo(meta Meta) *Documento {
 	p := gofpdf.New("P", "mm", "A4", "")
 	tr := p.UnicodeTranslatorFromDescriptor("")
@@ -132,7 +129,6 @@ func (d *Documento) desenharCabecalhoCompleto() {
 	p.Ln(4)
 }
 
-// Secao adiciona um subtítulo de seção.
 func (d *Documento) Secao(titulo string) {
 	d.pdf.SetFont("Helvetica", "B", 12)
 	d.pdf.SetTextColor(27, 36, 50)
@@ -140,7 +136,6 @@ func (d *Documento) Secao(titulo string) {
 	d.pdf.Ln(8)
 }
 
-// Paragrafo escreve texto corrido.
 func (d *Documento) Paragrafo(texto string) {
 	d.pdf.SetFont("Helvetica", "", 10)
 	d.pdf.SetTextColor(50, 50, 50)
@@ -148,7 +143,6 @@ func (d *Documento) Paragrafo(texto string) {
 	d.pdf.Ln(2)
 }
 
-// ResumoLinha escreve um par rótulo/valor.
 func (d *Documento) ResumoLinha(rotulo, valor string) {
 	d.pdf.SetFont("Helvetica", "", 10)
 	d.pdf.SetTextColor(70, 70, 70)
@@ -159,7 +153,6 @@ func (d *Documento) ResumoLinha(rotulo, valor string) {
 	d.pdf.Ln(5.5)
 }
 
-// Tabela renderiza uma tabela simples com cabeçalho e linhas.
 func (d *Documento) Tabela(larguras []float64, cabecalhos []string, linhas [][]string) {
 	p := d.pdf
 	altura := 6.0
@@ -201,7 +194,6 @@ func (d *Documento) Tabela(larguras []float64, cabecalhos []string, linhas [][]s
 	p.Ln(3)
 }
 
-// Vazio informa que não há dados.
 func (d *Documento) Vazio(msg string) {
 	d.pdf.SetFont("Helvetica", "I", 10)
 	d.pdf.SetTextColor(120, 120, 120)
@@ -209,7 +201,6 @@ func (d *Documento) Vazio(msg string) {
 	d.pdf.Ln(8)
 }
 
-// Escrever envia o PDF na resposta HTTP.
 func (d *Documento) Escrever(w http.ResponseWriter) error {
 	nome := d.meta.NomeArquivo
 	if nome == "" {
@@ -232,7 +223,6 @@ func truncar(s string, max int) string {
 	return s[:max-3] + "..."
 }
 
-// FormatData formata time para pt-BR curto.
 func FormatData(t time.Time) string {
 	if t.IsZero() {
 		return "-"
@@ -240,7 +230,6 @@ func FormatData(t time.Time) string {
 	return t.In(time.FixedZone("BRT", -3*3600)).Format("02/01/2006 15:04")
 }
 
-// FormatDataCurta formata só a data.
 func FormatDataCurta(t time.Time) string {
 	if t.IsZero() {
 		return "-"

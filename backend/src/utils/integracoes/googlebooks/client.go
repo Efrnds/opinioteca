@@ -79,7 +79,6 @@ func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 		return []VolumeItem{}, nil
 	}
 
-	// Busca em PT primeiro (langRestrict=pt); fallback sem restrição puxa EN etc.
 	jobs := make([]jobBusca, 0, len(queries)+1)
 	for _, query := range queries {
 		jobs = append(jobs, jobBusca{query: query, langRestrict: "pt", preferirPT: true})
@@ -119,7 +118,7 @@ func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 			if _, ok := vistos[item.ID]; ok {
 				continue
 			}
-			// Resultados sem restrição que já são PT entram no bloco prioritário.
+
 			if !res.preferirPT && idiomaPortugues(item.VolumeInfo.Language) {
 				prioritarios = append(prioritarios, item)
 			} else {
@@ -140,9 +139,6 @@ func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 	return merged, nil
 }
 
-// montarQueriesBusca monta buscas complementares no Google Books.
-// Prioriza intitle para trazer o livro pelo nome; mantém inauthor para
-// sobrenomes como "marx" ou "kant" (a relevância decide a ordem final).
 func montarQueriesBusca(q string) []string {
 	q = strings.TrimSpace(q)
 	if q == "" {

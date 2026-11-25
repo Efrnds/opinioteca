@@ -1,5 +1,4 @@
--- Sincroniza rank_confiabilidade com votos existentes nas avaliações.
--- Regra: upvote = +1, downvote = -1, mínimo 0 (igual a modelos.DeltaRank).
+
 
 UPDATE usuarios u
 SET rank_confiabilidade = GREATEST(0, COALESCE((

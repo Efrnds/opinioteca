@@ -10,8 +10,6 @@ const (
 	limiteMaxAdmin    = 100
 )
 
-// paginacaoAdmin lê pagina/limite (ou page/pageSize, ou offset) da query.
-// Retorna pagina (1-based), limite e offset.
 func paginacaoAdmin(r *http.Request) (pagina, limite, offset int) {
 	pagina = 1
 	limite = limitePadraoAdmin

@@ -40,7 +40,6 @@ var presetsCorDestaque = map[string]bool{
 
 var hexCorRegex = regexp.MustCompile(`(?i)^#[0-9a-f]{6}$`)
 
-// ConfiguracaoUsuario preferências, notificações e privacidade 1:1 com usuarios.
 type ConfiguracaoUsuario struct {
 	UsuarioID uint64 `json:"usuarioId,omitempty"`
 
@@ -57,13 +56,13 @@ type ConfiguracaoUsuario struct {
 	HistoricoVisivelPara string `json:"historicoVisivelPara"`
 	VisibilidadePerfil   string `json:"visibilidadePerfil"`
 
-	Tema          string  `json:"tema"`
-	DaltonismoTipo string `json:"daltonismoTipo"`
-	CorDestaque   string  `json:"corDestaque"`
-	CorFundoTexto *string `json:"corFundoTexto"`
-	CorSuperficie *string `json:"corSuperficie"`
-	CorTexto      *string `json:"corTexto"`
-	CorHover      *string `json:"corHover"`
+	Tema           string  `json:"tema"`
+	DaltonismoTipo string  `json:"daltonismoTipo"`
+	CorDestaque    string  `json:"corDestaque"`
+	CorFundoTexto  *string `json:"corFundoTexto"`
+	CorSuperficie  *string `json:"corSuperficie"`
+	CorTexto       *string `json:"corTexto"`
+	CorHover       *string `json:"corHover"`
 
 	AtualizadoEm time.Time `json:"atualizadoEm,omitempty"`
 }
@@ -160,7 +159,7 @@ func (c *ConfiguracaoUsuario) Preparar(permiteCustomPro bool) error {
 		c.CorDestaque = strings.ToLower(c.CorDestaque)
 	} else if CorHexValida(c.CorDestaque) {
 		if !permiteCustomPro {
-			// Downgrade / free: não persiste hex; volta ao preset padrão.
+
 			c.CorDestaque = CorDestaquePadrao
 		} else {
 			c.CorDestaque = strings.ToUpper(c.CorDestaque)
@@ -201,7 +200,6 @@ func (c *ConfiguracaoUsuario) Preparar(permiteCustomPro bool) error {
 	return nil
 }
 
-// SanitizarAparenciaSemPro remove campos Pro da resposta (não altera o banco).
 func SanitizarAparenciaSemPro(c ConfiguracaoUsuario) ConfiguracaoUsuario {
 	if c.Tema == TemaCustom {
 		c.Tema = TemaClaro
@@ -216,8 +214,6 @@ func SanitizarAparenciaSemPro(c ConfiguracaoUsuario) ConfiguracaoUsuario {
 	return c
 }
 
-// PermiteAcesso avalia se o viewer pode ver/interagir segundo o nível de privacidade.
-// viewerSegueOwner = true quando o viewer segue o dono do recurso.
 func PermiteAcesso(nivel string, ehDono, viewerSegueOwner bool) bool {
 	if ehDono {
 		return true
@@ -234,13 +230,11 @@ func PermiteAcesso(nivel string, ehDono, viewerSegueOwner bool) bool {
 	}
 }
 
-// ReativarContaRequest corpo de POST /usuarios/reativar.
 type ReativarContaRequest struct {
 	Nick  string `json:"nick"`
 	Senha string `json:"senha"`
 }
 
-// PerfilPublicoResposta payload de perfil com flags de privacidade / conta apagada.
 type PerfilPublicoResposta struct {
 	ID                 uint64 `json:"id"`
 	Nome               string `json:"nome,omitempty"`

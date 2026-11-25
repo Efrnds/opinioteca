@@ -1,13 +1,13 @@
 package controllers
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
 	"backend/src/utils/respostas"
-	"backend/src/utils/servicos"
 	"backend/src/utils/security"
+	"backend/src/utils/servicos"
 	"encoding/json"
 	"errors"
 	"io"
@@ -35,7 +35,6 @@ func ehProprioPerfil(usuarioToken modelos.Usuario, nick string) bool {
 	return strings.EqualFold(usuarioToken.Nick, nick)
 }
 
-// CriarUsuario é a função responsável por criar um novo usuário
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 	if !security.LoginPermitido(r) {
 		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
@@ -84,7 +83,6 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, usuario.OcultarSenha())
 }
 
-// BuscarUsuarios pesquisa usuários ativos por nome ou nick.
 func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	nomeOuNick := strings.ToLower(r.URL.Query().Get("usuario"))
 
@@ -109,7 +107,6 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuariosFiltrados)
 }
 
-// BuscarUsuario retorna o perfil pelo nick: público (auth opcional), privado gated, dono vê privado.
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -211,7 +208,6 @@ func BuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuario.ListarPublico())
 }
 
-// AtualizarUsuario atualiza o perfil: só o dono da conta.
 func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -259,7 +255,6 @@ func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
-// InativarUsuario inativa a própria conta.
 func InativarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -290,7 +285,6 @@ func InativarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
-// SeguirUsuario segue um usuário pelo nick.
 func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -334,7 +328,6 @@ func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
-// DeixarSeguirUsuario deixa de seguir um usuário pelo nick.
 func DeixarSeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -375,7 +368,6 @@ func DeixarSeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
-// BuscarSeguidores lista seguidores de um perfil pelo nick.
 func BuscarSeguidores(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -411,7 +403,6 @@ func BuscarSeguidores(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, seguidoresPublicos)
 }
 
-// BuscarSeguindo lista quem o usuário segue pelo nick.
 func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -447,7 +438,6 @@ func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, seguindoPublicos)
 }
 
-// AtualizarSenha atualiza a senha: só o dono da conta.
 func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 

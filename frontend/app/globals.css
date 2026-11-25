@@ -97,12 +97,10 @@ html[data-tema="claro"] {
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* Escuro: fundos escuros, texto claro; accent (--azul-600 etc.) continua via JS.
-   html[data-tema] tem especificidade maior que :root sozinho. */
 html[data-tema="escuro"] {
   --azul-900: #E8EAED;
   --azul-800: #c5cdd8;
-  /* Tons claros de accent viram superfícies escuras tingidas (evita “cards brancos”). */
+  
   --azul-200: color-mix(in oklab, var(--azul-600) 42%, #1a2332);
   --azul-100: color-mix(in oklab, var(--azul-600) 28%, #1a2332);
   --azul-50: color-mix(in oklab, var(--azul-600) 18%, #1a2332);
@@ -131,12 +129,11 @@ html[data-tema="escuro"] {
   --sidebar-accent: #243044;
   --sidebar-accent-foreground: #E8EAED;
   --sidebar-border: rgb(255 255 255 / 10%);
-  /* Off-white do tema claro: logo e chrome que precisam de contraste no escuro */
+  
   --logo-fill: #E8EAED;
   color-scheme: dark;
 }
 
-/* Modo leitor: papel creme, contraste suave para leitura longa */
 html[data-tema="leitor"] {
   --azul-900: #2C2416;
   --azul-800: #3D3224;
@@ -168,7 +165,6 @@ html[data-tema="leitor"] {
   --logo-fill: #1B2432;
 }
 
-/* Daltonismo: base clara com paleta de destaque aplicada por JS conforme tipo selecionado. */
 html[data-tema="daltonismo"] {
   --azul-900: #1B2432;
   --azul-800: #000E33;
@@ -192,7 +188,6 @@ html[data-tema="daltonismo"] {
   --sidebar-foreground: #171717;
 }
 
-/* Personalizado: base clara; overrides via JS (--background, --superficie, etc.). */
 html[data-tema="custom"] {
   --azul-900: #1B2432;
   --azul-800: #000E33;
@@ -217,18 +212,6 @@ html[data-tema="custom"] {
   --sidebar-foreground: #171717;
 }
 
-/*
- * Muitos componentes usam bg-white / text-black / border-gray-* hardcoded.
- * Remapeia superfícies e texto sob temas não-claros sem reescrever cada TSX.
- * Não altera --color-white globalmente; texto sobre accent usa --azul-600-foreground.
- */
-
-/*
- * Contraste do accent:
- * - bg-azul-600 (+ text-white legado) → --azul-600-foreground (escuro se accent claro)
- * - text/fill-azul-600 → --cor-destaque-texto (escurecido se falha contraste no fundo)
- * Remapeia --color-white no escopo do botão para cobrir text-white aninhado.
- */
 .bg-azul-600,
 .hover\:bg-azul-600:hover,
 .active\:bg-azul-600:active {
@@ -286,10 +269,6 @@ html[data-tema="custom"] .bg-white\/95 {
   background-color: color-mix(in oklab, var(--superficie) 92%, transparent);
 }
 
-/*
- * Hovers no escuro: superfície um pouco mais clara (muted), nunca flash branco
- * nem hover:bg-background (mais escuro que o card).
- */
 html[data-tema="escuro"] .hover\:bg-white:hover,
 html[data-tema="escuro"] .hover\:bg-white\/60:hover,
 html[data-tema="escuro"] .hover\:bg-background:hover,
@@ -344,7 +323,6 @@ html[data-tema="leitor"] .border-cinza-100 {
   border-color: var(--cinza-200);
 }
 
-/* Logo SVG (fill escuro hardcoded): no tema escuro usa o off-white do claro (#E8EAED). */
 html[data-tema="escuro"] .logo-opinioteca {
   filter: brightness(0) invert(0.92);
 }
@@ -381,7 +359,6 @@ html[data-tema="custom"] textarea::placeholder {
   color: var(--cinza-700);
 }
 
-/* Acessibilidade: controle de fonte, contraste, foco e movimento. */
 html[data-acess-font="grande"] {
   font-size: 17px;
 }
@@ -413,7 +390,6 @@ html[data-acess-foco="alto"] :focus-visible {
   outline-offset: 2px;
 }
 
-/* Inputs/textarea/select já usam borda própria no focus — evita anel duplicado */
 html[data-acess-foco="alto"] input:focus-visible,
 html[data-acess-foco="alto"] textarea:focus-visible,
 html[data-acess-foco="alto"] select:focus-visible {
@@ -430,12 +406,6 @@ html[data-acess-reduce-motion="true"] *::after {
   scroll-behavior: auto !important;
 }
 
-/*
- * Painel admin: chrome fixo (claro + azul Opinoteca), independente do tema do usuário.
- * Variáveis no [data-admin] sobrescrevem herança de html[data-tema] / inline styles.
- * Regras abaixo desfazem remaps de escuro/leitor/custom que não usam só tokens.
- * Complementa forcarTemaClaroAdmin() no documentElement (AdminShell).
- */
 [data-admin] {
   color-scheme: light !important;
   --azul-900: #1B2432 !important;
@@ -673,7 +643,6 @@ html[data-tema="custom"] [data-admin] textarea::placeholder {
   color: var(--cinza-700);
 }
 
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -796,10 +765,7 @@ html[data-tema="custom"] [data-admin] textarea::placeholder {
     overscroll-behavior-x: none;
   }
 
-  /*
-   * iOS Safari zooms focused inputs when computed font-size < 16px.
-   * Force 16px on small screens regardless of Tailwind text-sm utilities.
-   */
+  
   @media (max-width: 1023px) {
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
     select,
@@ -808,7 +774,7 @@ html[data-tema="custom"] [data-admin] textarea::placeholder {
     }
   }
 
-  /* Mitigate double-tap zoom without disabling scrolling / pinch via viewport alone */
+  
   a,
   button,
   [role="button"],
@@ -821,12 +787,6 @@ html[data-tema="custom"] [data-admin] textarea::placeholder {
   }
 }
 
-/*
- * Sticky side columns (lg+): clear the sticky header.
- * Keep top alignment with the feed; vertical breathing room comes from each
- * column internal padding (`py-*`), not from an extra sticky offset.
- * Header @ lg: search row (~4.5rem) + border-b-2 (0.125rem) ~= 4.625rem.
- */
 :root {
   --layout-header-height: 4.625rem;
   --layout-sticky-gap: 0rem;

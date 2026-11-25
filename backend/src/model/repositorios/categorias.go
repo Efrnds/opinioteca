@@ -5,17 +5,14 @@ import (
 	"database/sql"
 )
 
-// Categorias é a struct responsável por representar o repositório de categorias.
 type Categorias struct {
 	db *sql.DB
 }
 
-// NovoRepositorioDeCategorias é a função responsável por criar um novo repositório de categorias.
 func NovoRepositorioDeCategorias(db *sql.DB) *Categorias {
 	return &Categorias{db}
 }
 
-// Criar é a função responsável por criar uma nova categoria no banco de dados.
 func (repositorio Categorias) Criar(categoria modelos.Categoria) (uint64, error) {
 	var id uint64
 	erro := repositorio.db.QueryRow(
@@ -29,13 +26,11 @@ func (repositorio Categorias) Criar(categoria modelos.Categoria) (uint64, error)
 	return uint64(id), nil
 }
 
-// Buscar é a função responsável por buscar todas as categorias no banco de dados.
 func (repositorio Categorias) Buscar() ([]modelos.Categoria, error) {
 	categorias, _, erro := repositorio.BuscarPaginado(100000, 0)
 	return categorias, erro
 }
 
-// BuscarPaginado lista categorias ativas com paginação.
 func (repositorio Categorias) BuscarPaginado(limite, offset int) ([]modelos.Categoria, int, error) {
 	if limite <= 0 {
 		limite = 20
@@ -77,7 +72,6 @@ func (repositorio Categorias) BuscarPaginado(limite, offset int) ([]modelos.Cate
 	return categorias, total, nil
 }
 
-// BuscarPorID é a função responsável por buscar uma categoria específica no banco de dados.
 func (repositorio Categorias) BuscarPorID(ID uint64) (modelos.Categoria, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT id, nome_categoria, ativo, criadoEm FROM categorias WHERE id = $1 AND ativo = true",
@@ -101,7 +95,6 @@ func (repositorio Categorias) BuscarPorID(ID uint64) (modelos.Categoria, error) 
 	return categoria, nil
 }
 
-// Atualizar é a função responsável por atualizar uma categoria específica no banco de dados.
 func (repositorio Categorias) Atualizar(ID uint64, categoria modelos.Categoria) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE categorias SET nome_categoria = $1, ativo = $2 WHERE id = $3",
@@ -116,7 +109,6 @@ func (repositorio Categorias) Atualizar(ID uint64, categoria modelos.Categoria) 
 	return nil
 }
 
-// Inativar é a função responsável por inativar uma categoria específica no banco de dados.
 func (repositorio Categorias) Inativar(ID uint64) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE categorias SET ativo = false WHERE id = $1",
@@ -131,7 +123,6 @@ func (repositorio Categorias) Inativar(ID uint64) error {
 	return nil
 }
 
-// BuscarPorNome retorna a categoria pelo nome exato.
 func (repositorio Categorias) BuscarPorNome(nome string) (modelos.Categoria, error) {
 	linha := repositorio.db.QueryRow(
 		"SELECT id, nome_categoria, ativo, criadoEm FROM categorias WHERE nome_categoria = $1 AND ativo = true",

@@ -388,13 +388,6 @@ func (repositorio Diario) BuscarOpinioWrapped(usuarioID uint64, maiorSequencia, 
 	}
 	resp.PaginasRegistradas = resp.PaginasLidas
 
-	// Regra anti-dupla contagem do Wrapped:
-	// - todo livro concluído dentro da janela de 12 meses entra no resumo;
-	// - para cada livro concluído, usamos o maior valor entre as páginas
-	//   registradas no diário dentro da janela e o total canônico de páginas do livro;
-	// - para livros não concluídos, contamos só as páginas do diário.
-	// Assim, o resumo continua fiel quando há poucos registros sem inflar quem já
-	// registrou muitas páginas do mesmo livro no diário.
 	linhasResumo, erro := repositorio.db.Query(
 		`WITH diario_periodo AS (
 			SELECT

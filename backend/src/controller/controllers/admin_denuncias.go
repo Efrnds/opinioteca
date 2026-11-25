@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"backend/src/utils/auth"
 	"backend/src/model/banco"
 	"backend/src/model/modelos"
 	"backend/src/model/repositorios"
+	"backend/src/utils/auth"
 	"backend/src/utils/respostas"
 	"backend/src/utils/servicos"
 	"database/sql"
@@ -21,7 +21,6 @@ func denunciaIDDaURL(r *http.Request) (uint64, error) {
 	return strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 }
 
-// AdminListarDenuncias lista denúncias com filtros opcionais de status e tipo.
 func AdminListarDenuncias(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	tipo := r.URL.Query().Get("tipo")
@@ -63,7 +62,6 @@ func AdminListarDenuncias(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// AdminBuscarDenunciaPorID retorna detalhes da denúncia com contexto da entidade.
 func AdminBuscarDenunciaPorID(w http.ResponseWriter, r *http.Request) {
 	denunciaID, erro := denunciaIDDaURL(r)
 	if erro != nil {
@@ -116,7 +114,6 @@ func AdminBuscarDenunciaPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, detalhe)
 }
 
-// AdminResolverDenuncia aplica ação de moderação e resolve a denúncia.
 func AdminResolverDenuncia(w http.ResponseWriter, r *http.Request) {
 	denunciaID, erro := denunciaIDDaURL(r)
 	if erro != nil {

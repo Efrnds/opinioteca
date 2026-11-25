@@ -1,24 +1,14 @@
 package repositorios
 
-
-
 import (
-
 	"backend/src/model/modelos"
 
 	"database/sql"
-
 )
 
-
-
 type Mensagens struct {
-
 	db *sql.DB
-
 }
-
-
 
 func NovoRepositorioDeMensagens(db *sql.DB) *Mensagens {
 
@@ -26,12 +16,8 @@ func NovoRepositorioDeMensagens(db *sql.DB) *Mensagens {
 
 }
 
-
-
 func scanMensagem(linhas interface {
-
 	Scan(dest ...any) error
-
 }, m *modelos.Mensagem) error {
 
 	var anexo, reacao sql.NullString
@@ -45,8 +31,6 @@ func scanMensagem(linhas interface {
 	var respostaRemetente sql.NullInt64
 
 	var respostaAnexo sql.NullString
-
-
 
 	if erro := linhas.Scan(
 
@@ -81,14 +65,11 @@ func scanMensagem(linhas interface {
 		&respostaRemetente,
 
 		&respostaAnexo,
-
 	); erro != nil {
 
 		return erro
 
 	}
-
-
 
 	if anexo.Valid {
 
@@ -114,12 +95,11 @@ func scanMensagem(linhas interface {
 
 		resumo := &modelos.MensagemResumo{
 
-			ID:          uint64(respostaID.Int64),
+			ID: uint64(respostaID.Int64),
 
 			RemetenteID: uint64(respostaRemetente.Int64),
 
-			Conteudo:    respostaConteudo.String,
-
+			Conteudo: respostaConteudo.String,
 		}
 
 		if respostaAnexo.Valid {
@@ -132,25 +112,17 @@ func scanMensagem(linhas interface {
 
 	}
 
-
-
 	return nil
 
 }
 
-
-
 const filtroVisivelUsuario = `((remetente_id = $1 AND apagado_por_remetente = FALSE) OR (destinatario_id = $1 AND apagado_por_destinatario = FALSE))`
-
-
 
 const selectMensagemComResposta = `SELECT m.id, m.remetente_id, m.destinatario_id, m.conteudo, m.lida, m.criadoEm, m.anexo_url,
 
 	m.editada, m.resposta_a_id, m.reacao, m.apagado_por_remetente, m.apagado_por_destinatario,
 
 	r.id, r.conteudo, r.remetente_id, r.anexo_url`
-
-
 
 func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaResumo, error) {
 
@@ -215,7 +187,6 @@ func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaRe
 		ORDER BY fixada DESC, c.criadoEm DESC`,
 
 		meuID,
-
 	)
 
 	if erro != nil {
@@ -226,8 +197,6 @@ func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaRe
 
 	defer linhas.Close()
 
-
-
 	resultado := make([]modelos.ConversaResumo, 0)
 
 	for linhas.Next() {
@@ -237,8 +206,6 @@ func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaRe
 		var image sql.NullString
 
 		var remetenteID uint64
-
-
 
 		if erro := linhas.Scan(
 
@@ -259,14 +226,11 @@ func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaRe
 			&c.Fixada,
 
 			&c.NaoLidas,
-
 		); erro != nil {
 
 			return nil, erro
 
 		}
-
-
 
 		if image.Valid {
 
@@ -280,13 +244,9 @@ func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaRe
 
 	}
 
-
-
 	return resultado, nil
 
 }
-
-
 
 func (repositorio Mensagens) BuscarHistorico(meuID, outroID uint64) ([]modelos.Mensagem, error) {
 
@@ -309,7 +269,6 @@ func (repositorio Mensagens) BuscarHistorico(meuID, outroID uint64) ([]modelos.M
 		 ORDER BY m.criadoEm ASC`,
 
 		meuID, outroID,
-
 	)
 
 	if erro != nil {
@@ -319,8 +278,6 @@ func (repositorio Mensagens) BuscarHistorico(meuID, outroID uint64) ([]modelos.M
 	}
 
 	defer linhas.Close()
-
-
 
 	mensagens := make([]modelos.Mensagem, 0)
 
@@ -338,13 +295,9 @@ func (repositorio Mensagens) BuscarHistorico(meuID, outroID uint64) ([]modelos.M
 
 	}
 
-
-
 	return mensagens, nil
 
 }
-
-
 
 func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo, anexoURL string, respostaAID *uint64) (modelos.Mensagem, error) {
 
@@ -358,8 +311,6 @@ func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo
 
 	}
 
-
-
 	var resposta sql.NullInt64
 
 	if respostaAID != nil && *respostaAID > 0 {
@@ -367,8 +318,6 @@ func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo
 		resposta = sql.NullInt64{Int64: int64(*respostaAID), Valid: true}
 
 	}
-
-
 
 	erro := repositorio.db.QueryRow(
 
@@ -379,7 +328,6 @@ func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo
 		 RETURNING id`,
 
 		remetenteID, destinatarioID, conteudo, anexo, resposta,
-
 	).Scan(&m.ID)
 
 	if erro != nil {
@@ -388,8 +336,6 @@ func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo
 
 	}
 
-
-
 	historico, erro := repositorio.BuscarHistorico(remetenteID, destinatarioID)
 
 	if erro != nil {
@@ -397,8 +343,6 @@ func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo
 		return modelos.Mensagem{}, erro
 
 	}
-
-
 
 	for _, msg := range historico {
 
@@ -410,13 +354,9 @@ func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo
 
 	}
 
-
-
 	return modelos.Mensagem{}, sql.ErrNoRows
 
 }
-
-
 
 func (repositorio Mensagens) ApagarConversa(meuID, outroID uint64) error {
 
@@ -430,41 +370,31 @@ func (repositorio Mensagens) ApagarConversa(meuID, outroID uint64) error {
 
 	defer tx.Rollback()
 
-
-
 	if _, erro = tx.Exec(
 
 		`UPDATE mensagens SET apagado_por_remetente = TRUE WHERE remetente_id = $1 AND destinatario_id = $2`,
 
 		meuID, outroID,
-
 	); erro != nil {
 
 		return erro
 
 	}
-
-
 
 	if _, erro = tx.Exec(
 
 		`UPDATE mensagens SET apagado_por_destinatario = TRUE WHERE remetente_id = $1 AND destinatario_id = $2`,
 
 		outroID, meuID,
-
 	); erro != nil {
 
 		return erro
 
 	}
 
-
-
 	return tx.Commit()
 
 }
-
-
 
 func (repositorio Mensagens) ApagarMensagem(meuID, mensagemID uint64) (modelos.Mensagem, error) {
 	var m modelos.Mensagem
@@ -489,8 +419,6 @@ func (repositorio Mensagens) ApagarMensagem(meuID, mensagemID uint64) (modelos.M
 	return m, nil
 }
 
-
-
 func (repositorio Mensagens) EditarMensagem(meuID, mensagemID uint64, conteudo string) (modelos.Mensagem, error) {
 
 	var destinatarioID uint64
@@ -504,7 +432,6 @@ func (repositorio Mensagens) EditarMensagem(meuID, mensagemID uint64, conteudo s
 		 RETURNING destinatario_id`,
 
 		conteudo, mensagemID, meuID,
-
 	).Scan(&destinatarioID)
 
 	if erro != nil {
@@ -513,8 +440,6 @@ func (repositorio Mensagens) EditarMensagem(meuID, mensagemID uint64, conteudo s
 
 	}
 
-
-
 	historico, erro := repositorio.BuscarHistorico(meuID, destinatarioID)
 
 	if erro != nil {
@@ -522,8 +447,6 @@ func (repositorio Mensagens) EditarMensagem(meuID, mensagemID uint64, conteudo s
 		return modelos.Mensagem{}, erro
 
 	}
-
-
 
 	for _, msg := range historico {
 
@@ -535,13 +458,9 @@ func (repositorio Mensagens) EditarMensagem(meuID, mensagemID uint64, conteudo s
 
 	}
 
-
-
 	return modelos.Mensagem{}, sql.ErrNoRows
 
 }
-
-
 
 func (repositorio Mensagens) ReagirMensagem(meuID, mensagemID uint64, reacao string) (modelos.Mensagem, error) {
 
@@ -556,7 +475,6 @@ func (repositorio Mensagens) ReagirMensagem(meuID, mensagemID uint64, reacao str
 		 RETURNING CASE WHEN remetente_id = $3 THEN destinatario_id ELSE remetente_id END`,
 
 		reacao, mensagemID, meuID,
-
 	).Scan(&outroID)
 
 	if erro != nil {
@@ -565,8 +483,6 @@ func (repositorio Mensagens) ReagirMensagem(meuID, mensagemID uint64, reacao str
 
 	}
 
-
-
 	historico, erro := repositorio.BuscarHistorico(meuID, outroID)
 
 	if erro != nil {
@@ -574,8 +490,6 @@ func (repositorio Mensagens) ReagirMensagem(meuID, mensagemID uint64, reacao str
 		return modelos.Mensagem{}, erro
 
 	}
-
-
 
 	for _, msg := range historico {
 
@@ -587,13 +501,9 @@ func (repositorio Mensagens) ReagirMensagem(meuID, mensagemID uint64, reacao str
 
 	}
 
-
-
 	return modelos.Mensagem{}, sql.ErrNoRows
 
 }
-
-
 
 func (repositorio Mensagens) ToggleFixarConversa(meuID, outroID uint64) (bool, error) {
 
@@ -604,7 +514,6 @@ func (repositorio Mensagens) ToggleFixarConversa(meuID, outroID uint64) (bool, e
 		`SELECT EXISTS(SELECT 1 FROM conversas_fixadas WHERE usuario_id = $1 AND outro_usuario_id = $2)`,
 
 		meuID, outroID,
-
 	).Scan(&existe)
 
 	if erro != nil {
@@ -613,8 +522,6 @@ func (repositorio Mensagens) ToggleFixarConversa(meuID, outroID uint64) (bool, e
 
 	}
 
-
-
 	if existe {
 
 		_, erro = repositorio.db.Exec(
@@ -622,28 +529,22 @@ func (repositorio Mensagens) ToggleFixarConversa(meuID, outroID uint64) (bool, e
 			`DELETE FROM conversas_fixadas WHERE usuario_id = $1 AND outro_usuario_id = $2`,
 
 			meuID, outroID,
-
 		)
 
 		return false, erro
 
 	}
 
-
-
 	_, erro = repositorio.db.Exec(
 
 		`INSERT INTO conversas_fixadas (usuario_id, outro_usuario_id) VALUES ($1, $2)`,
 
 		meuID, outroID,
-
 	)
 
 	return true, erro
 
 }
-
-
 
 func (repositorio Mensagens) BuscarMensagemPorID(meuID, mensagemID uint64) (modelos.Mensagem, error) {
 
@@ -658,7 +559,6 @@ func (repositorio Mensagens) BuscarMensagemPorID(meuID, mensagemID uint64) (mode
 		 WHERE m.id = $1 AND (m.remetente_id = $2 OR m.destinatario_id = $2)`,
 
 		mensagemID, meuID,
-
 	)
 
 	if erro != nil {
@@ -669,15 +569,11 @@ func (repositorio Mensagens) BuscarMensagemPorID(meuID, mensagemID uint64) (mode
 
 	defer linhas.Close()
 
-
-
 	if !linhas.Next() {
 
 		return modelos.Mensagem{}, sql.ErrNoRows
 
 	}
-
-
 
 	var m modelos.Mensagem
 
@@ -686,8 +582,6 @@ func (repositorio Mensagens) BuscarMensagemPorID(meuID, mensagemID uint64) (mode
 		return modelos.Mensagem{}, erro
 
 	}
-
-
 
 	return m, nil
 
@@ -769,4 +663,3 @@ func (repositorio Mensagens) ApagarPorAdmin(mensagemID uint64) error {
 	}
 	return nil
 }
-

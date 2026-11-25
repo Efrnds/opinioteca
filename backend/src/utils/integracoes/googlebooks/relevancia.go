@@ -23,12 +23,11 @@ func idiomaPortugues(lang string) bool {
 	return lang == "pt" || strings.HasPrefix(lang, "pt-")
 }
 
-// bonusIdiomaPortugues prioriza edições em português (pt / pt-BR).
 func bonusIdiomaPortugues(lang, tituloNormalizado string) int {
 	if idiomaPortugues(lang) {
 		return 320
 	}
-	// Heurística quando a API não manda language confiável.
+
 	indicadoresPT := []string{
 		" e a ", " e o ", " e as ", " e os ", "filosofal", "camara secreta",
 		"prisioneiro de azkaban", "calice de fogo", "ordem da fenix",
@@ -67,8 +66,6 @@ func normalizarTextoBusca(s string) string {
 	return strings.Join(strings.Fields(replacer.Replace(s)), " ")
 }
 
-// similaridadeTitulo prioriza o nome do livro: match exato/prefixo ganha de
-// autor com o mesmo termo (ex.: "verity" → Verity, não obras de uma Verity).
 func similaridadeTitulo(texto, consulta string) int {
 	if texto == "" || consulta == "" {
 		return 0
@@ -104,8 +101,6 @@ func similaridadeTitulo(texto, consulta string) int {
 	return score
 }
 
-// similaridadeAutor ajuda buscas por sobrenome (ex.: "marx" → Karl Marx),
-// mas fica abaixo de um título com match forte.
 func similaridadeAutor(autor, consulta string) int {
 	if autor == "" || consulta == "" {
 		return 0
@@ -175,7 +170,7 @@ func penalidadesTitulo(titulo, consulta string) int {
 			penalidade -= 50
 		}
 	}
-	// Evita ranquear meta-livros cujo título só cita o termo no meio.
+
 	if consulta != "" && titulo != consulta && strings.Contains(titulo, consulta) && !strings.HasPrefix(titulo, consulta) {
 		penalidade -= 15
 	}

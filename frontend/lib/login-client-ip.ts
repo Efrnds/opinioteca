@@ -1,4 +1,3 @@
-/** IP do browser visto pelo Next (para rate limit no Go atrás do BFF). */
 export async function ipClienteDosHeaders(): Promise<string | undefined> {
     try {
         const { headers } = await import("next/headers");
@@ -6,16 +5,17 @@ export async function ipClienteDosHeaders(): Promise<string | undefined> {
         const xff = h.get("x-forwarded-for");
         if (xff) {
             const primeiro = xff.split(",")[0]?.trim();
-            if (primeiro) return primeiro;
+            if (primeiro)
+                return primeiro;
         }
         const xri = h.get("x-real-ip")?.trim();
-        if (xri) return xri;
-    } catch {
-        // fora de request context
+        if (xri)
+            return xri;
+    }
+    catch {
     }
     return undefined;
 }
-
 export function headersLoginBackend(clientIp?: string): HeadersInit {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (clientIp) {
