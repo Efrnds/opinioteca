@@ -11,10 +11,12 @@ type Descoberta struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeDescoberta: repositorio de descoberta na descoberta.
 func NovoRepositorioDeDescoberta(db *sql.DB) *Descoberta {
 	return &Descoberta{db}
 }
 
+// Ordena obras pela quantidade de avaliações dos últimos 30 dias.
 func (repositorio Descoberta) LivrosEmAlta(limite int) ([]modelos.Livro, error) {
 	if limite <= 0 || limite > 50 {
 		limite = 12
@@ -65,6 +67,7 @@ func (repositorio Descoberta) LivrosEmAlta(limite int) ([]modelos.Livro, error) 
 	return livros, linhas.Err()
 }
 
+// LivrosRecentes: recentes na descoberta.
 func (repositorio Descoberta) LivrosRecentes(limite int) ([]modelos.Livro, error) {
 	if limite <= 0 || limite > 50 {
 		limite = 12
@@ -96,6 +99,7 @@ func (repositorio Descoberta) LivrosRecentes(limite int) ([]modelos.Livro, error
 	return livros, nil
 }
 
+// UsuariosSugeridos: sugeridos na descoberta.
 func (repositorio Descoberta) UsuariosSugeridos(viewerID uint64, limite int) ([]modelos.Usuario, error) {
 	if limite <= 0 || limite > 50 {
 		limite = 12
@@ -143,6 +147,7 @@ func (repositorio Descoberta) UsuariosSugeridos(viewerID uint64, limite int) ([]
 	return usuarios, nil
 }
 
+// Lista perfis públicos ativos com rank maior que zero, do maior para o menor.
 func (repositorio Descoberta) UsuariosPorRank(limite int) ([]modelos.Usuario, error) {
 	if limite <= 0 || limite > 50 {
 		limite = 12

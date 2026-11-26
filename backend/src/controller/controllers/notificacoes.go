@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Autentica o JWT, promove a conexão e registra o usuário no hub até o socket cair.
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	token, protocolEcho := auth.ExtrairTokenWebSocket(r)
 	usuarioID, erro := auth.ExtrairUsuarioIDDoToken(token)
@@ -58,6 +59,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// paginacaoNotificacoes: notificacoes nas notificações.
 func paginacaoNotificacoes(r *http.Request) (limite, offset int) {
 	if valor := r.URL.Query().Get("limite"); valor != "" {
 		if parsed, erro := strconv.Atoi(valor); erro == nil && parsed > 0 {
@@ -72,6 +74,7 @@ func paginacaoNotificacoes(r *http.Request) (limite, offset int) {
 	return limite, offset
 }
 
+// Busca notificacoes nao lidas nas notificações.
 func BuscarNotificacoesNaoLidas(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {
@@ -106,6 +109,7 @@ func BuscarNotificacoesNaoLidas(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, notificacoes)
 }
 
+// Marca notificacao como lida nas notificações.
 func MarcarNotificacaoComoLida(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {
@@ -139,6 +143,7 @@ func MarcarNotificacaoComoLida(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// Marca todas notificacoes como lidas nas notificações.
 func MarcarTodasNotificacoesComoLidas(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {

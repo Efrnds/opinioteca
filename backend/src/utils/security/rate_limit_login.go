@@ -27,6 +27,7 @@ const (
 	googleMaxFalhas = 40
 )
 
+// ehLoopback: loopback.
 func ehLoopback(ip string) bool {
 	parsed := net.ParseIP(ip)
 	if parsed == nil {
@@ -35,6 +36,7 @@ func ehLoopback(ip string) bool {
 	return parsed.IsLoopback()
 }
 
+// ipDoCliente: do cliente.
 func ipDoCliente(r *http.Request) string {
 	remoteHost, _, _ := net.SplitHostPort(r.RemoteAddr)
 	if remoteHost == "" {
@@ -79,11 +81,13 @@ func ipDoCliente(r *http.Request) string {
 	return r.RemoteAddr
 }
 
+// confiaNoProxy: no proxy.
 func confiaNoProxy() bool {
 	v := strings.ToLower(strings.TrimSpace(os.Getenv("TRUST_PROXY")))
 	return v == "1" || v == "true" || v == "yes"
 }
 
+// Usa o nick como chave do login por senha, para o mesmo Wi-Fi não bloquear outra pessoa.
 func chaveRateLimit(r *http.Request, escopo string) string {
 	escopo = strings.ToLower(strings.TrimSpace(escopo))
 	ip := ipDoCliente(r)
@@ -107,6 +111,7 @@ func chaveRateLimit(r *http.Request, escopo string) string {
 	return "ip:" + ip
 }
 
+// maxFalhasPara: falhas para.
 func maxFalhasPara(chave string) int {
 	if strings.HasPrefix(chave, "google:") {
 		return googleMaxFalhas
@@ -114,6 +119,7 @@ func maxFalhasPara(chave string) int {
 	return loginMaxFalhas
 }
 
+// Libera o login se esse nick não estiver nos 15 minutos de bloqueio.
 func LoginPermitido(r *http.Request, escopo ...string) bool {
 	esc := ""
 	if len(escopo) > 0 {
@@ -149,6 +155,7 @@ func LoginPermitido(r *http.Request, escopo ...string) bool {
 	return true
 }
 
+// Soma um erro de senha e, no oitavo, bloqueia a chave por 15 minutos.
 func RegistrarFalhaLogin(r *http.Request, escopo ...string) {
 	esc := ""
 	if len(escopo) > 0 {
@@ -177,6 +184,7 @@ func RegistrarFalhaLogin(r *http.Request, escopo ...string) {
 	}
 }
 
+// Apaga o contador de senhas erradas daquele nick.
 func RegistrarSucessoLogin(r *http.Request, escopo ...string) {
 	esc := ""
 	if len(escopo) > 0 {
@@ -195,6 +203,7 @@ func RegistrarSucessoLogin(r *http.Request, escopo ...string) {
 	loginMu.Unlock()
 }
 
+// Limpa todos bloqueios login.
 func LimparTodosBloqueiosLogin() {
 	loginMu.Lock()
 	loginPorIP = map[string]*tentativaLogin{}

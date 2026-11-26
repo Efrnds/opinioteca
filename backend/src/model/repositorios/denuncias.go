@@ -11,10 +11,12 @@ type Denuncias struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeDenuncias: repositorio de denuncias nas denúncias.
 func NovoRepositorioDeDenuncias(db *sql.DB) *Denuncias {
 	return &Denuncias{db}
 }
 
+// Cria nas denúncias.
 func (repositorio Denuncias) Criar(denuncia modelos.Denuncia) (modelos.Denuncia, error) {
 	var criada modelos.Denuncia
 	var descricao sql.NullString
@@ -50,11 +52,13 @@ func (repositorio Denuncias) Criar(denuncia modelos.Denuncia) (modelos.Denuncia,
 	return criada, nil
 }
 
+// Lista nas denúncias.
 func (repositorio Denuncias) Listar(status, tipo string) ([]modelos.DenunciaListItem, error) {
 	itens, _, erro := repositorio.ListarPaginado(status, tipo, 100000, 0)
 	return itens, erro
 }
 
+// Lista paginado nas denúncias.
 func (repositorio Denuncias) ListarPaginado(status, tipo string, limite, offset int) ([]modelos.DenunciaListItem, int, error) {
 	if limite <= 0 {
 		limite = 20
@@ -121,6 +125,7 @@ func (repositorio Denuncias) ListarPaginado(status, tipo string, limite, offset 
 	return itens, total, nil
 }
 
+// Conta pendentes nas denúncias.
 func (repositorio Denuncias) ContarPendentes() (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(
@@ -129,6 +134,7 @@ func (repositorio Denuncias) ContarPendentes() (int, error) {
 	return total, erro
 }
 
+// Busca por id nas denúncias.
 func (repositorio Denuncias) BuscarPorID(id uint64) (modelos.Denuncia, error) {
 	var denuncia modelos.Denuncia
 	var descricao, resolucao sql.NullString
@@ -172,6 +178,7 @@ func (repositorio Denuncias) BuscarPorID(id uint64) (modelos.Denuncia, error) {
 	return denuncia, nil
 }
 
+// Busca denunciante info nas denúncias.
 func (repositorio Denuncias) BuscarDenuncianteInfo(denuncianteID uint64) (nick, nome string, erro error) {
 	erro = repositorio.db.QueryRow(
 		`SELECT nick, nome FROM usuarios WHERE id = $1`,
@@ -180,6 +187,7 @@ func (repositorio Denuncias) BuscarDenuncianteInfo(denuncianteID uint64) (nick, 
 	return
 }
 
+// Resolve nas denúncias.
 func (repositorio Denuncias) Resolver(id, adminID uint64, status, resolucao string) error {
 	resultado, erro := repositorio.db.Exec(
 		`UPDATE denuncias
@@ -210,6 +218,7 @@ const filtroDenunciasContraUsuario = `
 	OR (d.tipo_entidade = 'mensagem' AND d.referencia_id IN (SELECT id FROM mensagens WHERE remetente_id = $1))
 `
 
+// UsuarioDenunciadoID: denunciado id nas denúncias.
 func (repositorio Denuncias) UsuarioDenunciadoID(tipoEntidade string, referenciaID uint64) (uint64, error) {
 	switch tipoEntidade {
 	case modelos.TipoEntidadeAvaliacao:
@@ -252,6 +261,7 @@ func (repositorio Denuncias) UsuarioDenunciadoID(tipoEntidade string, referencia
 	}
 }
 
+// Conta denuncias contra usuario nas denúncias.
 func (repositorio Denuncias) ContarDenunciasContraUsuario(usuarioID uint64) (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(
@@ -261,6 +271,7 @@ func (repositorio Denuncias) ContarDenunciasContraUsuario(usuarioID uint64) (int
 	return total, erro
 }
 
+// Conta denuncias procedentes contra usuario nas denúncias.
 func (repositorio Denuncias) ContarDenunciasProcedentesContraUsuario(usuarioID uint64) (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(

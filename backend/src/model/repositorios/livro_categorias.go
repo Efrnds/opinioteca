@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// SubstituirCategorias: categorias.
 func (repositorio Livros) SubstituirCategorias(livroID uint64, categoriasIDs []uint64) error {
 	tx, erro := repositorio.db.Begin()
 	if erro != nil {
@@ -32,6 +33,7 @@ func (repositorio Livros) SubstituirCategorias(livroID uint64, categoriasIDs []u
 	return tx.Commit()
 }
 
+// Busca categorias ids.
 func (repositorio Livros) BuscarCategoriasIDs(livroID uint64) ([]uint64, error) {
 	linhas, erro := repositorio.db.Query(
 		"SELECT categoria_id FROM livro_categorias WHERE livro_id = $1 ORDER BY categoria_id",
@@ -53,6 +55,7 @@ func (repositorio Livros) BuscarCategoriasIDs(livroID uint64) ([]uint64, error) 
 	return ids, nil
 }
 
+// PreencherCategorias: categorias.
 func (repositorio Livros) PreencherCategorias(livros []modelos.Livro) error {
 	if len(livros) == 0 {
 		return nil
@@ -106,6 +109,7 @@ func (repositorio Livros) PreencherCategorias(livros []modelos.Livro) error {
 	return nil
 }
 
+// PreencherCategoriasLivro: categorias livro.
 func (repositorio Livros) PreencherCategoriasLivro(livro *modelos.Livro) error {
 	if livro == nil || livro.ID == 0 {
 		return nil

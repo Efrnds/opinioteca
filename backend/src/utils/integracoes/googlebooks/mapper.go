@@ -10,6 +10,7 @@ import (
 
 var ErrDadosInsuficientes = errors.New("Google Books não retornou título e autor")
 
+// VolumeParaLivro: para livro.
 func VolumeParaLivro(item VolumeItem) (modelos.Livro, error) {
 	livro := modelos.Livro{
 		GoogleVolumeID: item.ID,
@@ -43,6 +44,7 @@ func VolumeParaLivro(item VolumeItem) (modelos.Livro, error) {
 	return livro, nil
 }
 
+// VolumeParaLivroBusca: para livro busca.
 func VolumeParaLivroBusca(item VolumeItem) (modelos.LivroBusca, error) {
 	livro := modelos.LivroBusca{
 		Origem:         "google",
@@ -67,6 +69,7 @@ func VolumeParaLivroBusca(item VolumeItem) (modelos.LivroBusca, error) {
 	return livro, nil
 }
 
+// httpsCapaURL: capa url.
 func httpsCapaURL(raw string) string {
 	url := strings.TrimSpace(raw)
 	if strings.HasPrefix(url, "http://") {
@@ -75,6 +78,7 @@ func httpsCapaURL(raw string) string {
 	return url
 }
 
+// Extrai isbn.
 func extrairISBN(identifiers []industryIdentifier) string {
 	for _, id := range identifiers {
 		if id.Type == "ISBN_13" {
@@ -89,6 +93,7 @@ func extrairISBN(identifiers []industryIdentifier) string {
 	return ""
 }
 
+// parsePublishedDate: published date.
 func parsePublishedDate(raw string) (time.Time, bool) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {

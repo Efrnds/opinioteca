@@ -15,6 +15,7 @@ type Rota struct {
 	RequerAdmin        bool
 }
 
+// Registra cada URL e embrulha o handler com admin, autenticação e log.
 func Configurar(r *mux.Router) *mux.Router {
 	rotas := []Rota{}
 	rotas = append(rotas, rotasUsuarios...)

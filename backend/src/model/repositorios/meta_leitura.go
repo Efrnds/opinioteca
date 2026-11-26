@@ -10,10 +10,12 @@ type MetaLeitura struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeMetaLeitura: repositorio de meta leitura na meta de leitura.
 func NovoRepositorioDeMetaLeitura(db *sql.DB) *MetaLeitura {
 	return &MetaLeitura{db}
 }
 
+// schemaExiste: existe na meta de leitura.
 func (repositorio MetaLeitura) schemaExiste() bool {
 	var existe bool
 	erro := repositorio.db.QueryRow(`
@@ -24,6 +26,7 @@ func (repositorio MetaLeitura) schemaExiste() bool {
 	return erro == nil && existe
 }
 
+// Busca na meta de leitura.
 func (repositorio MetaLeitura) Buscar(usuarioID uint64) (modelos.MetaLeitura, bool, error) {
 	if !repositorio.schemaExiste() {
 		return modelos.MetaLeitura{}, false, nil
@@ -43,6 +46,7 @@ func (repositorio MetaLeitura) Buscar(usuarioID uint64) (modelos.MetaLeitura, bo
 	return meta, true, nil
 }
 
+// Grava na meta de leitura.
 func (repositorio MetaLeitura) Salvar(usuarioID uint64, req modelos.MetaLeituraRequest) error {
 	if !repositorio.schemaExiste() {
 		return sql.ErrNoRows
@@ -61,6 +65,7 @@ func (repositorio MetaLeitura) Salvar(usuarioID uint64, req modelos.MetaLeituraR
 	return erro
 }
 
+// Remove na meta de leitura.
 func (repositorio MetaLeitura) Remover(usuarioID uint64) error {
 	if !repositorio.schemaExiste() {
 		return nil
@@ -69,6 +74,7 @@ func (repositorio MetaLeitura) Remover(usuarioID uint64) error {
 	return erro
 }
 
+// Soma páginas ou conta livros em 100% desde o início do mês ou do ano.
 func (repositorio Diario) CalcularProgressoMeta(usuarioID uint64, tipo, periodo string) (int, error) {
 	local := mustLocationDiario()
 	agora := time.Now().In(local)

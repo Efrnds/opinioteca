@@ -15,10 +15,12 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// usuarioIDDaURL: id da url.
 func usuarioIDDaURL(r *http.Request) (uint64, error) {
 	return strconv.ParseUint(mux.Vars(r)["usuarioId"], 10, 64)
 }
 
+// AdminBuscarUsuarios: buscar usuarios.
 func AdminBuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	pagina, limite, offset := paginacaoAdmin(r)
 
@@ -65,6 +67,7 @@ func AdminBuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, resposta)
 }
 
+// AdminBuscarUsuarioPorID: buscar usuario por id.
 func AdminBuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := usuarioIDDaURL(r)
 	if erro != nil {
@@ -93,6 +96,7 @@ func AdminBuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuario.ListarAdmin())
 }
 
+// AdminCriarUsuario: criar usuario.
 func AdminCriarUsuario(w http.ResponseWriter, r *http.Request) {
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -138,6 +142,7 @@ func AdminCriarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, payload.Usuario.ListarAdmin())
 }
 
+// AdminAtualizarUsuario: atualizar usuario.
 func AdminAtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := usuarioIDDaURL(r)
 	if erro != nil {
@@ -220,6 +225,7 @@ func AdminAtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// AdminInativarUsuario: inativar usuario.
 func AdminInativarUsuario(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := usuarioIDDaURL(r)
 	if erro != nil {

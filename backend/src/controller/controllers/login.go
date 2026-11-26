@@ -14,6 +14,7 @@ import (
 	"strings"
 )
 
+// Confere nick ou e-mail e senha, aplica o bloqueio de tentativas e devolve o JWT.
 func Login(w http.ResponseWriter, r *http.Request) {
 	corpoRequisicao, erro := io.ReadAll(r.Body)
 	if erro != nil {

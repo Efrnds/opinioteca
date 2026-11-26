@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// stringPtrOuNil: ptr ou nil nos comentários.
 func stringPtrOuNil(valor string) *string {
 	if valor == "" {
 		return nil
@@ -24,6 +25,7 @@ func stringPtrOuNil(valor string) *string {
 	return &valor
 }
 
+// Busca comentarios avaliacao nos comentários.
 func BuscarComentariosAvaliacao(w http.ResponseWriter, r *http.Request) {
 	avaliacaoID, erro := avaliacaoIDDaURL(r)
 	if erro != nil {
@@ -71,6 +73,7 @@ func BuscarComentariosAvaliacao(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, comentarios)
 }
 
+// Cria comentario avaliacao nos comentários.
 func CriarComentarioAvaliacao(w http.ResponseWriter, r *http.Request) {
 	avaliacaoID, erro := avaliacaoIDDaURL(r)
 	if erro != nil {
@@ -190,6 +193,7 @@ func CriarComentarioAvaliacao(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, respostaComentario)
 }
 
+// Grava o voto em comentario nos comentários.
 func VotarComentario(w http.ResponseWriter, r *http.Request) {
 	comentarioID, erro := strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 	if erro != nil {
@@ -283,6 +287,7 @@ func VotarComentario(w http.ResponseWriter, r *http.Request) {
 	respostas.Erro(w, http.StatusNotFound, errors.New("Comentário não encontrado"))
 }
 
+// Remove voto comentario nos comentários.
 func RemoverVotoComentario(w http.ResponseWriter, r *http.Request) {
 	comentarioID, erro := strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 	if erro != nil {

@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Lista templates avaliacao nos modelos de texto.
 func ListarTemplatesAvaliacao(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -37,6 +38,7 @@ func ListarTemplatesAvaliacao(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, resultado)
 }
 
+// AdminListarTemplates: listar templates nos modelos de texto.
 func AdminListarTemplates(w http.ResponseWriter, r *http.Request) {
 	pagina, limite, offset := paginacaoAdmin(r)
 
@@ -64,6 +66,7 @@ func AdminListarTemplates(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// AdminBuscarTemplatePorID: buscar template por id nos modelos de texto.
 func AdminBuscarTemplatePorID(w http.ResponseWriter, r *http.Request) {
 	id, erro := templateIDDaURL(r)
 	if erro != nil {
@@ -91,6 +94,7 @@ func AdminBuscarTemplatePorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, template)
 }
 
+// AdminCriarTemplate: criar template nos modelos de texto.
 func AdminCriarTemplate(w http.ResponseWriter, r *http.Request) {
 	payload, erro := lerPayloadTemplate(r, "criacao")
 	if erro != nil {
@@ -121,6 +125,7 @@ func AdminCriarTemplate(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, criado)
 }
 
+// AdminAtualizarTemplate: atualizar template nos modelos de texto.
 func AdminAtualizarTemplate(w http.ResponseWriter, r *http.Request) {
 	id, erro := templateIDDaURL(r)
 	if erro != nil {
@@ -170,6 +175,7 @@ func AdminAtualizarTemplate(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusNoContent, nil)
 }
 
+// AdminExcluirTemplate: excluir template nos modelos de texto.
 func AdminExcluirTemplate(w http.ResponseWriter, r *http.Request) {
 	id, erro := templateIDDaURL(r)
 	if erro != nil {
@@ -219,11 +225,13 @@ func AdminExcluirTemplate(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusNoContent, nil)
 }
 
+// templateIDDaURL: id da url nos modelos de texto.
 func templateIDDaURL(r *http.Request) (uint64, error) {
 	parametros := mux.Vars(r)
 	return strconv.ParseUint(parametros["id"], 10, 64)
 }
 
+// lerPayloadTemplate: payload template nos modelos de texto.
 func lerPayloadTemplate(r *http.Request, etapa string) (modelos.TemplatePayload, error) {
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {

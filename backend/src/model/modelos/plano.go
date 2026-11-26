@@ -34,11 +34,13 @@ var planoIDPorCodigo = map[string]uint64{
 	"opiniopro": PlanoOpinioProID,
 }
 
+// PlanoIDPorCodigo: id por codigo na regra de plano.
 func PlanoIDPorCodigo(codigo string) (uint64, bool) {
 	id, ok := planoIDPorCodigo[codigo]
 	return id, ok
 }
 
+// PlanoAtivo: ativo na regra de plano.
 func PlanoAtivo(usuario Usuario) bool {
 	if usuario.AssinaturaID == PlanoGratuitoID {
 		return true
@@ -50,6 +52,7 @@ func PlanoAtivo(usuario Usuario) bool {
 	return expira.After(time.Now())
 }
 
+// PlanoVitalicio: vitalicio na regra de plano.
 func PlanoVitalicio(usuario Usuario) bool {
 	if usuario.AssinaturaID == PlanoGratuitoID {
 		return false
@@ -57,6 +60,7 @@ func PlanoVitalicio(usuario Usuario) bool {
 	return PtrTempoJSON(usuario.AssinaturaExpiraEm) == nil
 }
 
+// Devolve o plano atual e cai para gratuito se a data paga já passou.
 func PlanoEfetivoID(usuario Usuario) uint64 {
 	if usuario.AssinaturaID == PlanoGratuitoID {
 		return PlanoGratuitoID
@@ -67,15 +71,18 @@ func PlanoEfetivoID(usuario Usuario) uint64 {
 	return PlanoGratuitoID
 }
 
+// Verdadeiro para OpinioTop e também para OpinioPro, que inclui o Top.
 func TemPlanoTop(usuario Usuario) bool {
 	id := PlanoEfetivoID(usuario)
 	return id == PlanoOpinioTopID || id == PlanoOpinioProID
 }
 
+// Verdadeiro só quando o plano vigente é OpinioPro.
 func TemPlanoPro(usuario Usuario) bool {
 	return PlanoEfetivoID(usuario) == PlanoOpinioProID
 }
 
+// StatusPlano: plano na regra de plano.
 func StatusPlano(usuario Usuario) PlanoStatus {
 	efetivoID := PlanoEfetivoID(usuario)
 	info := planosPorID[efetivoID]

@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// parseDataQuery: data query no PDF administrativo.
 func parseDataQuery(valor string) (*time.Time, error) {
 	valor = strings.TrimSpace(valor)
 	if valor == "" {
@@ -26,6 +27,7 @@ func parseDataQuery(valor string) (*time.Time, error) {
 	return &t, nil
 }
 
+// periodoDaRequest: da request no PDF administrativo.
 func periodoDaRequest(r *http.Request) (repositorios.FiltroPeriodo, []string, error) {
 	de, erro := parseDataQuery(r.URL.Query().Get("de"))
 	if erro != nil {
@@ -45,12 +47,14 @@ func periodoDaRequest(r *http.Request) (repositorios.FiltroPeriodo, []string, er
 	return repositorios.FiltroPeriodo{De: de, Ate: ate}, filtros, nil
 }
 
+// Escreve pdf no PDF administrativo.
 func escreverPDF(w http.ResponseWriter, doc *pdf.Documento) {
 	if erro := doc.Escrever(w); erro != nil {
 		respostas.Erro(w, http.StatusInternalServerError, erro)
 	}
 }
 
+// labelOuTodos: ou todos no PDF administrativo.
 func labelOuTodos(valor, todos string) string {
 	if strings.TrimSpace(valor) == "" {
 		return todos
@@ -58,6 +62,7 @@ func labelOuTodos(valor, todos string) string {
 	return valor
 }
 
+// expiraTexto: texto no PDF administrativo.
 func expiraTexto(t *time.Time, vitalicia bool) string {
 	if vitalicia || t == nil {
 		return "Vitalícia"
@@ -65,6 +70,7 @@ func expiraTexto(t *time.Time, vitalicia bool) string {
 	return pdf.FormatDataCurta(*t)
 }
 
+// simNao: nao no PDF administrativo.
 func simNao(v bool) string {
 	if v {
 		return "Sim"
@@ -72,6 +78,7 @@ func simNao(v bool) string {
 	return "Não"
 }
 
+// Consulta a base e devolve o PDF com totais por status e por plano.
 func AdminRelatorioPDFUsuarios(w http.ResponseWriter, r *http.Request) {
 	periodo, filtrosPeriodo, erro := periodoDaRequest(r)
 	if erro != nil {
@@ -140,6 +147,7 @@ func AdminRelatorioPDFUsuarios(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
+// AdminRelatorioPDFAvaliacoes: relatorio pdf avaliacoes no PDF administrativo.
 func AdminRelatorioPDFAvaliacoes(w http.ResponseWriter, r *http.Request) {
 	periodo, filtrosPeriodo, erro := periodoDaRequest(r)
 	if erro != nil {
@@ -211,6 +219,7 @@ func AdminRelatorioPDFAvaliacoes(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
+// AdminRelatorioPDFAssinaturas: relatorio pdf assinaturas no PDF administrativo.
 func AdminRelatorioPDFAssinaturas(w http.ResponseWriter, r *http.Request) {
 	plano := strings.TrimSpace(r.URL.Query().Get("plano"))
 	filtro := strings.TrimSpace(r.URL.Query().Get("filtro"))
@@ -277,6 +286,7 @@ func AdminRelatorioPDFAssinaturas(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
+// AdminRelatorioPDFDenuncias: relatorio pdf denuncias no PDF administrativo.
 func AdminRelatorioPDFDenuncias(w http.ResponseWriter, r *http.Request) {
 	periodo, filtrosPeriodo, erro := periodoDaRequest(r)
 	if erro != nil {
@@ -345,6 +355,7 @@ func AdminRelatorioPDFDenuncias(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
+// AdminRelatorioPDFComentarios: relatorio pdf comentarios no PDF administrativo.
 func AdminRelatorioPDFComentarios(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	tipo := tipoRelatorio(r)
@@ -409,6 +420,7 @@ func AdminRelatorioPDFComentarios(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
+// AdminRelatorioPDFLivros: relatorio pdf livros no PDF administrativo.
 func AdminRelatorioPDFLivros(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	tipo := tipoRelatorio(r)
@@ -472,6 +484,7 @@ func AdminRelatorioPDFLivros(w http.ResponseWriter, r *http.Request) {
 	escreverPDF(w, doc)
 }
 
+// AdminRelatorioPDFSeguidoresSeguindo: relatorio pdf seguidores seguindo no PDF administrativo.
 func AdminRelatorioPDFSeguidoresSeguindo(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	if strings.TrimSpace(consulta) == "" {
@@ -540,6 +553,7 @@ func AdminRelatorioPDFSeguidoresSeguindo(w http.ResponseWriter, r *http.Request)
 	escreverPDF(w, doc)
 }
 
+// AdminRelatorioPDFHistoricoLeitura: relatorio pdf historico leitura no PDF administrativo.
 func AdminRelatorioPDFHistoricoLeitura(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	if strings.TrimSpace(consulta) == "" {

@@ -27,6 +27,7 @@ type Livros struct {
 	googleClient   *googlebooks.Client
 }
 
+// NovoServicoLivros: servico livros nos livros.
 func NovoServicoLivros(db *sql.DB) *Livros {
 	return &Livros{
 		db:             db,
@@ -36,12 +37,14 @@ func NovoServicoLivros(db *sql.DB) *Livros {
 	}
 }
 
+// Normaliza busca nos livros.
 func normalizarBusca(q string) string {
 	q = strings.TrimSpace(q)
 	q = strings.Trim(q, `"'`)
 	return strings.TrimSpace(q)
 }
 
+// erroGoogleAmigavel: google amigavel nos livros.
 func erroGoogleAmigavel(erro error) error {
 	if erro == nil {
 		return nil
@@ -62,6 +65,7 @@ func erroGoogleAmigavel(erro error) error {
 	return errors.New("Não foi possível consultar o Google Books. Tente novamente em instantes.")
 }
 
+// avisoGoogle: google nos livros.
 func avisoGoogle(erro error) string {
 	if erro == nil {
 		return ""
@@ -69,6 +73,7 @@ func avisoGoogle(erro error) string {
 	return erroGoogleAmigavel(erro).Error()
 }
 
+// ehErroRede: erro rede nos livros.
 func ehErroRede(msg string) bool {
 	indicadores := []string{
 		"no such host",
@@ -90,12 +95,14 @@ func ehErroRede(msg string) bool {
 	return false
 }
 
+// Ordena candidatos nos livros.
 func ordenarCandidatos(candidatos []candidatoBusca) {
 	sort.SliceStable(candidatos, func(i, j int) bool {
 		return candidatos[i].score > candidatos[j].score
 	})
 }
 
+// limitarCandidatos: candidatos nos livros.
 func limitarCandidatos(candidatos []candidatoBusca) []modelos.LivroBusca {
 	ordenarCandidatos(candidatos)
 	if len(candidatos) > limiteResultadoFinal {
@@ -108,6 +115,7 @@ func limitarCandidatos(candidatos []candidatoBusca) []modelos.LivroBusca {
 	return resultado
 }
 
+// Busca unificado nos livros.
 func (s *Livros) BuscarUnificado(q string) (modelos.ResultadoBuscaLivros, error) {
 	q = normalizarBusca(q)
 	if q == "" {
@@ -173,6 +181,7 @@ func (s *Livros) BuscarUnificado(q string) (modelos.ResultadoBuscaLivros, error)
 	}, nil
 }
 
+// Aplica complementos nos livros.
 func aplicarComplementos(livro *modelos.Livro, req modelos.CriarLivroUsuarioRequest) {
 	if req.Titulo != "" {
 		livro.Titulo = req.Titulo
@@ -198,6 +207,7 @@ func aplicarComplementos(livro *modelos.Livro, req modelos.CriarLivroUsuarioRequ
 	}
 }
 
+// categoriaOutrosID: outros id nos livros.
 func (s *Livros) categoriaOutrosID() (uint64, error) {
 	categoria, erro := s.repoCategorias.BuscarPorNome("Outros")
 	if erro != nil {
@@ -206,6 +216,7 @@ func (s *Livros) categoriaOutrosID() (uint64, error) {
 	return categoria.ID, nil
 }
 
+// Resolve categorias nos livros.
 func (s *Livros) resolverCategorias(req modelos.CriarLivroUsuarioRequest, atual uint64) ([]uint64, uint64, error) {
 	if categorias := req.CategoriasResolvidas(); len(categorias) > 0 {
 		return categorias, categorias[0], nil
@@ -221,6 +232,7 @@ func (s *Livros) resolverCategorias(req modelos.CriarLivroUsuarioRequest, atual 
 	return []uint64{outrosID}, outrosID, nil
 }
 
+// persistirCategorias: categorias nos livros.
 func (s *Livros) persistirCategorias(livroID uint64, categoriasIDs []uint64) error {
 	if livroID == 0 || len(categoriasIDs) == 0 {
 		return nil
@@ -228,6 +240,7 @@ func (s *Livros) persistirCategorias(livroID uint64, categoriasIDs []uint64) err
 	return s.repoLivros.SubstituirCategorias(livroID, categoriasIDs)
 }
 
+// finalizarLivro: livro nos livros.
 func (s *Livros) finalizarLivro(livro *modelos.Livro, categoriasIDs []uint64) (modelos.Livro, error) {
 	if erro := s.persistirCategorias(livro.ID, categoriasIDs); erro != nil {
 		return modelos.Livro{}, erro
@@ -239,6 +252,7 @@ func (s *Livros) finalizarLivro(livro *modelos.Livro, categoriasIDs []uint64) (m
 	return *livro, nil
 }
 
+// Registra livro usuario nos livros.
 func (s *Livros) RegistrarLivroUsuario(req modelos.CriarLivroUsuarioRequest) (modelos.Livro, error) {
 	if erro := req.Preparar(); erro != nil {
 		return modelos.Livro{}, erro
@@ -372,6 +386,7 @@ func (s *Livros) RegistrarLivroUsuario(req modelos.CriarLivroUsuarioRequest) (mo
 	return s.finalizarLivro(&livro, categoriasIDs)
 }
 
+// Resolve livro nos livros.
 func (s *Livros) ResolverLivro(livroID *uint64, googleVolumeID string) (uint64, error) {
 	if livroID != nil && *livroID > 0 {
 		livro, erro := s.repoLivros.BuscarPorID(*livroID)
@@ -439,6 +454,7 @@ func (s *Livros) ResolverLivro(livroID *uint64, googleVolumeID string) (uint64, 
 	return id, nil
 }
 
+// Resolve livro id banco nos livros.
 func (s *Livros) ResolverLivroIDBanco(identificador string) (uint64, error) {
 	identificador = strings.TrimSpace(identificador)
 	if identificador == "" {
@@ -463,6 +479,7 @@ func (s *Livros) ResolverLivroIDBanco(identificador string) (uint64, error) {
 	return livro.ID, nil
 }
 
+// Busca por google volume nos livros.
 func (s *Livros) BuscarPorGoogleVolume(volumeID string) (modelos.LivroBusca, error) {
 	volumeID = strings.TrimSpace(volumeID)
 	if volumeID == "" {

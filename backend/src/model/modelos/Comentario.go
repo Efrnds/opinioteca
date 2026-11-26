@@ -36,10 +36,12 @@ type ComentarioResposta struct {
 	Usuario     UsuarioFeed `json:"usuario"`
 }
 
+// textoContemLink: contem link.
 func textoContemLink(texto string) bool {
 	return linkComentarioRegex.MatchString(texto)
 }
 
+// Valida e formata.
 func (req *CriarComentarioRequest) Preparar() error {
 	req.Texto = strings.TrimSpace(req.Texto)
 	req.AnexoURL = strings.TrimSpace(req.AnexoURL)

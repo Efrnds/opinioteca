@@ -10,6 +10,7 @@ type Configuracoes struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeConfiguracoes: repositorio de configuracoes nas configurações.
 func NovoRepositorioDeConfiguracoes(db *sql.DB) *Configuracoes {
 	return &Configuracoes{db}
 }
@@ -21,6 +22,7 @@ const colunasConfig = `
 	tema, daltonismo_tipo, cor_destaque, cor_fundo_texto, cor_superficie, cor_texto, cor_hover,
 	atualizado_em`
 
+// Copia do SQL para config nas configurações.
 func scanConfig(scanner interface {
 	Scan(dest ...any) error
 }) (modelos.ConfiguracaoUsuario, error) {
@@ -78,6 +80,7 @@ func scanConfig(scanner interface {
 	return c, nil
 }
 
+// Cria padrao nas configurações.
 func (repositorio Configuracoes) CriarPadrao(usuarioID uint64) error {
 	_, erro := repositorio.db.Exec(
 		`INSERT INTO usuario_configuracoes (usuario_id) VALUES ($1)
@@ -87,6 +90,7 @@ func (repositorio Configuracoes) CriarPadrao(usuarioID uint64) error {
 	return erro
 }
 
+// Busca ou criar nas configurações.
 func (repositorio Configuracoes) BuscarOuCriar(usuarioID uint64) (modelos.ConfiguracaoUsuario, error) {
 	linha := repositorio.db.QueryRow(
 		`SELECT `+colunasConfig+` FROM usuario_configuracoes WHERE usuario_id = $1`,
@@ -111,6 +115,7 @@ func (repositorio Configuracoes) BuscarOuCriar(usuarioID uint64) (modelos.Config
 	return scanConfig(linha)
 }
 
+// nullableHex: hex nas configurações.
 func nullableHex(p *string) any {
 	if p == nil || *p == "" {
 		return nil
@@ -118,6 +123,7 @@ func nullableHex(p *string) any {
 	return *p
 }
 
+// Atualiza nas configurações.
 func (repositorio Configuracoes) Atualizar(usuarioID uint64, c modelos.ConfiguracaoUsuario) error {
 	_, erro := repositorio.db.Exec(
 		`UPDATE usuario_configuracoes SET
@@ -163,6 +169,7 @@ func (repositorio Configuracoes) Atualizar(usuarioID uint64, c modelos.Configura
 	return erro
 }
 
+// NotificacaoPermitida: permitida nas configurações.
 func (repositorio Configuracoes) NotificacaoPermitida(usuarioID uint64, tipo string) bool {
 	switch tipo {
 	case "advertencia", "conta_inativada", "denuncia_resolvida":

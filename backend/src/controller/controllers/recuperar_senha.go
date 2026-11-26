@@ -27,10 +27,12 @@ const (
 
 var emailRegex = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 
+// Normaliza email.
 func normalizarEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 
+// Sorteia um código de 6 dígitos para a recuperação.
 func gerarOTP() (string, error) {
 	n, erro := rand.Int(rand.Reader, big.NewInt(900000))
 	if erro != nil {
@@ -39,6 +41,7 @@ func gerarOTP() (string, error) {
 	return fmt.Sprintf("%06d", n.Int64()+100000), nil
 }
 
+// erroOTP: otp.
 func erroOTP(reset *repositorios.PasswordReset) string {
 	if reset == nil {
 		return "Código inválido ou expirado."
@@ -55,6 +58,7 @@ func erroOTP(reset *repositorios.PasswordReset) string {
 	return ""
 }
 
+// Se o e-mail não existir, responde a mesma frase. Se existir, grava só o hash e manda o código.
 func SolicitarRecuperacaoSenha(w http.ResponseWriter, r *http.Request) {
 	if !security.LoginPermitido(r, "recuperar") {
 		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
@@ -136,6 +140,7 @@ func SolicitarRecuperacaoSenha(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, map[string]string{"mensagem": msgRecuperacaoOK})
 }
 
+// Confere o código de 10 minutos sem marcá-lo como usado. No quinto erro, pede outro.
 func VerificarCodigoRecuperacao(w http.ResponseWriter, r *http.Request) {
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -201,6 +206,7 @@ func VerificarCodigoRecuperacao(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Troca a senha, com mínimo de 6 caracteres, e invalida o código.
 func RedefinirSenhaComCodigo(w http.ResponseWriter, r *http.Request) {
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {

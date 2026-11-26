@@ -71,6 +71,7 @@ type CriarLivroUsuarioRequest struct {
 	CategoriasIDs  []uint64 `json:"categorias_ids"`
 }
 
+// CategoriasResolvidas: resolvidas.
 func (req *CriarLivroUsuarioRequest) CategoriasResolvidas() []uint64 {
 	if len(req.CategoriasIDs) > 0 {
 		return deduplicarIDs(req.CategoriasIDs)
@@ -81,6 +82,7 @@ func (req *CriarLivroUsuarioRequest) CategoriasResolvidas() []uint64 {
 	return nil
 }
 
+// CategoriasResolvidas: resolvidas.
 func (livro *Livro) CategoriasResolvidas() []uint64 {
 	if len(livro.CategoriasIDs) > 0 {
 		return deduplicarIDs(livro.CategoriasIDs)
@@ -91,6 +93,7 @@ func (livro *Livro) CategoriasResolvidas() []uint64 {
 	return nil
 }
 
+// deduplicarIDs: ids.
 func deduplicarIDs(ids []uint64) []uint64 {
 	vistos := make(map[uint64]struct{}, len(ids))
 	resultado := make([]uint64, 0, len(ids))
@@ -107,6 +110,7 @@ func deduplicarIDs(ids []uint64) []uint64 {
 	return resultado
 }
 
+// Valida e formata.
 func (req *CriarLivroUsuarioRequest) Preparar() error {
 	req.Titulo = strings.TrimSpace(req.Titulo)
 	req.Autor = strings.TrimSpace(req.Autor)
@@ -123,6 +127,7 @@ func (req *CriarLivroUsuarioRequest) Preparar() error {
 	return nil
 }
 
+// ParaPublico: publico.
 func (l Livro) ParaPublico() LivroPublico {
 	return LivroPublico{
 		ID:             l.ID,
@@ -140,6 +145,7 @@ func (l Livro) ParaPublico() LivroPublico {
 	}
 }
 
+// ParaBusca: busca.
 func (l Livro) ParaBusca() LivroBusca {
 	id := l.ID
 	categoriasIDs := l.CategoriasIDs
@@ -162,6 +168,7 @@ func (l Livro) ParaBusca() LivroBusca {
 	}
 }
 
+// Valida e formata.
 func (livro *Livro) Preparar(etapa string) error {
 	if erro := livro.validar(etapa); erro != nil {
 		return erro
@@ -169,6 +176,7 @@ func (livro *Livro) Preparar(etapa string) error {
 	return livro.formatar()
 }
 
+// Valida.
 func (livro *Livro) validar(etapa string) error {
 	if livro.Titulo == "" {
 		return errors.New("O título é obrigatório e não pode estar em branco!")
@@ -208,6 +216,7 @@ func (livro *Livro) validar(etapa string) error {
 	return nil
 }
 
+// formatar: formatar.
 func (livro *Livro) formatar() error {
 	livro.ISBN = strings.TrimSpace(livro.ISBN)
 	livro.Titulo = strings.TrimSpace(livro.Titulo)

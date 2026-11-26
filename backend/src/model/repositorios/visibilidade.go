@@ -5,6 +5,7 @@ import (
 	"database/sql"
 )
 
+// PodeVerConteudoDoPerfil: ver conteudo do perfil.
 func PodeVerConteudoDoPerfil(db *sql.DB, viewerID, donoID uint64) (bool, error) {
 	if donoID == 0 {
 		return false, nil
@@ -27,6 +28,7 @@ func PodeVerConteudoDoPerfil(db *sql.DB, viewerID, donoID uint64) (bool, error) 
 const joinConfigVisibilidade = `
  LEFT JOIN usuario_configuracoes uc ON uc.usuario_id = a.usuario_id`
 
+// condicaoVisibilidadePerfil: visibilidade perfil.
 func condicaoVisibilidadePerfil(paramViewer string) string {
 	return `(
    COALESCE(uc.visibilidade_perfil, 'publico') = 'publico'

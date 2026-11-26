@@ -55,6 +55,7 @@ type ReagirMensagemRequest struct {
 	Reacao string `json:"reacao"`
 }
 
+// Valida e formata.
 func (req *EnviarMensagemRequest) Preparar() error {
 	req.Conteudo = strings.TrimSpace(req.Conteudo)
 	req.AnexoURL = strings.TrimSpace(req.AnexoURL)
@@ -70,6 +71,7 @@ func (req *EnviarMensagemRequest) Preparar() error {
 	return nil
 }
 
+// Valida e formata.
 func (req *EditarMensagemRequest) Preparar() error {
 	req.Conteudo = strings.TrimSpace(req.Conteudo)
 	if req.Conteudo == "" {
@@ -81,6 +83,7 @@ func (req *EditarMensagemRequest) Preparar() error {
 	return nil
 }
 
+// Valida e formata.
 func (req *ReagirMensagemRequest) Preparar() error {
 	req.Reacao = strings.TrimSpace(req.Reacao)
 	if req.Reacao == "" {

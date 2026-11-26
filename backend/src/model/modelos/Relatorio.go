@@ -32,6 +32,7 @@ type HistoricoLeituraRelatorio struct {
 	Historico []DiarioHistoricoItem  `json:"historico"`
 }
 
+// UsuarioParaRelatorioResumo: para relatorio resumo.
 func UsuarioParaRelatorioResumo(usuario Usuario) UsuarioRelatorioResumo {
 	return UsuarioRelatorioResumo{
 		ID:    usuario.ID,

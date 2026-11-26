@@ -29,6 +29,7 @@ var (
 	schemaTemGoogleID  bool
 )
 
+// schemaTemInativadoEm: tem inativado em no cadastro de usuários.
 func schemaTemInativadoEm(db *sql.DB) bool {
 	schemaInativadoOnce.Do(func() {
 		var existe bool
@@ -45,6 +46,7 @@ func schemaTemInativadoEm(db *sql.DB) bool {
 	return schemaTemInativado
 }
 
+// schemaTemAssinaturaExpiraEm: tem assinatura expira em no cadastro de usuários.
 func schemaTemAssinaturaExpiraEm(db *sql.DB) bool {
 	schemaAssinaturaExpiraOnce.Do(func() {
 		var existe bool
@@ -61,6 +63,7 @@ func schemaTemAssinaturaExpiraEm(db *sql.DB) bool {
 	return schemaTemAssinaturaExpira
 }
 
+// schemaTemBannerUrl: tem banner url no cadastro de usuários.
 func schemaTemBannerUrl(db *sql.DB) bool {
 	schemaBannerOnce.Do(func() {
 		var existe bool
@@ -77,6 +80,7 @@ func schemaTemBannerUrl(db *sql.DB) bool {
 	return schemaTemBanner
 }
 
+// schemaTemBannerPosicaoCol: tem banner posicao col no cadastro de usuários.
 func schemaTemBannerPosicaoCol(db *sql.DB) bool {
 	schemaBannerPosicaoOnce.Do(func() {
 		var existe bool
@@ -93,6 +97,7 @@ func schemaTemBannerPosicaoCol(db *sql.DB) bool {
 	return schemaTemBannerPosicao
 }
 
+// schemaTemGoogleIDCol: tem google id col no cadastro de usuários.
 func schemaTemGoogleIDCol(db *sql.DB) bool {
 	schemaGoogleIDOnce.Do(func() {
 		var existe bool
@@ -109,6 +114,7 @@ func schemaTemGoogleIDCol(db *sql.DB) bool {
 	return schemaTemGoogleID
 }
 
+// colunasUsuario: usuario no cadastro de usuários.
 func colunasUsuario(db *sql.DB) string {
 	cols := colunasUsuarioBase
 	if schemaTemAssinaturaExpiraEm(db) {
@@ -126,6 +132,7 @@ func colunasUsuario(db *sql.DB) string {
 	return cols
 }
 
+// Copia do SQL para usuario no cadastro de usuários.
 func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	var image sql.NullString
 	destinos := []any{
@@ -186,6 +193,7 @@ func scanUsuario(linhas *sql.Rows, usuario *modelos.Usuario, db *sql.DB) error {
 	return nil
 }
 
+// Atualiza modo zen no cadastro de usuários.
 func (repositorio Usuarios) AtualizarModoZen(usuarioID uint64, modoZen bool) error {
 	_, erro := repositorio.db.Exec(
 		`UPDATE usuarios SET modo_zen = $1 WHERE id = $2`,
@@ -198,10 +206,12 @@ type Usuarios struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeUsuarios: repositorio de usuarios no cadastro de usuários.
 func NovoRepositorioDeUsuarios(db *sql.DB) *Usuarios {
 	return &Usuarios{db}
 }
 
+// Cria no cadastro de usuários.
 func (repositorio Usuarios) Criar(usuario modelos.Usuario) (uint64, error) {
 	var id uint64
 
@@ -223,6 +233,7 @@ func (repositorio Usuarios) Criar(usuario modelos.Usuario) (uint64, error) {
 	return uint64(id), nil
 }
 
+// Busca no cadastro de usuários.
 func (repositorio Usuarios) Buscar(nomeOuNick string) ([]modelos.Usuario, error) {
 	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick)
 
@@ -254,6 +265,7 @@ type FiltrosAdminUsuarios struct {
 	Offset           int
 }
 
+// clausulaAssinaturaFiltro: assinatura filtro no cadastro de usuários.
 func (repositorio Usuarios) clausulaAssinaturaFiltro(filtro string) string {
 	if filtro == "" {
 		return ""
@@ -296,6 +308,7 @@ func (repositorio Usuarios) clausulaAssinaturaFiltro(filtro string) string {
 	}
 }
 
+// whereAdminUsuarios: admin usuarios no cadastro de usuários.
 func (repositorio Usuarios) whereAdminUsuarios(filtros FiltrosAdminUsuarios) (string, []interface{}) {
 	where := " WHERE 1=1"
 	args := make([]interface{}, 0)
@@ -310,11 +323,13 @@ func (repositorio Usuarios) whereAdminUsuarios(filtros FiltrosAdminUsuarios) (st
 	return where, args
 }
 
+// Busca todos no cadastro de usuários.
 func (repositorio Usuarios) BuscarTodos() ([]modelos.Usuario, error) {
 	usuarios, _, erro := repositorio.BuscarAdmin(FiltrosAdminUsuarios{Limite: 100000, Offset: 0})
 	return usuarios, erro
 }
 
+// Busca admin no cadastro de usuários.
 func (repositorio Usuarios) BuscarAdmin(filtros FiltrosAdminUsuarios) ([]modelos.Usuario, int, error) {
 	limite := filtros.Limite
 	if limite <= 0 {
@@ -359,6 +374,7 @@ func (repositorio Usuarios) BuscarAdmin(filtros FiltrosAdminUsuarios) ([]modelos
 	return usuarios, total, nil
 }
 
+// Conta stats assinaturas no cadastro de usuários.
 func (repositorio Usuarios) ContarStatsAssinaturas() (modelos.AssinaturaStatsAdmin, error) {
 	var stats modelos.AssinaturaStatsAdmin
 	if !schemaTemAssinaturaExpiraEm(repositorio.db) {
@@ -389,6 +405,7 @@ func (repositorio Usuarios) ContarStatsAssinaturas() (modelos.AssinaturaStatsAdm
 	return stats, erro
 }
 
+// Busca por id no cadastro de usuários.
 func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		fmt.Sprintf("SELECT %s FROM usuarios WHERE id = $1", colunasUsuario(repositorio.db)),
@@ -408,6 +425,7 @@ func (repositorio Usuarios) BuscarPorID(usuarioID uint64) (modelos.Usuario, erro
 	return usuario, nil
 }
 
+// Busca por nick no cadastro de usuários.
 func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		fmt.Sprintf("SELECT %s FROM usuarios WHERE LOWER(nick) = LOWER($1)", colunasUsuario(repositorio.db)),
@@ -428,6 +446,7 @@ func (repositorio Usuarios) BuscarPorNick(nick string) (modelos.Usuario, error) 
 	return usuario, nil
 }
 
+// Busca por nick para login no cadastro de usuários.
 func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario, error) {
 	comInativado := schemaTemInativadoEm(repositorio.db)
 	query := "SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(nick) = LOWER($1)"
@@ -464,6 +483,7 @@ func (repositorio Usuarios) BuscarPorNickParaLogin(nick string) (modelos.Usuario
 	return usuario, nil
 }
 
+// Busca por nick ou email para login no cadastro de usuários.
 func (repositorio Usuarios) BuscarPorNickOuEmailParaLogin(identificador string) (modelos.Usuario, error) {
 	identificador = strings.TrimSpace(identificador)
 	if identificador == "" {
@@ -480,6 +500,7 @@ func (repositorio Usuarios) BuscarPorNickOuEmailParaLogin(identificador string) 
 	return repositorio.BuscarPorEmailParaLogin(identificador)
 }
 
+// Atualiza no cadastro de usuários.
 func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario) error {
 	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, '') WHERE id = $5"
 	args := []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuarioID}
@@ -507,6 +528,7 @@ func (repositorio Usuarios) Atualizar(usuarioID uint64, usuario modelos.Usuario)
 	return nil
 }
 
+// Atualiza admin no cadastro de usuários.
 func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usuario) error {
 	query := "UPDATE usuarios SET nome = $1, nick = $2, email = $3, image_url = NULLIF($4, ''), status = $5, is_admin = $6 WHERE id = $7"
 	args := []any{usuario.Nome, usuario.Nick, usuario.Email, usuario.Image, usuario.Status, usuario.IsAdmin, usuarioID}
@@ -533,6 +555,7 @@ func (repositorio Usuarios) AtualizarAdmin(usuarioID uint64, usuario modelos.Usu
 	return nil
 }
 
+// Cria admin no cadastro de usuários.
 func (repositorio Usuarios) CriarAdmin(usuario modelos.Usuario, isAdmin bool) (uint64, error) {
 	var id uint64
 
@@ -555,6 +578,7 @@ func (repositorio Usuarios) CriarAdmin(usuario modelos.Usuario, isAdmin bool) (u
 	return id, nil
 }
 
+// Marca como inativo no cadastro de usuários.
 func (repositorio Usuarios) Inativar(usuarioID uint64) error {
 	if !schemaTemInativadoEm(repositorio.db) {
 		return fmt.Errorf("migration pendente: execute backend/sql/migrations/20260708_producao.sql")
@@ -566,6 +590,7 @@ func (repositorio Usuarios) Inativar(usuarioID uint64) error {
 	return erro
 }
 
+// Reativa no cadastro de usuários.
 func (repositorio Usuarios) Reativar(usuarioID uint64) error {
 	if !schemaTemInativadoEm(repositorio.db) {
 		return fmt.Errorf("migration pendente: execute backend/sql/migrations/20260708_producao.sql")
@@ -592,6 +617,7 @@ func (repositorio Usuarios) Reativar(usuarioID uint64) error {
 	return nil
 }
 
+// PodeReativar: reativar no cadastro de usuários.
 func (repositorio Usuarios) PodeReativar(usuario modelos.Usuario) bool {
 	if usuario.Status != "inativo" || usuario.InativadoEm == nil {
 		return false
@@ -600,6 +626,7 @@ func (repositorio Usuarios) PodeReativar(usuario modelos.Usuario) bool {
 	return !time.Now().After(limite)
 }
 
+// Segue: segue no cadastro de usuários.
 func (repositorio Usuarios) Segue(seguidorID, seguidoID uint64) (bool, error) {
 	if seguidorID == 0 || seguidoID == 0 || seguidorID == seguidoID {
 		return false, nil
@@ -614,6 +641,7 @@ func (repositorio Usuarios) Segue(seguidorID, seguidoID uint64) (bool, error) {
 	return existe, erro
 }
 
+// Busca por email no cadastro de usuários.
 func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(email) = LOWER($1)",
@@ -639,6 +667,7 @@ func (repositorio Usuarios) BuscarPorEmail(email string) (modelos.Usuario, error
 	return usuario, nil
 }
 
+// Busca por email para login no cadastro de usuários.
 func (repositorio Usuarios) BuscarPorEmailParaLogin(email string) (modelos.Usuario, error) {
 	comInativado := schemaTemInativadoEm(repositorio.db)
 	query := "SELECT id, senha, status, is_admin FROM usuarios WHERE LOWER(email) = LOWER($1)"
@@ -669,6 +698,7 @@ func (repositorio Usuarios) BuscarPorEmailParaLogin(email string) (modelos.Usuar
 	return usuario, nil
 }
 
+// Busca por google id no cadastro de usuários.
 func (repositorio Usuarios) BuscarPorGoogleID(googleID string) (modelos.Usuario, error) {
 	if !schemaTemGoogleIDCol(repositorio.db) || strings.TrimSpace(googleID) == "" {
 		return modelos.Usuario{}, nil
@@ -702,6 +732,7 @@ func (repositorio Usuarios) BuscarPorGoogleID(googleID string) (modelos.Usuario,
 	return usuario, nil
 }
 
+// Vincula google id no cadastro de usuários.
 func (repositorio Usuarios) VincularGoogleID(usuarioID uint64, googleID string) error {
 	if !schemaTemGoogleIDCol(repositorio.db) {
 		return nil
@@ -714,6 +745,7 @@ func (repositorio Usuarios) VincularGoogleID(usuarioID uint64, googleID string) 
 	return erro
 }
 
+// Cria o auth no cadastro de usuários.
 func (repositorio Usuarios) CriarOAuth(usuario modelos.Usuario, googleID string) (uint64, error) {
 	if !schemaTemGoogleIDCol(repositorio.db) || strings.TrimSpace(googleID) == "" {
 		return repositorio.Criar(usuario)
@@ -739,6 +771,7 @@ func (repositorio Usuarios) CriarOAuth(usuario modelos.Usuario, googleID string)
 	return id, nil
 }
 
+// NickDisponivel: disponivel no cadastro de usuários.
 func (repositorio Usuarios) NickDisponivel(nick string) (bool, error) {
 	var existe bool
 	erro := repositorio.db.QueryRow(
@@ -748,6 +781,7 @@ func (repositorio Usuarios) NickDisponivel(nick string) (bool, error) {
 	return !existe, erro
 }
 
+// Seguir: seguir no cadastro de usuários.
 func (repositorio Usuarios) Seguir(IDSeguido, IDSeguidor uint64) error {
 	statement, erro := repositorio.db.Prepare(
 		"INSERT INTO seguidores (id_seguido, id_seguidor) VALUES ($1,$2) ON CONFLICT (id_seguido, id_seguidor) DO NOTHING",
@@ -764,6 +798,7 @@ func (repositorio Usuarios) Seguir(IDSeguido, IDSeguidor uint64) error {
 	return nil
 }
 
+// DeixarSeguir: seguir no cadastro de usuários.
 func (repositorio Usuarios) DeixarSeguir(IDSeguido, IDSeguidor uint64) error {
 	statement, erro := repositorio.db.Prepare(
 		"DELETE FROM seguidores WHERE id_seguido = $1 AND id_seguidor = $2",
@@ -780,6 +815,7 @@ func (repositorio Usuarios) DeixarSeguir(IDSeguido, IDSeguidor uint64) error {
 	return nil
 }
 
+// Busca seguidores no cadastro de usuários.
 func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual, u.assinatura_id, u.assinatura_expira_em, u.status
@@ -824,6 +860,7 @@ func (repositorio Usuarios) BuscarSeguidores(IDSeguido uint64) ([]modelos.Usuari
 	return usuarios, nil
 }
 
+// Busca seguindo no cadastro de usuários.
 func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT u.id, u.nome, u.nick, u.image_url, u.rank_confiabilidade, u.sequencia_atual, u.assinatura_id, u.assinatura_expira_em, u.status
@@ -868,6 +905,7 @@ func (repositorio Usuarios) BuscarSeguindo(IDSeguido uint64) ([]modelos.Usuario,
 	return usuarios, nil
 }
 
+// Busca senha no cadastro de usuários.
 func (repositorio Usuarios) BuscarSenha(usuarioID uint64) (string, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT senha FROM usuarios WHERE id = $1",
@@ -889,6 +927,7 @@ func (repositorio Usuarios) BuscarSenha(usuarioID uint64) (string, error) {
 	return usuario.Senha, nil
 }
 
+// Atualiza senha no cadastro de usuários.
 func (repositorio Usuarios) AtualizarSenha(usuarioID uint64, senha string) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE usuarios SET senha = $1 WHERE id = $2",
@@ -905,6 +944,7 @@ func (repositorio Usuarios) AtualizarSenha(usuarioID uint64, senha string) error
 	return nil
 }
 
+// IsAdmin: admin no cadastro de usuários.
 func (repositorio Usuarios) IsAdmin(usuarioID uint64) (bool, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT is_admin FROM usuarios WHERE id = $1",
@@ -925,6 +965,7 @@ func (repositorio Usuarios) IsAdmin(usuarioID uint64) (bool, error) {
 	return usuario.IsAdmin, nil
 }
 
+// Atualiza status no cadastro de usuários.
 func (repositorio Usuarios) AtualizarStatus(usuarioID uint64, status string) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE usuarios SET status = $1 WHERE id = $2",
@@ -939,6 +980,7 @@ func (repositorio Usuarios) AtualizarStatus(usuarioID uint64, status string) err
 	return nil
 }
 
+// Aplica upvote +1 ou downvote -1 no rank do autor, sem deixar passar de zero.
 func (repositorio Usuarios) AtualizarRank(tx *sql.Tx, usuarioID uint64, delta int) error {
 	if delta == 0 {
 		return nil
@@ -950,6 +992,7 @@ func (repositorio Usuarios) AtualizarRank(tx *sql.Tx, usuarioID uint64, delta in
 	return erro
 }
 
+// RecalcularRanksFromVotos: ranks from votos no cadastro de usuários.
 func (repositorio Usuarios) RecalcularRanksFromVotos() error {
 	_, erro := repositorio.db.Exec(`
 		UPDATE usuarios u
@@ -967,6 +1010,7 @@ func (repositorio Usuarios) RecalcularRanksFromVotos() error {
 	return erro
 }
 
+// Atualiza sequencia no cadastro de usuários.
 func (repositorio Usuarios) AtualizarSequencia(tx *sql.Tx, usuarioID uint64, sequencia int) error {
 	_, erro := tx.Exec(
 		`UPDATE usuarios
@@ -979,6 +1023,7 @@ func (repositorio Usuarios) AtualizarSequencia(tx *sql.Tx, usuarioID uint64, seq
 	return erro
 }
 
+// Pesquisa global no cadastro de usuários.
 func (repositorio Usuarios) PesquisarGlobal(termo string, limite int) ([]modelos.UsuarioPesquisa, error) {
 	padrao := "%" + termo + "%"
 	linhas, erro := repositorio.db.Query(
@@ -1007,6 +1052,7 @@ func (repositorio Usuarios) PesquisarGlobal(termo string, limite int) ([]modelos
 	return resultado, nil
 }
 
+// Busca por nick email ou id no cadastro de usuários.
 func (repositorio Usuarios) BuscarPorNickEmailOuID(consulta string) (modelos.Usuario, error) {
 	consulta = strings.TrimSpace(consulta)
 	if consulta == "" {

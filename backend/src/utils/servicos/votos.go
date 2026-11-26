@@ -14,6 +14,7 @@ type Votos struct {
 	repoUsuarios   *repositorios.Usuarios
 }
 
+// NovoServicoVotos: servico votos nos votos.
 func NovoServicoVotos(db *sql.DB) *Votos {
 	return &Votos{
 		db:             db,
@@ -23,6 +24,7 @@ func NovoServicoVotos(db *sql.DB) *Votos {
 	}
 }
 
+// Grava o voto em nos votos.
 func (s *Votos) Votar(votanteID, avaliacaoID uint64, tipoVoto string) (modelos.Voto, error) {
 	avaliacao, erro := s.repoAvaliacoes.BuscarPorID(avaliacaoID)
 	if erro == sql.ErrNoRows {
@@ -81,6 +83,7 @@ func (s *Votos) Votar(votanteID, avaliacaoID uint64, tipoVoto string) (modelos.V
 	return votoExistente, nil
 }
 
+// Remove voto nos votos.
 func (s *Votos) RemoverVoto(votanteID, avaliacaoID uint64) error {
 	avaliacao, erro := s.repoAvaliacoes.BuscarPorID(avaliacaoID)
 	if erro == sql.ErrNoRows {

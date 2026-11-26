@@ -9,10 +9,12 @@ type Estante struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeEstante: repositorio de estante na estante.
 func NovoRepositorioDeEstante(db *sql.DB) *Estante {
 	return &Estante{db}
 }
 
+// schemaExiste: existe na estante.
 func (repositorio Estante) schemaExiste() bool {
 	var existe bool
 	erro := repositorio.db.QueryRow(`
@@ -23,6 +25,7 @@ func (repositorio Estante) schemaExiste() bool {
 	return erro == nil && existe
 }
 
+// Lista na estante.
 func (repositorio Estante) Listar(usuarioID uint64) ([]modelos.EstanteItem, error) {
 	if !repositorio.schemaExiste() {
 		return []modelos.EstanteItem{}, nil
@@ -79,6 +82,7 @@ func (repositorio Estante) Listar(usuarioID uint64) ([]modelos.EstanteItem, erro
 	return itens, nil
 }
 
+// Adicionar: adicionar na estante.
 func (repositorio Estante) Adicionar(usuarioID, livroID uint64, status string) error {
 	if !repositorio.schemaExiste() {
 		return sql.ErrNoRows
@@ -93,6 +97,7 @@ func (repositorio Estante) Adicionar(usuarioID, livroID uint64, status string) e
 	return erro
 }
 
+// Atualiza status na estante.
 func (repositorio Estante) AtualizarStatus(usuarioID, livroID uint64, status string) error {
 	if !repositorio.schemaExiste() {
 		return sql.ErrNoRows
@@ -115,6 +120,7 @@ func (repositorio Estante) AtualizarStatus(usuarioID, livroID uint64, status str
 	return nil
 }
 
+// Remove na estante.
 func (repositorio Estante) Remover(usuarioID, livroID uint64) error {
 	if !repositorio.schemaExiste() {
 		return sql.ErrNoRows
@@ -137,6 +143,7 @@ func (repositorio Estante) Remover(usuarioID, livroID uint64) error {
 	return nil
 }
 
+// SincronizarAposLeitura: apos leitura na estante.
 func (repositorio Estante) SincronizarAposLeitura(tx *sql.Tx, usuarioID, livroID uint64, porcentagem float64) error {
 	if !repositorio.schemaExiste() {
 		return nil

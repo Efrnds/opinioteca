@@ -10,10 +10,12 @@ type Votos struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeVotos: repositorio de votos nos votos.
 func NovoRepositorioDeVotos(db *sql.DB) *Votos {
 	return &Votos{db}
 }
 
+// Busca por usuario e avaliacao nos votos.
 func (repositorio Votos) BuscarPorUsuarioEAvaliacao(usuarioID, avaliacaoID uint64) (modelos.Voto, error) {
 	linha := repositorio.db.QueryRow(
 		`SELECT id, usuario_id, avaliacao_id, tipo_voto, criadoEm
@@ -28,6 +30,7 @@ func (repositorio Votos) BuscarPorUsuarioEAvaliacao(usuarioID, avaliacaoID uint6
 	return voto, erro
 }
 
+// Cria nos votos.
 func (repositorio Votos) Criar(tx *sql.Tx, voto modelos.Voto) (uint64, error) {
 	var id uint64
 	erro := tx.QueryRow(
@@ -38,6 +41,7 @@ func (repositorio Votos) Criar(tx *sql.Tx, voto modelos.Voto) (uint64, error) {
 	return id, erro
 }
 
+// Atualiza nos votos.
 func (repositorio Votos) Atualizar(tx *sql.Tx, id uint64, tipoVoto string) error {
 	_, erro := tx.Exec(
 		"UPDATE voto_avaliacoes SET tipo_voto = $1 WHERE id = $2",
@@ -46,6 +50,7 @@ func (repositorio Votos) Atualizar(tx *sql.Tx, id uint64, tipoVoto string) error
 	return erro
 }
 
+// Apaga nos votos.
 func (repositorio Votos) Deletar(tx *sql.Tx, usuarioID, avaliacaoID uint64) error {
 	resultado, erro := tx.Exec(
 		"DELETE FROM voto_avaliacoes WHERE usuario_id = $1 AND avaliacao_id = $2",
@@ -64,6 +69,7 @@ func (repositorio Votos) Deletar(tx *sql.Tx, usuarioID, avaliacaoID uint64) erro
 	return nil
 }
 
+// Conta por avaliacao nos votos.
 func (repositorio Votos) ContarPorAvaliacao(avaliacaoID uint64) (modelos.ContadoresVoto, error) {
 	linha := repositorio.db.QueryRow(
 		`SELECT
@@ -81,6 +87,7 @@ func (repositorio Votos) ContarPorAvaliacao(avaliacaoID uint64) (modelos.Contado
 	return contadores, nil
 }
 
+// Conta por avaliacoes nos votos.
 func (repositorio Votos) ContarPorAvaliacoes(ids []uint64) (map[uint64]modelos.ContadoresVoto, error) {
 	resultado := make(map[uint64]modelos.ContadoresVoto)
 	if len(ids) == 0 {
@@ -115,6 +122,7 @@ func (repositorio Votos) ContarPorAvaliacoes(ids []uint64) (map[uint64]modelos.C
 	return resultado, nil
 }
 
+// MeusVotosPorAvaliacoes: votos por avaliacoes nos votos.
 func (repositorio Votos) MeusVotosPorAvaliacoes(usuarioID uint64, ids []uint64) (map[uint64]string, error) {
 	resultado := make(map[uint64]string)
 	if len(ids) == 0 {

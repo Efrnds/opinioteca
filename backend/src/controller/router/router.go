@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Gera.
 func Gerar() *mux.Router {
 	r := mux.NewRouter()
 	uploadsFS := http.StripPrefix("/uploads/", http.FileServer(http.Dir(config.UploadsDir)))
@@ -30,6 +31,7 @@ func Gerar() *mux.Router {
 	return rotas.Configurar(r)
 }
 
+// Valida e formata preview avatar sob demanda.
 func prepararPreviewAvatarSobDemanda(rel string) {
 	clean := path.Clean("/" + rel)
 	if !strings.HasPrefix(clean, "/avatars/") || !strings.HasSuffix(clean, ".still.png") {

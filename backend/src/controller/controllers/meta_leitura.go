@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// responderMetaLeitura: meta leitura na meta de leitura.
 func responderMetaLeitura(w http.ResponseWriter, db *sql.DB, usuario modelos.Usuario) {
 	if !modelos.TemPlanoPro(usuario) {
 		respostas.JSON(w, http.StatusOK, map[string]any{
@@ -58,6 +59,7 @@ func responderMetaLeitura(w http.ResponseWriter, db *sql.DB, usuario modelos.Usu
 	})
 }
 
+// Busca meta leitura na meta de leitura.
 func BuscarMetaLeitura(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 
@@ -84,6 +86,7 @@ func BuscarMetaLeitura(w http.ResponseWriter, r *http.Request) {
 	responderMetaLeitura(w, db, usuario)
 }
 
+// Grava a meta só se o plano vigente for OpinioPro.
 func SalvarMetaLeitura(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 
@@ -141,6 +144,7 @@ func SalvarMetaLeitura(w http.ResponseWriter, r *http.Request) {
 	responderMetaLeitura(w, db, usuario)
 }
 
+// Liga ou desliga o Modo Zen, exclusivo do OpinioPro.
 func AtualizarModoZen(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 

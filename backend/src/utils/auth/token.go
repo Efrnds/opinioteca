@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// Monta o JWT por 6 horas com usuarioId, status e isAdmin, assinado em HS256.
 func CriarToken(usuarioID uint64, status string, isAdmin bool) (string, error) {
 	permissoes := jwt.MapClaims{}
 	permissoes["authorized"] = true
@@ -24,6 +25,7 @@ func CriarToken(usuarioID uint64, status string, isAdmin bool) (string, error) {
 	return token.SignedString([]byte(config.SecretKey))
 }
 
+// Recusa a request se o Bearer não fechar a assinatura ou já tiver expirado.
 func ValidarToken(r *http.Request) error {
 	tokenString := extrairToken(r)
 	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuedAt())
@@ -38,6 +40,7 @@ func ValidarToken(r *http.Request) error {
 	return errors.New("Token inválido!")
 }
 
+// Devolve o id do token quando existe, e 0 em rota pública.
 func ExtrairUsuarioIDOpcional(r *http.Request) uint64 {
 	id, erro := ExtrairUsuarioID(r)
 	if erro != nil {
@@ -46,6 +49,7 @@ func ExtrairUsuarioIDOpcional(r *http.Request) uint64 {
 	return id
 }
 
+// Lê o usuarioId de dentro de um JWT válido.
 func ExtrairUsuarioID(r *http.Request) (uint64, error) {
 	tokenString := extrairToken(r)
 	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuedAt())
@@ -64,6 +68,7 @@ func ExtrairUsuarioID(r *http.Request) (uint64, error) {
 	return 0, errors.New("Token inválido")
 }
 
+// Separa o token do header Authorization no formato Bearer.
 func extrairToken(r *http.Request) string {
 	token := r.Header.Get("Authorization")
 
@@ -74,6 +79,7 @@ func extrairToken(r *http.Request) string {
 	return ""
 }
 
+// Extrai usuario id do token no JWT.
 func ExtrairUsuarioIDDoToken(tokenString string) (uint64, error) {
 	if tokenString == "" {
 		return 0, errors.New("Token não informado")
@@ -95,11 +101,13 @@ func ExtrairUsuarioIDDoToken(tokenString string) (uint64, error) {
 	return 0, errors.New("Token inválido")
 }
 
+// Extrai token da requisicao no JWT.
 func ExtrairTokenDaRequisicao(r *http.Request) string {
 	token, _ := ExtrairTokenWebSocket(r)
 	return token
 }
 
+// Aceita o JWT no header, no subprotocolo do socket ou, por último, na query.
 func ExtrairTokenWebSocket(r *http.Request) (token string, protocolEcho string) {
 	if t := extrairToken(r); t != "" {
 		return t, ""
@@ -128,6 +136,7 @@ func ExtrairTokenWebSocket(r *http.Request) (token string, protocolEcho string) 
 	return "", ""
 }
 
+// retornarChaveDeVerificacao: chave de verificacao no JWT.
 func retornarChaveDeVerificacao(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, fmt.Errorf("Método de assinatura inesperado! %v", token.Header["alg"])
@@ -136,6 +145,7 @@ func retornarChaveDeVerificacao(token *jwt.Token) (interface{}, error) {
 	return config.SecretKey, nil
 }
 
+// Extrai is admin no JWT.
 func ExtrairIsAdmin(r *http.Request) (bool, error) {
 	tokenString := extrairToken(r)
 	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuedAt())

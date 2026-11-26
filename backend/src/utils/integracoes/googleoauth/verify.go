@@ -30,6 +30,7 @@ type tokenInfo struct {
 
 var httpClient = &http.Client{Timeout: 8 * time.Second}
 
+// Confere id token.
 func VerificarIDToken(idToken, clientID string) (Profile, error) {
 	idToken = strings.TrimSpace(idToken)
 	clientID = strings.TrimSpace(clientID)
@@ -84,6 +85,7 @@ func VerificarIDToken(idToken, clientID string) (Profile, error) {
 	}, nil
 }
 
+// emailVerificado: verificado.
 func emailVerificado(v string) bool {
 	switch strings.ToLower(strings.TrimSpace(v)) {
 	case "true", "1":

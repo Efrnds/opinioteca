@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// hostnameSemPorta: sem porta no hub do socket.
 func hostnameSemPorta(hostport string) string {
 	hostport = strings.TrimSpace(strings.ToLower(hostport))
 	if hostport == "" {
@@ -24,6 +25,7 @@ func hostnameSemPorta(hostport string) string {
 	return hostport
 }
 
+// origemPermitida: permitida no hub do socket.
 func origemPermitida(origin, requestHost string) bool {
 	if origin == "" {
 
@@ -82,10 +84,12 @@ type Hub struct {
 
 var hub = &Hub{conns: make(map[uint64]*cliente)}
 
+// Troca a request HTTP pelo protocolo WebSocket.
 func Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header) (*websocket.Conn, error) {
 	return upgrader.Upgrade(w, r, responseHeader)
 }
 
+// Guarda a conexão no mapa do hub e fecha a anterior se o mesmo usuário conectar de novo.
 func Registrar(usuarioID uint64, conn *websocket.Conn) {
 	hub.mu.Lock()
 	if anterior, ok := hub.conns[usuarioID]; ok {
@@ -95,12 +99,14 @@ func Registrar(usuarioID uint64, conn *websocket.Conn) {
 	hub.mu.Unlock()
 }
 
+// Tira o usuário do mapa quando o socket fecha.
 func Remover(usuarioID uint64) {
 	hub.mu.Lock()
 	delete(hub.conns, usuarioID)
 	hub.mu.Unlock()
 }
 
+// Remove conn no hub do socket.
 func RemoverConn(usuarioID uint64, conn *websocket.Conn) {
 	hub.mu.Lock()
 	if atual, ok := hub.conns[usuarioID]; ok && atual.conn == conn {
@@ -109,6 +115,7 @@ func RemoverConn(usuarioID uint64, conn *websocket.Conn) {
 	hub.mu.Unlock()
 }
 
+// Lista os ids que estão com o socket aberto agora.
 func IDsConectados() []uint64 {
 	hub.mu.RLock()
 	defer hub.mu.RUnlock()
@@ -119,6 +126,7 @@ func IDsConectados() []uint64 {
 	return ids
 }
 
+// Escreve no hub do socket.
 func (c *cliente) escrever(tipoEvento string, payload interface{}) error {
 	dados, erro := json.Marshal(map[string]interface{}{
 		"tipo":    tipoEvento,
@@ -132,6 +140,7 @@ func (c *cliente) escrever(tipoEvento string, payload interface{}) error {
 	return c.conn.WriteMessage(websocket.TextMessage, dados)
 }
 
+// Escreve o evento JSON só na conexão daquele id, se ela existir.
 func EnviarParaUsuario(usuarioID uint64, tipoEvento string, payload interface{}) {
 	hub.mu.RLock()
 	c, ok := hub.conns[usuarioID]
@@ -145,6 +154,7 @@ func EnviarParaUsuario(usuarioID uint64, tipoEvento string, payload interface{})
 	}
 }
 
+// Broadcast: broadcast no hub do socket.
 func Broadcast(tipoEvento string, payload interface{}) {
 	hub.mu.RLock()
 	snapshot := make(map[uint64]*cliente, len(hub.conns))
@@ -163,6 +173,7 @@ func Broadcast(tipoEvento string, payload interface{}) {
 	}
 }
 
+// BroadcastParaUsuarios: para usuarios no hub do socket.
 func BroadcastParaUsuarios(usuarioIDs []uint64, tipoEvento string, payload interface{}) {
 	for _, id := range usuarioIDs {
 		EnviarParaUsuario(id, tipoEvento, payload)

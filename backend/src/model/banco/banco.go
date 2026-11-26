@@ -7,6 +7,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// garantirSchemaComentarios: schema comentarios.
 func garantirSchemaComentarios(db *sql.DB) error {
 	comandos := []string{
 		`ALTER TABLE comentarios
@@ -42,6 +43,7 @@ func garantirSchemaComentarios(db *sql.DB) error {
 	return nil
 }
 
+// garantirSchemaMensagens: schema mensagens.
 func garantirSchemaMensagens(db *sql.DB) error {
 	comandos := []string{
 		`ALTER TABLE mensagens ADD COLUMN IF NOT EXISTS anexo_url VARCHAR(512)`,
@@ -66,6 +68,7 @@ func garantirSchemaMensagens(db *sql.DB) error {
 	return nil
 }
 
+// garantirSchemaCitacoes: schema citacoes.
 func garantirSchemaCitacoes(db *sql.DB) error {
 	if _, erro := db.Exec(`CREATE TABLE IF NOT EXISTS citacoes (
 		id SERIAL PRIMARY KEY,
@@ -116,6 +119,7 @@ func garantirSchemaCitacoes(db *sql.DB) error {
 	return erro
 }
 
+// Abre o Postgres e só devolve a conexão se o ping responder.
 func Conectar() (*sql.DB, error) {
 	db, erro := sql.Open("pgx", config.StringConexaoBanco)
 	if erro != nil {

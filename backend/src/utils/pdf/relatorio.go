@@ -29,6 +29,7 @@ type Documento struct {
 	pagina     int
 }
 
+// Novo: novo.
 func Novo(meta Meta) *Documento {
 	p := gofpdf.New("P", "mm", "A4", "")
 	tr := p.UnicodeTranslatorFromDescriptor("")
@@ -53,6 +54,7 @@ func Novo(meta Meta) *Documento {
 	return d
 }
 
+// garantirLogo: logo.
 func (d *Documento) garantirLogo() {
 	if d.logoPronto {
 		return
@@ -61,6 +63,7 @@ func (d *Documento) garantirLogo() {
 	d.logoPronto = true
 }
 
+// desenharCabecalhoSimples: cabecalho simples.
 func (d *Documento) desenharCabecalhoSimples() {
 	p := d.pdf
 	d.garantirLogo()
@@ -75,6 +78,7 @@ func (d *Documento) desenharCabecalhoSimples() {
 	p.SetY(22)
 }
 
+// desenharCabecalhoCompleto: cabecalho completo.
 func (d *Documento) desenharCabecalhoCompleto() {
 	p := d.pdf
 	d.garantirLogo()
@@ -129,6 +133,7 @@ func (d *Documento) desenharCabecalhoCompleto() {
 	p.Ln(4)
 }
 
+// Secao: secao.
 func (d *Documento) Secao(titulo string) {
 	d.pdf.SetFont("Helvetica", "B", 12)
 	d.pdf.SetTextColor(27, 36, 50)
@@ -136,6 +141,7 @@ func (d *Documento) Secao(titulo string) {
 	d.pdf.Ln(8)
 }
 
+// Paragrafo: paragrafo.
 func (d *Documento) Paragrafo(texto string) {
 	d.pdf.SetFont("Helvetica", "", 10)
 	d.pdf.SetTextColor(50, 50, 50)
@@ -143,6 +149,7 @@ func (d *Documento) Paragrafo(texto string) {
 	d.pdf.Ln(2)
 }
 
+// ResumoLinha: linha.
 func (d *Documento) ResumoLinha(rotulo, valor string) {
 	d.pdf.SetFont("Helvetica", "", 10)
 	d.pdf.SetTextColor(70, 70, 70)
@@ -153,6 +160,7 @@ func (d *Documento) ResumoLinha(rotulo, valor string) {
 	d.pdf.Ln(5.5)
 }
 
+// Tabela: tabela.
 func (d *Documento) Tabela(larguras []float64, cabecalhos []string, linhas [][]string) {
 	p := d.pdf
 	const linhaAltura = 4.5
@@ -219,6 +227,7 @@ func (d *Documento) Tabela(larguras []float64, cabecalhos []string, linhas [][]s
 	p.Ln(3)
 }
 
+// Vazio: vazio.
 func (d *Documento) Vazio(msg string) {
 	d.pdf.SetFont("Helvetica", "I", 10)
 	d.pdf.SetTextColor(120, 120, 120)
@@ -226,6 +235,7 @@ func (d *Documento) Vazio(msg string) {
 	d.pdf.Ln(8)
 }
 
+// Escreve.
 func (d *Documento) Escrever(w http.ResponseWriter) error {
 	nome := d.meta.NomeArquivo
 	if nome == "" {
@@ -236,6 +246,7 @@ func (d *Documento) Escrever(w http.ResponseWriter) error {
 	return d.pdf.Output(w)
 }
 
+// Limpa celula.
 func limparCelula(s string) string {
 	s = strings.ReplaceAll(s, "\r\n", " ")
 	s = strings.ReplaceAll(s, "\n", " ")
@@ -243,6 +254,7 @@ func limparCelula(s string) string {
 	return strings.TrimSpace(s)
 }
 
+// quebrarTexto: texto.
 func quebrarTexto(p *gofpdf.Fpdf, tr func(string) string, texto string, largura float64) []string {
 	texto = limparCelula(texto)
 	if texto == "" {
@@ -286,6 +298,7 @@ func quebrarTexto(p *gofpdf.Fpdf, tr func(string) string, texto string, largura 
 	return linhas
 }
 
+// FormatData: data.
 func FormatData(t time.Time) string {
 	if t.IsZero() {
 		return "-"
@@ -293,6 +306,7 @@ func FormatData(t time.Time) string {
 	return t.In(time.FixedZone("BRT", -3*3600)).Format("02/01/2006 15:04")
 }
 
+// FormatDataCurta: data curta.
 func FormatDataCurta(t time.Time) string {
 	if t.IsZero() {
 		return "-"

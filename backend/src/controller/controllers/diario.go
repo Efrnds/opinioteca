@@ -21,6 +21,7 @@ var labelsSemana = []string{"D", "S", "T", "Q", "Q", "S", "S"}
 
 const timezoneDiario = "America/Sao_Paulo"
 
+// Devolve o relógio em America/Sao_Paulo, fuso do diário.
 func agoraDiario() time.Time {
 	local, erro := time.LoadLocation(timezoneDiario)
 	if erro != nil {
@@ -29,16 +30,19 @@ func agoraDiario() time.Time {
 	return time.Now().In(local)
 }
 
+// truncarDia: dia no diário.
 func truncarDia(t time.Time) time.Time {
 	y, m, d := t.Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, t.Location())
 }
 
+// inicioSemana: semana no diário.
 func inicioSemana(t time.Time) time.Time {
 	t = truncarDia(t)
 	return t.AddDate(0, 0, -int(t.Weekday()))
 }
 
+// Mesmo dia não aumenta a sequência. Ontem soma 1. Qualquer buraco maior volta para 1.
 func calcularSequencia(sequenciaAtual int, ultimoDia *time.Time, hoje time.Time) int {
 	hoje = truncarDia(hoje)
 	if ultimoDia == nil {
@@ -58,6 +62,7 @@ func calcularSequencia(sequenciaAtual int, ultimoDia *time.Time, hoje time.Time)
 	return 1
 }
 
+// Monta resposta diario no diário.
 func montarRespostaDiario(sequencia int, dias map[string]bool, referencia time.Time) modelos.DiarioResposta {
 	inicio := inicioSemana(referencia)
 	semana := make([]modelos.DiaSemana, 7)
@@ -74,6 +79,7 @@ func montarRespostaDiario(sequencia int, dias map[string]bool, referencia time.T
 	}
 }
 
+// Busca diario usuario no diário.
 func buscarDiarioUsuario(db *sql.DB, usuarioID uint64) (modelos.DiarioResposta, error) {
 	repoUsuarios := repositorios.NovoRepositorioDeUsuarios(db)
 	repoDiario := repositorios.NovoRepositorioDeDiario(db)
@@ -108,6 +114,7 @@ func buscarDiarioUsuario(db *sql.DB, usuarioID uint64) (modelos.DiarioResposta, 
 	return montarRespostaDiario(sequencia, dias, agora), nil
 }
 
+// Grava páginas ou porcentagem e atualiza a sequência do dia.
 func RegistrarDiario(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {
@@ -230,6 +237,7 @@ func RegistrarDiario(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Busca diario no diário.
 func BuscarDiario(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 
@@ -278,6 +286,7 @@ func BuscarDiario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, resposta)
 }
 
+// Busca historico diario no diário.
 func BuscarHistoricoDiario(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 
@@ -358,6 +367,7 @@ func BuscarHistoricoDiario(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Soma páginas e conta dias no período. Sem OpinioTop responde que não está disponível.
 func BuscarEstatisticasLeitura(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 
@@ -422,6 +432,7 @@ func BuscarEstatisticasLeitura(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, stats)
 }
 
+// Busca atividade diario no diário.
 func BuscarAtividadeDiario(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 
@@ -476,6 +487,7 @@ func BuscarAtividadeDiario(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Monta o resumo de 12 meses só para o dono com OpinioPro.
 func BuscarOpinioWrapped(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 

@@ -19,6 +19,7 @@ type Client struct {
 	httpClient *http.Client
 }
 
+// NovoClient: client.
 func NovoClient() *Client {
 	return &Client{
 		httpClient: &http.Client{Timeout: 10 * time.Second},
@@ -64,6 +65,7 @@ type jobBusca struct {
 	preferirPT   bool
 }
 
+// Busca.
 func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 	if max <= 0 {
 		max = 10
@@ -139,6 +141,7 @@ func (c *Client) Buscar(q string, max int) ([]VolumeItem, error) {
 	return merged, nil
 }
 
+// Monta queries busca.
 func montarQueriesBusca(q string) []string {
 	q = strings.TrimSpace(q)
 	if q == "" {
@@ -159,6 +162,7 @@ func montarQueriesBusca(q string) []string {
 	return queries
 }
 
+// Busca raw.
 func (c *Client) buscarRaw(q string, max int, langRestrict string) ([]VolumeItem, error) {
 	if max <= 0 {
 		max = 10
@@ -200,6 +204,7 @@ func (c *Client) buscarRaw(q string, max int, langRestrict string) ([]VolumeItem
 	return resultado.Items, nil
 }
 
+// Busca por volume id.
 func (c *Client) BuscarPorVolumeID(volumeID string) (VolumeItem, error) {
 	params := url.Values{}
 	if config.GoogleBooksAPIKey != "" {
@@ -230,6 +235,7 @@ func (c *Client) BuscarPorVolumeID(volumeID string) (VolumeItem, error) {
 	return item, nil
 }
 
+// erroRequisicao: requisicao.
 func erroRequisicao(erro error) error {
 	msg := strings.ToLower(erro.Error())
 	indicadores := []string{

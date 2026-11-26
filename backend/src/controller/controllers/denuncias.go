@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// Apenas registra o relato para a moderação.
 func CriarDenuncia(w http.ResponseWriter, r *http.Request) {
 	denuncianteID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {
@@ -86,6 +87,7 @@ func CriarDenuncia(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, criada)
 }
 
+// Busca autor entidade denunciada nas denúncias.
 func buscarAutorEntidadeDenunciada(db *sql.DB, tipoEntidade string, referenciaID, denuncianteID uint64) (uint64, error) {
 	switch tipoEntidade {
 	case modelos.TipoEntidadeAvaliacao:

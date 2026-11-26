@@ -8,11 +8,13 @@ import (
 	"strings"
 )
 
+// configurado: configurado.
 func configurado() bool {
 	return strings.TrimSpace(os.Getenv("EMAIL_USER")) != "" &&
 		strings.TrimSpace(os.Getenv("EMAIL_PASSWORD")) != ""
 }
 
+// Envia otp recuperacao senha.
 func EnviarOTPRecuperacaoSenha(destinatario, codigo string, validadeMinutos int) error {
 	destinatario = strings.TrimSpace(destinatario)
 	if destinatario == "" {

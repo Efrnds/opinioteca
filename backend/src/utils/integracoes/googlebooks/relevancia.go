@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// RelevanciaVolume: volume.
 func RelevanciaVolume(item VolumeItem, consulta string) int {
 	titulo := normalizarTextoBusca(item.VolumeInfo.Title)
 	autor := normalizarTextoBusca(strings.Join(item.VolumeInfo.Authors, " "))
@@ -18,11 +19,13 @@ func RelevanciaVolume(item VolumeItem, consulta string) int {
 	return score
 }
 
+// idiomaPortugues: portugues.
 func idiomaPortugues(lang string) bool {
 	lang = strings.ToLower(strings.TrimSpace(lang))
 	return lang == "pt" || strings.HasPrefix(lang, "pt-")
 }
 
+// bonusIdiomaPortugues: idioma portugues.
 func bonusIdiomaPortugues(lang, tituloNormalizado string) int {
 	if idiomaPortugues(lang) {
 		return 320
@@ -41,6 +44,7 @@ func bonusIdiomaPortugues(lang, tituloNormalizado string) int {
 	return 0
 }
 
+// RelevanciaLivro: livro.
 func RelevanciaLivro(titulo, autor, consulta string, bonus int) int {
 	titulo = normalizarTextoBusca(titulo)
 	autor = normalizarTextoBusca(autor)
@@ -53,6 +57,7 @@ func RelevanciaLivro(titulo, autor, consulta string, bonus int) int {
 	return score
 }
 
+// Normaliza texto busca.
 func normalizarTextoBusca(s string) string {
 	s = strings.ToLower(strings.TrimSpace(s))
 	replacer := strings.NewReplacer(
@@ -66,6 +71,7 @@ func normalizarTextoBusca(s string) string {
 	return strings.Join(strings.Fields(replacer.Replace(s)), " ")
 }
 
+// similaridadeTitulo: titulo.
 func similaridadeTitulo(texto, consulta string) int {
 	if texto == "" || consulta == "" {
 		return 0
@@ -101,6 +107,7 @@ func similaridadeTitulo(texto, consulta string) int {
 	return score
 }
 
+// similaridadeAutor: autor.
 func similaridadeAutor(autor, consulta string) int {
 	if autor == "" || consulta == "" {
 		return 0
@@ -147,6 +154,7 @@ func similaridadeAutor(autor, consulta string) int {
 	return score
 }
 
+// pontuarPopularidade: popularidade.
 func pontuarPopularidade(ratingsCount int, averageRating float64) int {
 	if ratingsCount <= 0 {
 		return 0
@@ -156,6 +164,7 @@ func pontuarPopularidade(ratingsCount int, averageRating float64) int {
 	return countScore + ratingScore
 }
 
+// penalidadesTitulo: titulo.
 func penalidadesTitulo(titulo, consulta string) int {
 	penalidade := 0
 	indicadores := []string{

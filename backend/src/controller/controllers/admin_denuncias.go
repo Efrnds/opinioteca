@@ -17,10 +17,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// denunciaIDDaURL: id da url na moderação.
 func denunciaIDDaURL(r *http.Request) (uint64, error) {
 	return strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 }
 
+// AdminListarDenuncias: listar denuncias na moderação.
 func AdminListarDenuncias(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	tipo := r.URL.Query().Get("tipo")
@@ -62,6 +64,7 @@ func AdminListarDenuncias(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// AdminBuscarDenunciaPorID: buscar denuncia por id na moderação.
 func AdminBuscarDenunciaPorID(w http.ResponseWriter, r *http.Request) {
 	denunciaID, erro := denunciaIDDaURL(r)
 	if erro != nil {
@@ -114,6 +117,7 @@ func AdminBuscarDenunciaPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, detalhe)
 }
 
+// Fecha a denúncia e, na terceira procedente contra a mesma pessoa, inativa a conta.
 func AdminResolverDenuncia(w http.ResponseWriter, r *http.Request) {
 	denunciaID, erro := denunciaIDDaURL(r)
 	if erro != nil {
@@ -262,6 +266,7 @@ func AdminResolverDenuncia(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// enriquecerContagensDenuncia: contagens denuncia na moderação.
 func enriquecerContagensDenuncia(repo *repositorios.Denuncias, item *modelos.DenunciaListItem) {
 	usuarioID, erro := repo.UsuarioDenunciadoID(item.TipoEntidade, item.ReferenciaID)
 	if erro != nil {
@@ -275,6 +280,7 @@ func enriquecerContagensDenuncia(repo *repositorios.Denuncias, item *modelos.Den
 	}
 }
 
+// enriquecerContagensDenunciaDetalhe: contagens denuncia detalhe na moderação.
 func enriquecerContagensDenunciaDetalhe(repo *repositorios.Denuncias, detalhe *modelos.DenunciaDetalhe) {
 	usuarioID, erro := repo.UsuarioDenunciadoID(detalhe.TipoEntidade, detalhe.ReferenciaID)
 	if erro != nil {
@@ -288,6 +294,7 @@ func enriquecerContagensDenunciaDetalhe(repo *repositorios.Denuncias, detalhe *m
 	}
 }
 
+// Aplica auto ban se necessario na moderação.
 func aplicarAutoBanSeNecessario(db *sql.DB, repoDenuncias *repositorios.Denuncias, denunciadoID uint64) {
 	procedentes, erro := repoDenuncias.ContarDenunciasProcedentesContraUsuario(denunciadoID)
 	if erro != nil || procedentes < modelos.LimiteDenunciasProcedentesAutoBan {
@@ -314,6 +321,7 @@ func aplicarAutoBanSeNecessario(db *sql.DB, repoDenuncias *repositorios.Denuncia
 	)
 }
 
+// Monta contexto denuncia na moderação.
 func montarContextoDenuncia(db *sql.DB, tipoEntidade string, referenciaID uint64) (any, error) {
 	switch tipoEntidade {
 	case modelos.TipoEntidadeAvaliacao:
@@ -397,10 +405,12 @@ func montarContextoDenuncia(db *sql.DB, tipoEntidade string, referenciaID uint64
 	}
 }
 
+// autorDaEntidadeDenunciada: da entidade denunciada na moderação.
 func autorDaEntidadeDenunciada(db *sql.DB, tipoEntidade string, referenciaID uint64) (uint64, error) {
 	return repositorios.NovoRepositorioDeDenuncias(db).UsuarioDenunciadoID(tipoEntidade, referenciaID)
 }
 
+// Remove conteudo denunciado na moderação.
 func removerConteudoDenunciado(db *sql.DB, tipoEntidade string, referenciaID uint64) error {
 	switch tipoEntidade {
 	case modelos.TipoEntidadeAvaliacao:

@@ -67,6 +67,7 @@ type ConfiguracaoUsuario struct {
 	AtualizadoEm time.Time `json:"atualizadoEm,omitempty"`
 }
 
+// ConfiguracaoPadrao: padrao.
 func ConfiguracaoPadrao(usuarioID uint64) ConfiguracaoUsuario {
 	return ConfiguracaoUsuario{
 		UsuarioID:             usuarioID,
@@ -86,14 +87,17 @@ func ConfiguracaoPadrao(usuarioID uint64) ConfiguracaoUsuario {
 	}
 }
 
+// nivelPrivacidadeValido: privacidade valido.
 func nivelPrivacidadeValido(v string) bool {
 	return v == PrivacidadeTodos || v == PrivacidadeSeguidores || v == PrivacidadeNinguem
 }
 
+// temaValido: valido.
 func temaValido(v string) bool {
 	return v == TemaClaro || v == TemaEscuro || v == TemaLeitor || v == TemaCustom || v == TemaDaltonismo
 }
 
+// tipoDaltonismoValido: daltonismo valido.
 func tipoDaltonismoValido(v string) bool {
 	return v == DaltonismoProtanopia ||
 		v == DaltonismoDeuteranopia ||
@@ -101,10 +105,12 @@ func tipoDaltonismoValido(v string) bool {
 		v == DaltonismoAcromatopsia
 }
 
+// CorHexValida: hex valida.
 func CorHexValida(v string) bool {
 	return hexCorRegex.MatchString(v)
 }
 
+// Normaliza cor opcional.
 func normalizarCorOpcional(p *string) (*string, error) {
 	if p == nil {
 		return nil, nil
@@ -120,6 +126,7 @@ func normalizarCorOpcional(p *string) (*string, error) {
 	return &normalizada, nil
 }
 
+// Valida e formata.
 func (c *ConfiguracaoUsuario) Preparar(permiteCustomPro bool) error {
 	if !nivelPrivacidadeValido(c.MensagemDe) {
 		return errors.New("mensagemDe inválido: use todos, seguidores ou ninguem")
@@ -200,6 +207,7 @@ func (c *ConfiguracaoUsuario) Preparar(permiteCustomPro bool) error {
 	return nil
 }
 
+// SanitizarAparenciaSemPro: aparencia sem pro.
 func SanitizarAparenciaSemPro(c ConfiguracaoUsuario) ConfiguracaoUsuario {
 	if c.Tema == TemaCustom {
 		c.Tema = TemaClaro
@@ -214,6 +222,7 @@ func SanitizarAparenciaSemPro(c ConfiguracaoUsuario) ConfiguracaoUsuario {
 	return c
 }
 
+// PermiteAcesso: acesso.
 func PermiteAcesso(nivel string, ehDono, viewerSegueOwner bool) bool {
 	if ehDono {
 		return true

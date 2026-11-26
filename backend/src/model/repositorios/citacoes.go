@@ -9,10 +9,12 @@ type Citacoes struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeCitacoes: repositorio de citacoes nas citações.
 func NovoRepositorioDeCitacoes(db *sql.DB) *Citacoes {
 	return &Citacoes{db}
 }
 
+// Busca aleatoria nas citações.
 func (repositorio Citacoes) BuscarAleatoria() (modelos.Citacao, error) {
 	var citacao modelos.Citacao
 	erro := repositorio.db.QueryRow(

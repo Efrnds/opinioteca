@@ -27,6 +27,7 @@ type feedCursorPayload struct {
 	ID       uint64 `json:"id"`
 }
 
+// Codifica feed cursor nas avaliações.
 func encodeFeedCursor(criadoEm time.Time, id uint64) (string, error) {
 	payload, erro := json.Marshal(feedCursorPayload{
 		CriadoEm: criadoEm.UTC().Format(time.RFC3339Nano),
@@ -38,6 +39,7 @@ func encodeFeedCursor(criadoEm time.Time, id uint64) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(payload), nil
 }
 
+// Decodifica feed cursor nas avaliações.
 func decodeFeedCursor(cursor string) (time.Time, uint64, error) {
 	dados, erro := base64.RawURLEncoding.DecodeString(cursor)
 	if erro != nil {
@@ -66,6 +68,7 @@ func decodeFeedCursor(cursor string) (time.Time, uint64, error) {
 	return criadoEm, payload.ID, nil
 }
 
+// limiteFeed: feed nas avaliações.
 func limiteFeed(r *http.Request) int {
 	limite := 20
 	valor := r.URL.Query().Get("limite")
@@ -85,6 +88,7 @@ func limiteFeed(r *http.Request) int {
 	return parsed
 }
 
+// Monta Para você, ou Seguindo quando o query tipo=seguindo vem preenchido.
 func BuscarFeed(w http.ResponseWriter, r *http.Request) {
 	limite := limiteFeed(r)
 
@@ -151,6 +155,7 @@ func BuscarFeed(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Valida nota e texto, barra modelo acima do plano e grava a avaliação.
 func CriarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -259,6 +264,7 @@ func CriarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Busca avaliacao por id nas avaliações.
 func BuscarAvaliacaoPorID(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 	id, erro := strconv.ParseUint(parametros["id"], 10, 64)
@@ -305,6 +311,7 @@ func BuscarAvaliacaoPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, resposta[0])
 }
 
+// Busca avaliacoes por usuario nas avaliações.
 func BuscarAvaliacoesPorUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -353,6 +360,7 @@ func BuscarAvaliacoesPorUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, resposta)
 }
 
+// Atualiza avaliacao nas avaliações.
 func AtualizarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 	id, erro := strconv.ParseUint(parametros["id"], 10, 64)
@@ -418,6 +426,7 @@ func AtualizarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// Apaga avaliacao nas avaliações.
 func DeletarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 	id, erro := strconv.ParseUint(parametros["id"], 10, 64)

@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// Busca configuracoes nas configurações.
 func BuscarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -49,6 +50,7 @@ func BuscarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, config)
 }
 
+// Salva quem vê perfil, sequência e histórico, e quem pode enviar mensagem.
 func AtualizarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -113,6 +115,7 @@ func AtualizarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, atualizado)
 }
 
+// Reativa usuario nas configurações.
 func ReativarUsuario(w http.ResponseWriter, r *http.Request) {
 	corpo, erro := io.ReadAll(r.Body)
 	if erro != nil {

@@ -10,14 +10,17 @@ import (
 	"strconv"
 )
 
+// consultaRelatorio: relatorio.
 func consultaRelatorio(r *http.Request) string {
 	return r.URL.Query().Get("q")
 }
 
+// tipoRelatorio: relatorio.
 func tipoRelatorio(r *http.Request) string {
 	return r.URL.Query().Get("tipo")
 }
 
+// AdminRelatorioComentarios: relatorio comentarios.
 func AdminRelatorioComentarios(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	tipo := tipoRelatorio(r)
@@ -55,6 +58,7 @@ func AdminRelatorioComentarios(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, itens)
 }
 
+// AdminRelatorioLivros: relatorio livros.
 func AdminRelatorioLivros(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	tipo := tipoRelatorio(r)
@@ -92,6 +96,7 @@ func AdminRelatorioLivros(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, livros)
 }
 
+// AdminRelatorioSeguidoresSeguindo: relatorio seguidores seguindo.
 func AdminRelatorioSeguidoresSeguindo(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 
@@ -131,6 +136,7 @@ func AdminRelatorioSeguidoresSeguindo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// AdminRelatorioHistoricoLeitura: relatorio historico leitura.
 func AdminRelatorioHistoricoLeitura(w http.ResponseWriter, r *http.Request) {
 	consulta := consultaRelatorio(r)
 	limite := 100
@@ -174,6 +180,7 @@ func AdminRelatorioHistoricoLeitura(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// usuariosParaResumo: para resumo.
 func usuariosParaResumo(usuarios []modelos.Usuario) []modelos.UsuarioRelatorioResumo {
 	resultado := make([]modelos.UsuarioRelatorioResumo, 0, len(usuarios))
 	for _, usuario := range usuarios {

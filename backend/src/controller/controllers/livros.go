@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// Cria livro nos livros.
 func CriarLivro(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -62,6 +63,7 @@ func CriarLivro(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, livro)
 }
 
+// Busca livros unificado nos livros.
 func BuscarLivrosUnificado(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	if q == "" {
@@ -85,6 +87,7 @@ func BuscarLivrosUnificado(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, resultado)
 }
 
+// Cria livro usuario nos livros.
 func CriarLivroUsuario(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -114,6 +117,7 @@ func CriarLivroUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, livro.ParaBusca())
 }
 
+// AdminListarLivros: listar livros nos livros.
 func AdminListarLivros(w http.ResponseWriter, r *http.Request) {
 	pagina, limite, offset := paginacaoAdmin(r)
 
@@ -150,6 +154,7 @@ func AdminListarLivros(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Busca livro por google volume nos livros.
 func BuscarLivroPorGoogleVolume(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 	volumeID := strings.TrimSpace(parametros["volumeId"])
@@ -178,6 +183,7 @@ func BuscarLivroPorGoogleVolume(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, livro)
 }
 
+// Busca livro por id nos livros.
 func BuscarLivroPorID(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 	identificador := strings.TrimSpace(parametros["id"])
@@ -217,6 +223,7 @@ func BuscarLivroPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, livro)
 }
 
+// Atualiza livro nos livros.
 func AtualizarLivro(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 	ID, erro := strconv.ParseUint(parametros["id"], 10, 64)
@@ -261,6 +268,7 @@ func AtualizarLivro(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// Marca como inativo livro nos livros.
 func InativarLivro(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 	ID, erro := strconv.ParseUint(parametros["id"], 10, 64)
@@ -284,6 +292,7 @@ func InativarLivro(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// Busca avaliacoes por livro nos livros.
 func BuscarAvaliacoesPorLivro(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 	identificador := strings.TrimSpace(parametros["livroId"])

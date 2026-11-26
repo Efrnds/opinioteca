@@ -19,10 +19,12 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// nickDaURL: da url no cadastro de usuários.
 func nickDaURL(r *http.Request) string {
 	return mux.Vars(r)["nick"]
 }
 
+// usuarioDoToken: do token no cadastro de usuários.
 func usuarioDoToken(r *http.Request, repositorio *repositorios.Usuarios) (modelos.Usuario, error) {
 	usuarioID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {
@@ -31,10 +33,12 @@ func usuarioDoToken(r *http.Request, repositorio *repositorios.Usuarios) (modelo
 	return repositorio.BuscarPorID(usuarioID)
 }
 
+// ehProprioPerfil: proprio perfil no cadastro de usuários.
 func ehProprioPerfil(usuarioToken modelos.Usuario, nick string) bool {
 	return strings.EqualFold(usuarioToken.Nick, nick)
 }
 
+// Valida o cadastro, grava a senha já em hash e devolve o usuário.
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 	if !security.LoginPermitido(r) {
 		respostas.Erro(w, http.StatusTooManyRequests, errors.New("Muitas tentativas. Tente novamente em alguns minutos."))
@@ -83,6 +87,7 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, usuario.OcultarSenha())
 }
 
+// Busca usuarios no cadastro de usuários.
 func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	nomeOuNick := strings.ToLower(r.URL.Query().Get("usuario"))
 
@@ -107,6 +112,7 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuariosFiltrados)
 }
 
+// Busca usuario no cadastro de usuários.
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -182,6 +188,7 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Busca usuario por id no cadastro de usuários.
 func BuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
 	usuarioID, erro := strconv.ParseUint(mux.Vars(r)["usuarioId"], 10, 64)
 	if erro != nil || usuarioID == 0 {
@@ -210,6 +217,7 @@ func BuscarUsuarioPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, usuario.ListarPublico())
 }
 
+// Atualiza usuario no cadastro de usuários.
 func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -257,6 +265,7 @@ func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// Marca como inativo usuario no cadastro de usuários.
 func InativarUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -287,6 +296,7 @@ func InativarUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// Cria o vínculo de seguir e recusa quando os dois ids são o mesmo.
 func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -330,6 +340,7 @@ func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// DeixarSeguirUsuario: seguir usuario no cadastro de usuários.
 func DeixarSeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -370,6 +381,7 @@ func DeixarSeguirUsuario(w http.ResponseWriter, r *http.Request) {
 	respostas.NoContent(w)
 }
 
+// Busca seguidores no cadastro de usuários.
 func BuscarSeguidores(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -405,6 +417,7 @@ func BuscarSeguidores(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, seguidoresPublicos)
 }
 
+// Busca seguindo no cadastro de usuários.
 func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 
@@ -440,6 +453,7 @@ func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, seguindoPublicos)
 }
 
+// Atualiza senha no cadastro de usuários.
 func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
 	nick := nickDaURL(r)
 

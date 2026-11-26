@@ -11,10 +11,12 @@ type Assinaturas struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeAssinaturas: repositorio de assinaturas.
 func NovoRepositorioDeAssinaturas(db *sql.DB) *Assinaturas {
 	return &Assinaturas{db}
 }
 
+// Lista.
 func (repositorio Assinaturas) Listar() ([]modelos.AssinaturaCatalogo, error) {
 	linhas, erro := repositorio.db.Query(`
 		SELECT id, codigo, nome, nivel, analise_sentimento, modo_zen, templates_enriquecidos, preco_mensal, preco_anual
@@ -47,6 +49,7 @@ func (repositorio Assinaturas) Listar() ([]modelos.AssinaturaCatalogo, error) {
 	return resultado, nil
 }
 
+// Atribui plano.
 func (repositorio Usuarios) AtribuirPlano(usuarioID, assinaturaID uint64, expiraEm *time.Time) error {
 	if !schemaTemAssinaturaExpiraEm(repositorio.db) {
 		return fmt.Errorf("migration pendente: execute backend/sql/migrations/20260708_producao.sql")
@@ -65,6 +68,7 @@ func (repositorio Usuarios) AtribuirPlano(usuarioID, assinaturaID uint64, expira
 	return erro
 }
 
+// GarantirPrivilegiosPro: privilegios pro.
 func (repositorio Usuarios) GarantirPrivilegiosPro(usuario *modelos.Usuario) error {
 	if usuario == nil || usuario.ID == 0 {
 		return nil
@@ -79,6 +83,7 @@ func (repositorio Usuarios) GarantirPrivilegiosPro(usuario *modelos.Usuario) err
 	return nil
 }
 
+// parametroTimestamp: timestamp.
 func parametroTimestamp(valor *time.Time) interface{} {
 	if valor == nil || !modelos.TempoJSONSeguro(*valor) {
 		return nil
@@ -86,6 +91,7 @@ func parametroTimestamp(valor *time.Time) interface{} {
 	return *valor
 }
 
+// Revoga plano.
 func (repositorio Usuarios) RevogarPlano(usuarioID uint64) error {
 	return repositorio.AtribuirPlano(usuarioID, modelos.PlanoGratuitoID, nil)
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// placeholdersIN: in.
 func placeholdersIN(inicio int, quantidade int) string {
 	partes := make([]string, quantidade)
 	for i := 0; i < quantidade; i++ {
@@ -13,6 +14,7 @@ func placeholdersIN(inicio int, quantidade int) string {
 	return strings.Join(partes, ", ")
 }
 
+// idsParaArgs: para args.
 func idsParaArgs(ids []uint64) []interface{} {
 	args := make([]interface{}, len(ids))
 	for i, id := range ids {

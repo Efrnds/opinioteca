@@ -78,6 +78,7 @@ type FeedPaginaResposta struct {
 	NextCursor *string         `json:"next_cursor"`
 }
 
+// Valida e formata.
 func (req *CriarAvaliacaoRequest) Preparar() error {
 	req.GoogleVolumeID = strings.TrimSpace(req.GoogleVolumeID)
 	req.Texto = strings.TrimSpace(req.Texto)
@@ -105,6 +106,7 @@ func (req *CriarAvaliacaoRequest) Preparar() error {
 	return nil
 }
 
+// Valida e formata.
 func (req *AtualizarAvaliacaoRequest) Preparar() error {
 	req.Texto = strings.TrimSpace(req.Texto)
 	if req.Nota < 1 || req.Nota > 5 {

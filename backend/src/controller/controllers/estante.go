@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Busca estante na estante.
 func BuscarEstante(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 
@@ -57,6 +58,7 @@ func BuscarEstante(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, modelos.EstanteResposta{Livros: itens})
 }
 
+// Coloca o livro na estante com status quero ler, lendo ou lido.
 func AdicionarEstante(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 
@@ -125,6 +127,7 @@ func AdicionarEstante(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, modelos.EstanteResposta{Livros: itens})
 }
 
+// Atualiza estante na estante.
 func AtualizarEstante(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 	livroIDStr := mux.Vars(r)["livroId"]
@@ -189,6 +192,7 @@ func AtualizarEstante(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, modelos.EstanteResposta{Livros: itens})
 }
 
+// Remove estante na estante.
 func RemoverEstante(w http.ResponseWriter, r *http.Request) {
 	nick := mux.Vars(r)["nick"]
 	livroIDStr := mux.Vars(r)["livroId"]

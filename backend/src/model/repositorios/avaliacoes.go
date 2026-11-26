@@ -10,10 +10,12 @@ type Avaliacoes struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeAvaliacoes: repositorio de avaliacoes nas avaliações.
 func NovoRepositorioDeAvaliacoes(db *sql.DB) *Avaliacoes {
 	return &Avaliacoes{db}
 }
 
+// Cria nas avaliações.
 func (repositorio Avaliacoes) Criar(tx *sql.Tx, avaliacao modelos.Avaliacao) (uint64, error) {
 	var id uint64
 	erro := tx.QueryRow(
@@ -34,6 +36,7 @@ func (repositorio Avaliacoes) Criar(tx *sql.Tx, avaliacao modelos.Avaliacao) (ui
 	return id, nil
 }
 
+// Busca por id nas avaliações.
 func (repositorio Avaliacoes) BuscarPorID(id uint64) (modelos.Avaliacao, error) {
 	linha := repositorio.db.QueryRow(
 		`SELECT id, usuario_id, livro_id, template_id, nota, texto, contem_spoiler, anexo_url, score_sentimento, criadoEm
@@ -41,6 +44,7 @@ func (repositorio Avaliacoes) BuscarPorID(id uint64) (modelos.Avaliacao, error) 
 	return scanAvaliacao(linha)
 }
 
+// Busca por livro nas avaliações.
 func (repositorio Avaliacoes) BuscarPorLivro(livroID uint64) ([]modelos.Avaliacao, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, usuario_id, livro_id, template_id, nota, texto, contem_spoiler, anexo_url, score_sentimento, criadoEm
@@ -52,6 +56,7 @@ func (repositorio Avaliacoes) BuscarPorLivro(livroID uint64) ([]modelos.Avaliaca
 	return scanAvaliacoes(linhas)
 }
 
+// Busca feed por livro nas avaliações.
 func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID, viewerID uint64) ([]modelos.AvaliacaoFeed, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
@@ -123,6 +128,7 @@ func (repositorio Avaliacoes) BuscarFeedPorLivro(livroID, viewerID uint64) ([]mo
 	return feed, nil
 }
 
+// Busca feed por id nas avaliações.
 func (repositorio Avaliacoes) BuscarFeedPorID(id uint64) (modelos.AvaliacaoFeed, error) {
 	linha := repositorio.db.QueryRow(
 		`SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_url, a.criadoEm,
@@ -184,6 +190,7 @@ func (repositorio Avaliacoes) BuscarFeedPorID(id uint64) (modelos.AvaliacaoFeed,
 	return item, nil
 }
 
+// Busca por usuario nas avaliações.
 func (repositorio Avaliacoes) BuscarPorUsuario(usuarioID uint64) ([]modelos.Avaliacao, error) {
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, usuario_id, livro_id, template_id, nota, texto, contem_spoiler, anexo_url, score_sentimento, criadoEm
@@ -203,6 +210,7 @@ const selectFeedBase = `SELECT a.id, a.nota, a.texto, a.contem_spoiler, a.anexo_
 		 INNER JOIN usuarios u ON u.id = a.usuario_id
 		 INNER JOIN livros l ON l.id = a.livro_id AND l.status = 'ativo'`
 
+// Monta Para você, ou Seguindo quando o query tipo=seguindo vem preenchido.
 func (repositorio Avaliacoes) BuscarFeed(viewerID uint64, limite int, cursorCriadoEm *time.Time, cursorID *uint64) ([]modelos.AvaliacaoFeed, error) {
 	var (
 		linhas *sql.Rows
@@ -236,6 +244,7 @@ func (repositorio Avaliacoes) BuscarFeed(viewerID uint64, limite int, cursorCria
 	return repositorio.escanearFeed(linhas)
 }
 
+// Traz avaliações de quem o usuário segue, mais as publicadas por ele.
 func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite int, cursorCriadoEm *time.Time, cursorID *uint64) ([]modelos.AvaliacaoFeed, error) {
 	var (
 		linhas *sql.Rows
@@ -271,6 +280,7 @@ func (repositorio Avaliacoes) BuscarFeedSeguindo(usuarioID uint64, limite int, c
 	return repositorio.escanearFeed(linhas)
 }
 
+// escanearFeed: feed nas avaliações.
 func (repositorio Avaliacoes) escanearFeed(linhas *sql.Rows) ([]modelos.AvaliacaoFeed, error) {
 	feed := make([]modelos.AvaliacaoFeed, 0)
 	avaliacaoIDs := make([]uint64, 0)
@@ -331,6 +341,7 @@ func (repositorio Avaliacoes) escanearFeed(linhas *sql.Rows) ([]modelos.Avaliaca
 	return feed, nil
 }
 
+// Atualiza nas avaliações.
 func (repositorio Avaliacoes) Atualizar(id, usuarioID uint64, nota int, texto string) error {
 	resultado, erro := repositorio.db.Exec(
 		"UPDATE avaliacoes SET nota = $1, texto = $2 WHERE id = $3 AND usuario_id = $4",
@@ -349,6 +360,7 @@ func (repositorio Avaliacoes) Atualizar(id, usuarioID uint64, nota int, texto st
 	return nil
 }
 
+// Apaga por admin nas avaliações.
 func (repositorio Avaliacoes) DeletarPorAdmin(id uint64) error {
 	tx, erro := repositorio.db.Begin()
 	if erro != nil {
@@ -392,6 +404,7 @@ func (repositorio Avaliacoes) DeletarPorAdmin(id uint64) error {
 	return tx.Commit()
 }
 
+// Apaga nas avaliações.
 func (repositorio Avaliacoes) Deletar(id, usuarioID uint64) error {
 	tx, erro := repositorio.db.Begin()
 	if erro != nil {
@@ -436,6 +449,7 @@ func (repositorio Avaliacoes) Deletar(id, usuarioID uint64) error {
 	return tx.Commit()
 }
 
+// Copia do SQL para avaliacao nas avaliações.
 func scanAvaliacao(linha *sql.Row) (modelos.Avaliacao, error) {
 	var avaliacao modelos.Avaliacao
 	var templateID sql.NullInt64
@@ -471,6 +485,7 @@ func scanAvaliacao(linha *sql.Row) (modelos.Avaliacao, error) {
 	return avaliacao, nil
 }
 
+// Copia do SQL para avaliacoes nas avaliações.
 func scanAvaliacoes(linhas *sql.Rows) ([]modelos.Avaliacao, error) {
 	avaliacoes := make([]modelos.Avaliacao, 0)
 	for linhas.Next() {
@@ -509,6 +524,7 @@ func scanAvaliacoes(linhas *sql.Rows) ([]modelos.Avaliacao, error) {
 	return avaliacoes, nil
 }
 
+// Aplica usuario feed nas avaliações.
 func aplicarUsuarioFeed(item *modelos.AvaliacaoFeed, status string, imageURL sql.NullString, assinaturaID uint64, assinaturaExpira sql.NullTime, rank int) {
 	u := modelos.Usuario{AssinaturaID: assinaturaID}
 	if assinaturaExpira.Valid {

@@ -30,6 +30,7 @@ var extensoesPermitidas = map[string]bool{
 
 const tamanhoMaximo = 5 << 20
 
+// Detecta extensao por assinatura.
 func detectarExtensaoPorAssinatura(arquivo multipart.File) (string, bool) {
 	if arquivo == nil {
 		return "", false
@@ -59,6 +60,7 @@ func detectarExtensaoPorAssinatura(arquivo multipart.File) (string, bool) {
 	return "", false
 }
 
+// Resolve extensao.
 func resolverExtensao(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	if extMagic, ok := detectarExtensaoPorAssinatura(arquivo); ok {
 		return extMagic, nil
@@ -66,14 +68,17 @@ func resolverExtensao(arquivo multipart.File, header *multipart.FileHeader) (str
 	return "", errors.New("Arquivo de imagem inválido ou corrompido")
 }
 
+// Grava avatar.
 func SalvarAvatar(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	return salvarImagem(arquivo, header, "avatars", tamanhoMaximo)
 }
 
+// Grava anexo.
 func SalvarAnexo(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	return salvarImagem(arquivo, header, "anexos", tamanhoMaximo)
 }
 
+// Grava banner.
 func SalvarBanner(arquivo multipart.File, header *multipart.FileHeader) (string, error) {
 	defer arquivo.Close()
 
@@ -111,6 +116,7 @@ func SalvarBanner(arquivo multipart.File, header *multipart.FileHeader) (string,
 	return config.URLPublica(caminhoPublico), nil
 }
 
+// Grava imagem.
 func salvarImagem(arquivo multipart.File, header *multipart.FileHeader, pasta string, maxBytes int64) (string, error) {
 	defer arquivo.Close()
 
@@ -160,6 +166,7 @@ func salvarImagem(arquivo multipart.File, header *multipart.FileHeader, pasta st
 	return config.URLPublica(caminhoPublico), nil
 }
 
+// Gera preview estatico.
 func GerarPreviewEstatico(caminhoOrigem string, caminhoPreview string) error {
 	origem, erro := os.Open(caminhoOrigem)
 	if erro != nil {

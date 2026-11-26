@@ -1,5 +1,6 @@
 package googlebooks
 
+// Extrai paginas.
 func extrairPaginas(info volumeInfo) int {
 	if info.PageCount > 0 {
 		return info.PageCount
@@ -10,6 +11,7 @@ func extrairPaginas(info volumeInfo) int {
 	return 0
 }
 
+// EnriquecerPaginas: paginas.
 func (c *Client) EnriquecerPaginas(item VolumeItem) (VolumeItem, error) {
 	if extrairPaginas(item.VolumeInfo) > 0 {
 		item.VolumeInfo.PageCount = extrairPaginas(item.VolumeInfo)

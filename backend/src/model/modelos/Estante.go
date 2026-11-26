@@ -35,6 +35,7 @@ type AtualizarEstanteRequest struct {
 	Status string `json:"status"`
 }
 
+// statusEstanteValido: estante valido.
 func statusEstanteValido(status string) bool {
 	switch status {
 	case "quero_ler", "lendo", "lido":
@@ -44,6 +45,7 @@ func statusEstanteValido(status string) bool {
 	}
 }
 
+// Valida e formata.
 func (req *AdicionarEstanteRequest) Preparar() error {
 	req.Status = strings.TrimSpace(req.Status)
 	if req.LivroID == 0 {
@@ -58,6 +60,7 @@ func (req *AdicionarEstanteRequest) Preparar() error {
 	return nil
 }
 
+// Valida e formata.
 func (req *AtualizarEstanteRequest) Preparar() error {
 	req.Status = strings.TrimSpace(req.Status)
 	if !statusEstanteValido(req.Status) {

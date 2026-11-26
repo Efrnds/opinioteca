@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+// Confere admin no cadastro de usuários.
 func VerificarAdmin(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		usuarioID, erro := auth.ExtrairUsuarioID(r)

@@ -13,10 +13,12 @@ type Diario struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeDiario: repositorio de diario no diário.
 func NovoRepositorioDeDiario(db *sql.DB) *Diario {
 	return &Diario{db}
 }
 
+// Registra no diário.
 func (repositorio Diario) Registrar(tx *sql.Tx, registro modelos.DiarioLeitura) (uint64, error) {
 	var id uint64
 	erro := tx.QueryRow(
@@ -30,6 +32,7 @@ func (repositorio Diario) Registrar(tx *sql.Tx, registro modelos.DiarioLeitura) 
 	return id, erro
 }
 
+// Busca ultimo dia leitura no diário.
 func (repositorio Diario) BuscarUltimoDiaLeitura(usuarioID uint64) (*time.Time, error) {
 	var ultimo sql.NullString
 	erro := repositorio.db.QueryRow(
@@ -55,6 +58,7 @@ func (repositorio Diario) BuscarUltimoDiaLeitura(usuarioID uint64) (*time.Time, 
 	return &t, nil
 }
 
+// JaLeuHoje: leu hoje no diário.
 func (repositorio Diario) JaLeuHoje(usuarioID uint64, hoje time.Time) (bool, error) {
 	local, erro := time.LoadLocation(timezoneDiario)
 	if erro != nil {
@@ -75,6 +79,7 @@ func (repositorio Diario) JaLeuHoje(usuarioID uint64, hoje time.Time) (bool, err
 	return existe, erro
 }
 
+// Busca dias da semana no diário.
 func (repositorio Diario) BuscarDiasDaSemana(usuarioID uint64, inicio, fim time.Time) (map[string]bool, error) {
 	local, erro := time.LoadLocation(timezoneDiario)
 	if erro != nil {
@@ -109,6 +114,7 @@ func (repositorio Diario) BuscarDiasDaSemana(usuarioID uint64, inicio, fim time.
 	return dias, nil
 }
 
+// Busca atividade no diário.
 func (repositorio Diario) BuscarAtividade(usuarioID uint64, inicio, fim time.Time) ([]modelos.DiaAtividadeLeitura, error) {
 	local := mustLocationDiario()
 	inicioLocal := inicio.In(local).Format("2006-01-02")
@@ -144,10 +150,12 @@ func (repositorio Diario) BuscarAtividade(usuarioID uint64, inicio, fim time.Tim
 	return dias, nil
 }
 
+// Busca historico no diário.
 func (repositorio Diario) BuscarHistorico(usuarioID uint64, limite int) ([]modelos.DiarioHistoricoItem, error) {
 	return repositorio.BuscarHistoricoDesde(usuarioID, limite, time.Time{})
 }
 
+// Busca historico desde no diário.
 func (repositorio Diario) BuscarHistoricoDesde(usuarioID uint64, limite int, desde time.Time) ([]modelos.DiarioHistoricoItem, error) {
 	if limite <= 0 {
 		limite = 20
@@ -197,6 +205,7 @@ func (repositorio Diario) BuscarHistoricoDesde(usuarioID uint64, limite int, des
 	return historico, nil
 }
 
+// mustLocationDiario: location diario no diário.
 func mustLocationDiario() *time.Location {
 	local, erro := time.LoadLocation(timezoneDiario)
 	if erro != nil {
@@ -205,10 +214,12 @@ func mustLocationDiario() *time.Location {
 	return local
 }
 
+// Busca resumo livros no diário.
 func (repositorio Diario) BuscarResumoLivros(usuarioID uint64) ([]modelos.DiarioLivroResumo, error) {
 	return repositorio.BuscarResumoLivrosDesde(usuarioID, time.Time{})
 }
 
+// Busca resumo livros desde no diário.
 func (repositorio Diario) BuscarResumoLivrosDesde(usuarioID uint64, desde time.Time) ([]modelos.DiarioLivroResumo, error) {
 	filtroData := ""
 	args := []any{usuarioID}
@@ -269,6 +280,7 @@ func (repositorio Diario) BuscarResumoLivrosDesde(usuarioID uint64, desde time.T
 	return resumo, nil
 }
 
+// intervaloEstatisticasLeitura: estatisticas leitura no diário.
 func intervaloEstatisticasLeitura(agora time.Time, periodo string) (time.Time, time.Time) {
 	local := mustLocationDiario()
 	agora = agora.In(local)
@@ -290,6 +302,7 @@ func intervaloEstatisticasLeitura(agora time.Time, periodo string) (time.Time, t
 	}
 }
 
+// Soma páginas e conta dias no período. Sem OpinioTop responde que não está disponível.
 func (repositorio Diario) BuscarEstatisticasLeitura(usuarioID uint64, agora time.Time, periodo string) (modelos.EstatisticasLeituraResposta, error) {
 	inicio, fim := intervaloEstatisticasLeitura(agora, periodo)
 	var inicioStr, fimStr any
@@ -358,6 +371,7 @@ func (repositorio Diario) BuscarEstatisticasLeitura(usuarioID uint64, agora time
 	return stats, nil
 }
 
+// Monta o resumo de 12 meses só para o dono com OpinioPro.
 func (repositorio Diario) BuscarOpinioWrapped(usuarioID uint64, maiorSequencia, sequenciaAtual int) (modelos.OpinioWrappedResposta, error) {
 	local := mustLocationDiario()
 	agora := time.Now().In(local)

@@ -10,10 +10,12 @@ type Templates struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeTemplates: repositorio de templates nos modelos de texto.
 func NovoRepositorioDeTemplates(db *sql.DB) *Templates {
 	return &Templates{db}
 }
 
+// Copia do SQL para linha nos modelos de texto.
 func (repositorio Templates) scanLinha(
 	scan func(dest ...any) error,
 ) (modelos.Template, error) {
@@ -48,11 +50,13 @@ const selectTemplatesBase = `
 	FROM templates t
 	JOIN assinaturas a ON a.id = t.assinatura_minima_id`
 
+// Lista admin nos modelos de texto.
 func (repositorio Templates) ListarAdmin() ([]modelos.Template, error) {
 	templates, _, erro := repositorio.ListarAdminPaginado(100000, 0)
 	return templates, erro
 }
 
+// Lista admin paginado nos modelos de texto.
 func (repositorio Templates) ListarAdminPaginado(limite, offset int) ([]modelos.Template, int, error) {
 	if limite <= 0 {
 		limite = 20
@@ -87,6 +91,7 @@ func (repositorio Templates) ListarAdminPaginado(limite, offset int) ([]modelos.
 	return templates, total, nil
 }
 
+// Lista ativos nos modelos de texto.
 func (repositorio Templates) ListarAtivos() ([]modelos.Template, error) {
 	linhas, erro := repositorio.db.Query(selectTemplatesBase + ` WHERE t.ativo = TRUE ORDER BY t.ordem, t.id`)
 	if erro != nil {
@@ -105,6 +110,7 @@ func (repositorio Templates) ListarAtivos() ([]modelos.Template, error) {
 	return templates, nil
 }
 
+// Busca por id nos modelos de texto.
 func (repositorio Templates) BuscarPorID(id uint64) (modelos.Template, error) {
 	linha := repositorio.db.QueryRow(selectTemplatesBase+` WHERE t.id = $1`, id)
 	template, erro := repositorio.scanLinha(linha.Scan)
@@ -114,6 +120,7 @@ func (repositorio Templates) BuscarPorID(id uint64) (modelos.Template, error) {
 	return template, erro
 }
 
+// Cria nos modelos de texto.
 func (repositorio Templates) Criar(template modelos.Template) (uint64, error) {
 	estruturaJSON, erro := json.Marshal(template.Estrutura)
 	if erro != nil {
@@ -134,6 +141,7 @@ func (repositorio Templates) Criar(template modelos.Template) (uint64, error) {
 	return id, erro
 }
 
+// Atualiza nos modelos de texto.
 func (repositorio Templates) Atualizar(id uint64, template modelos.Template) error {
 	estruturaJSON, erro := json.Marshal(template.Estrutura)
 	if erro != nil {
@@ -154,6 +162,7 @@ func (repositorio Templates) Atualizar(id uint64, template modelos.Template) err
 	return erro
 }
 
+// Conta uso em avaliacoes nos modelos de texto.
 func (repositorio Templates) ContarUsoEmAvaliacoes(id uint64) (int64, error) {
 	var total int64
 	erro := repositorio.db.QueryRow(
@@ -163,11 +172,13 @@ func (repositorio Templates) ContarUsoEmAvaliacoes(id uint64) (int64, error) {
 	return total, erro
 }
 
+// Marca como inativo nos modelos de texto.
 func (repositorio Templates) Inativar(id uint64) error {
 	_, erro := repositorio.db.Exec(`UPDATE templates SET ativo = FALSE WHERE id = $1`, id)
 	return erro
 }
 
+// Remove nos modelos de texto.
 func (repositorio Templates) Excluir(id uint64) error {
 	_, erro := repositorio.db.Exec(`DELETE FROM templates WHERE id = $1`, id)
 	return erro

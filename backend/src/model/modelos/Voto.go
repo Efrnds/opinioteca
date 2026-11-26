@@ -30,6 +30,7 @@ type AvaliacaoComVotos struct {
 	MeuVoto string         `json:"meu_voto,omitempty"`
 }
 
+// Valida e formata.
 func (req *VotoRequest) Preparar() error {
 	req.TipoVoto = strings.TrimSpace(strings.ToLower(req.TipoVoto))
 	if req.TipoVoto != "upvote" && req.TipoVoto != "downvote" {
@@ -38,6 +39,7 @@ func (req *VotoRequest) Preparar() error {
 	return nil
 }
 
+// Traduz upvote para +1 e downvote para -1.
 func DeltaRank(tipoVoto string) int {
 
 	if tipoVoto == "upvote" {

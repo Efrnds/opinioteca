@@ -125,6 +125,7 @@ var acoesResolucaoValidas = map[string]bool{
 	"inativar_usuario": true,
 }
 
+// Valida e formata.
 func (req *CriarDenunciaRequest) Preparar() error {
 	req.TipoEntidade = strings.TrimSpace(req.TipoEntidade)
 	req.Motivo = strings.TrimSpace(req.Motivo)
@@ -145,6 +146,7 @@ func (req *CriarDenunciaRequest) Preparar() error {
 	return nil
 }
 
+// Valida e formata.
 func (req *ResolverDenunciaRequest) Preparar() error {
 	req.Acao = strings.TrimSpace(req.Acao)
 	req.Resolucao = strings.TrimSpace(req.Resolucao)

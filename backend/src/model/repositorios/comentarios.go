@@ -9,10 +9,12 @@ type Comentarios struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeComentarios: repositorio de comentarios nos comentários.
 func NovoRepositorioDeComentarios(db *sql.DB) *Comentarios {
 	return &Comentarios{db}
 }
 
+// Cria nos comentários.
 func (repositorio Comentarios) Criar(comentario modelos.Comentario) (modelos.Comentario, error) {
 	var criado modelos.Comentario
 	var anexo sql.NullString
@@ -47,6 +49,7 @@ func (repositorio Comentarios) Criar(comentario modelos.Comentario) (modelos.Com
 	return criado, nil
 }
 
+// Busca por id nos comentários.
 func (repositorio Comentarios) BuscarPorID(comentarioID uint64) (modelos.Comentario, error) {
 	var comentario modelos.Comentario
 	var paiID sql.NullInt64
@@ -76,6 +79,7 @@ func (repositorio Comentarios) BuscarPorID(comentarioID uint64) (modelos.Comenta
 	return comentario, nil
 }
 
+// Busca por avaliacao nos comentários.
 func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID *uint64) ([]modelos.ComentarioResposta, error) {
 	var usuarioVotoID interface{} = nil
 	if usuarioID != nil {
@@ -148,6 +152,7 @@ func (repositorio Comentarios) BuscarPorAvaliacao(avaliacaoID uint64, usuarioID 
 	return comentarios, nil
 }
 
+// Grava o voto em comentario nos comentários.
 func (repositorio Comentarios) VotarComentario(usuarioID, comentarioID uint64, tipoVoto string) error {
 	_, erro := repositorio.db.Exec(
 		`INSERT INTO voto_comentarios (usuario_id, comentario_id, tipo_voto)
@@ -161,6 +166,7 @@ func (repositorio Comentarios) VotarComentario(usuarioID, comentarioID uint64, t
 	return erro
 }
 
+// Apaga por admin nos comentários.
 func (repositorio Comentarios) DeletarPorAdmin(comentarioID uint64) error {
 	comentario, erro := repositorio.BuscarPorID(comentarioID)
 	if erro != nil {
@@ -197,6 +203,7 @@ func (repositorio Comentarios) DeletarPorAdmin(comentarioID uint64) error {
 	return repositorio.AtualizarComentarioDestaqueCache(comentario.AvaliacaoID)
 }
 
+// Remove voto comentario nos comentários.
 func (repositorio Comentarios) RemoverVotoComentario(usuarioID, comentarioID uint64) error {
 	resultado, erro := repositorio.db.Exec(
 		"DELETE FROM voto_comentarios WHERE usuario_id = $1 AND comentario_id = $2",
@@ -217,6 +224,7 @@ func (repositorio Comentarios) RemoverVotoComentario(usuarioID, comentarioID uin
 	return nil
 }
 
+// Busca comentario destaque nos comentários.
 func (repositorio Comentarios) BuscarComentarioDestaque(avaliacaoID uint64) (*modelos.ComentarioResposta, error) {
 	var comentario modelos.ComentarioResposta
 	var paiID sql.NullInt64
@@ -264,6 +272,7 @@ func (repositorio Comentarios) BuscarComentarioDestaque(avaliacaoID uint64) (*mo
 	return &comentario, nil
 }
 
+// Busca destaques por avaliacoes nos comentários.
 func (repositorio Comentarios) BuscarDestaquesPorAvaliacoes(avaliacaoIDs []uint64) (map[uint64]*modelos.ComentarioResposta, error) {
 	if len(avaliacaoIDs) == 0 {
 		return map[uint64]*modelos.ComentarioResposta{}, nil
@@ -314,6 +323,7 @@ func (repositorio Comentarios) BuscarDestaquesPorAvaliacoes(avaliacaoIDs []uint6
 	return resultado, nil
 }
 
+// Atualiza comentario destaque cache nos comentários.
 func (repositorio Comentarios) AtualizarComentarioDestaqueCache(avaliacaoID uint64) error {
 	var comentarioID sql.NullInt64
 	var votos int
@@ -355,6 +365,7 @@ func (repositorio Comentarios) AtualizarComentarioDestaqueCache(avaliacaoID uint
 	return erro
 }
 
+// pqArrayUInt64: array u int 64 nos comentários.
 func pqArrayUInt64(ids []uint64) []int64 {
 	resultado := make([]int64, len(ids))
 	for i, id := range ids {

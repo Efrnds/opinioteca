@@ -19,6 +19,7 @@ type uploadResposta struct {
 	URL string `json:"url"`
 }
 
+// arquivoEhGIF: eh gif.
 func arquivoEhGIF(arquivo multipart.File, header *multipart.FileHeader) bool {
 	if arquivo != nil {
 		var cabecalho [6]byte
@@ -41,6 +42,7 @@ func arquivoEhGIF(arquivo multipart.File, header *multipart.FileHeader) bool {
 	return strings.Contains(contentType, "image/gif")
 }
 
+// arquivoEhWebPAnimado: eh web p animado.
 func arquivoEhWebPAnimado(arquivo multipart.File) bool {
 	if arquivo == nil {
 		return false
@@ -65,10 +67,12 @@ func arquivoEhWebPAnimado(arquivo multipart.File) bool {
 	return false
 }
 
+// arquivoEhAvatarAnimado: eh avatar animado.
 func arquivoEhAvatarAnimado(arquivo multipart.File, header *multipart.FileHeader) bool {
 	return arquivoEhGIF(arquivo, header) || arquivoEhWebPAnimado(arquivo)
 }
 
+// UploadAvatar: avatar.
 func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	if erro := r.ParseMultipartForm(5 << 20); erro != nil {
 		respostas.Erro(w, http.StatusBadRequest, erro)
@@ -111,6 +115,7 @@ func UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, uploadResposta{URL: url})
 }
 
+// UploadBanner: banner.
 func UploadBanner(w http.ResponseWriter, r *http.Request) {
 	if erro := r.ParseMultipartForm(5 << 20); erro != nil {
 		respostas.Erro(w, http.StatusBadRequest, erro)
@@ -132,6 +137,7 @@ func UploadBanner(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, uploadResposta{URL: url})
 }
 
+// UploadAnexo: anexo.
 func UploadAnexo(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 6<<20)
 	if erro := r.ParseMultipartForm(5 << 20); erro != nil {

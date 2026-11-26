@@ -29,6 +29,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Busca inbox mensagens nas mensagens.
 func BuscarInboxMensagens(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -75,6 +76,7 @@ func BuscarInboxMensagens(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Conta mensagens nao lidas nas mensagens.
 func ContarMensagensNaoLidas(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -113,6 +115,7 @@ func ContarMensagensNaoLidas(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Busca historico mensagens nas mensagens.
 func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -175,6 +178,7 @@ func BuscarHistoricoMensagens(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Recusa mensagem para si mesmo, respeita quem pode receber, grava e só então avisa pelo socket.
 func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -313,6 +317,7 @@ func EnviarMensagem(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Apaga conversa mensagens nas mensagens.
 func ApagarConversaMensagens(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -361,6 +366,7 @@ func ApagarConversaMensagens(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Apaga mensagem nas mensagens.
 func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -432,6 +438,7 @@ func ApagarMensagem(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Edita mensagem nas mensagens.
 func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -523,6 +530,7 @@ func EditarMensagem(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// ReagirMensagem: mensagem nas mensagens.
 func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -614,6 +622,7 @@ func ReagirMensagem(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Alterna fixar conversa nas mensagens.
 func ToggleFixarConversa(w http.ResponseWriter, r *http.Request) {
 
 	meuID, erro := auth.ExtrairUsuarioID(r)
@@ -664,6 +673,7 @@ func ToggleFixarConversa(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Marca mensagem como lida nas mensagens.
 func MarcarMensagemComoLida(w http.ResponseWriter, r *http.Request) {
 	meuID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {

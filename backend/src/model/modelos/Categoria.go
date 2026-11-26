@@ -13,6 +13,7 @@ type Categoria struct {
 	CriadoEm      time.Time `json:"criado_em"`
 }
 
+// Valida e formata.
 func (categoria *Categoria) Preparar(etapa string) error {
 	if erro := categoria.validar(etapa); erro != nil {
 		return erro
@@ -25,6 +26,7 @@ func (categoria *Categoria) Preparar(etapa string) error {
 	return nil
 }
 
+// Valida.
 func (categoria *Categoria) validar(etapa string) error {
 	if categoria.NomeCategoria == "" {
 		return errors.New("O nome da categoria é obrigatório e não pode estar em branco!")
@@ -32,6 +34,7 @@ func (categoria *Categoria) validar(etapa string) error {
 	return nil
 }
 
+// formatar: formatar.
 func (categoria *Categoria) formatar(etapa string) error {
 	categoria.NomeCategoria = strings.TrimSpace(categoria.NomeCategoria)
 	return nil

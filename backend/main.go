@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// Sobe a API: lê a configuração, monta as rotas e escuta a porta.
 func main() {
 	config.Carregar()
 	r := router.Gerar()

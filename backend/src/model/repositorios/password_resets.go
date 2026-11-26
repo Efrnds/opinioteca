@@ -19,10 +19,12 @@ type PasswordResets struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDePasswordResets: repositorio de password resets.
 func NovoRepositorioDePasswordResets(db *sql.DB) *PasswordResets {
 	return &PasswordResets{db: db}
 }
 
+// InvalidarAnteriores: anteriores.
 func (r *PasswordResets) InvalidarAnteriores(usuarioID uint64) error {
 	_, erro := r.db.Exec(
 		`UPDATE password_resets SET used_at = NOW()
@@ -32,6 +34,7 @@ func (r *PasswordResets) InvalidarAnteriores(usuarioID uint64) error {
 	return erro
 }
 
+// Cria.
 func (r *PasswordResets) Criar(usuarioID uint64, codeHash string, expiresAt time.Time) (uint64, error) {
 	var id uint64
 	erro := r.db.QueryRow(
@@ -42,6 +45,7 @@ func (r *PasswordResets) Criar(usuarioID uint64, codeHash string, expiresAt time
 	return id, erro
 }
 
+// Busca ativo por usuario.
 func (r *PasswordResets) BuscarAtivoPorUsuario(usuarioID uint64) (*PasswordReset, error) {
 	linha := r.db.QueryRow(
 		`SELECT id, usuario_id, code_hash, expires_at, used_at, attempts, created_at
@@ -71,6 +75,7 @@ func (r *PasswordResets) BuscarAtivoPorUsuario(usuarioID uint64) (*PasswordReset
 	return &reset, nil
 }
 
+// IncrementarTentativas: tentativas.
 func (r *PasswordResets) IncrementarTentativas(id uint64) error {
 	_, erro := r.db.Exec(
 		`UPDATE password_resets SET attempts = attempts + 1 WHERE id = $1`,
@@ -79,6 +84,7 @@ func (r *PasswordResets) IncrementarTentativas(id uint64) error {
 	return erro
 }
 
+// Marca usado.
 func (r *PasswordResets) MarcarUsado(id uint64) error {
 	_, erro := r.db.Exec(
 		`UPDATE password_resets SET used_at = NOW() WHERE id = $1`,

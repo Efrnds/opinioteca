@@ -27,10 +27,12 @@ var (
 	APIPublicURL = ""
 )
 
+// URLPublica: publica.
 func URLPublica(caminho string) string {
 	return fmt.Sprintf("%s%s", APIPublicURL, caminho)
 }
 
+// Carregar: carregar.
 func Carregar() {
 	var erro error
 

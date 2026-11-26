@@ -10,12 +10,14 @@ type Mensagens struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeMensagens: repositorio de mensagens nas mensagens.
 func NovoRepositorioDeMensagens(db *sql.DB) *Mensagens {
 
 	return &Mensagens{db}
 
 }
 
+// Copia do SQL para mensagem nas mensagens.
 func scanMensagem(linhas interface {
 	Scan(dest ...any) error
 }, m *modelos.Mensagem) error {
@@ -124,6 +126,7 @@ const selectMensagemComResposta = `SELECT m.id, m.remetente_id, m.destinatario_i
 
 	r.id, r.conteudo, r.remetente_id, r.anexo_url`
 
+// Busca conversas nas mensagens.
 func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaResumo, error) {
 
 	linhas, erro := repositorio.db.Query(
@@ -248,6 +251,7 @@ func (repositorio Mensagens) BuscarConversas(meuID uint64) ([]modelos.ConversaRe
 
 }
 
+// Busca historico nas mensagens.
 func (repositorio Mensagens) BuscarHistorico(meuID, outroID uint64) ([]modelos.Mensagem, error) {
 
 	linhas, erro := repositorio.db.Query(
@@ -299,6 +303,7 @@ func (repositorio Mensagens) BuscarHistorico(meuID, outroID uint64) ([]modelos.M
 
 }
 
+// Envia nas mensagens.
 func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo, anexoURL string, respostaAID *uint64) (modelos.Mensagem, error) {
 
 	var m modelos.Mensagem
@@ -358,6 +363,7 @@ func (repositorio Mensagens) Enviar(remetenteID, destinatarioID uint64, conteudo
 
 }
 
+// Apaga conversa nas mensagens.
 func (repositorio Mensagens) ApagarConversa(meuID, outroID uint64) error {
 
 	tx, erro := repositorio.db.Begin()
@@ -396,6 +402,7 @@ func (repositorio Mensagens) ApagarConversa(meuID, outroID uint64) error {
 
 }
 
+// Apaga mensagem nas mensagens.
 func (repositorio Mensagens) ApagarMensagem(meuID, mensagemID uint64) (modelos.Mensagem, error) {
 	var m modelos.Mensagem
 
@@ -419,6 +426,7 @@ func (repositorio Mensagens) ApagarMensagem(meuID, mensagemID uint64) (modelos.M
 	return m, nil
 }
 
+// Edita mensagem nas mensagens.
 func (repositorio Mensagens) EditarMensagem(meuID, mensagemID uint64, conteudo string) (modelos.Mensagem, error) {
 
 	var destinatarioID uint64
@@ -462,6 +470,7 @@ func (repositorio Mensagens) EditarMensagem(meuID, mensagemID uint64, conteudo s
 
 }
 
+// ReagirMensagem: mensagem nas mensagens.
 func (repositorio Mensagens) ReagirMensagem(meuID, mensagemID uint64, reacao string) (modelos.Mensagem, error) {
 
 	var outroID uint64
@@ -505,6 +514,7 @@ func (repositorio Mensagens) ReagirMensagem(meuID, mensagemID uint64, reacao str
 
 }
 
+// Alterna fixar conversa nas mensagens.
 func (repositorio Mensagens) ToggleFixarConversa(meuID, outroID uint64) (bool, error) {
 
 	var existe bool
@@ -546,6 +556,7 @@ func (repositorio Mensagens) ToggleFixarConversa(meuID, outroID uint64) (bool, e
 
 }
 
+// Busca mensagem por id nas mensagens.
 func (repositorio Mensagens) BuscarMensagemPorID(meuID, mensagemID uint64) (modelos.Mensagem, error) {
 
 	linhas, erro := repositorio.db.Query(
@@ -587,6 +598,7 @@ func (repositorio Mensagens) BuscarMensagemPorID(meuID, mensagemID uint64) (mode
 
 }
 
+// Marca como lida nas mensagens.
 func (repositorio Mensagens) MarcarComoLida(meuID, mensagemID uint64) error {
 	res, erro := repositorio.db.Exec(
 		`UPDATE mensagens SET lida = TRUE WHERE id = $1 AND destinatario_id = $2`,
@@ -602,6 +614,7 @@ func (repositorio Mensagens) MarcarComoLida(meuID, mensagemID uint64) error {
 	return nil
 }
 
+// Marca conversa como lida nas mensagens.
 func (repositorio Mensagens) MarcarConversaComoLida(meuID, outroID uint64) error {
 	_, erro := repositorio.db.Exec(
 		`UPDATE mensagens SET lida = TRUE
@@ -611,6 +624,7 @@ func (repositorio Mensagens) MarcarConversaComoLida(meuID, outroID uint64) error
 	return erro
 }
 
+// Conta nao lidas total nas mensagens.
 func (repositorio Mensagens) ContarNaoLidasTotal(meuID uint64) (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(
@@ -621,6 +635,7 @@ func (repositorio Mensagens) ContarNaoLidasTotal(meuID uint64) (int, error) {
 	return total, erro
 }
 
+// Conta nao lidas com usuario nas mensagens.
 func (repositorio Mensagens) ContarNaoLidasComUsuario(meuID, outroID uint64) (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(
@@ -631,6 +646,7 @@ func (repositorio Mensagens) ContarNaoLidasComUsuario(meuID, outroID uint64) (in
 	return total, erro
 }
 
+// Busca mensagem admin por id nas mensagens.
 func (repositorio Mensagens) BuscarMensagemAdminPorID(mensagemID uint64) (modelos.Mensagem, error) {
 	var m modelos.Mensagem
 	erro := repositorio.db.QueryRow(
@@ -644,6 +660,7 @@ func (repositorio Mensagens) BuscarMensagemAdminPorID(mensagemID uint64) (modelo
 	return m, nil
 }
 
+// Apaga por admin nas mensagens.
 func (repositorio Mensagens) ApagarPorAdmin(mensagemID uint64) error {
 	resultado, erro := repositorio.db.Exec(
 		`UPDATE mensagens

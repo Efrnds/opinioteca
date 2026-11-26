@@ -9,10 +9,12 @@ type Categorias struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeCategorias: repositorio de categorias nas categorias.
 func NovoRepositorioDeCategorias(db *sql.DB) *Categorias {
 	return &Categorias{db}
 }
 
+// Cria nas categorias.
 func (repositorio Categorias) Criar(categoria modelos.Categoria) (uint64, error) {
 	var id uint64
 	erro := repositorio.db.QueryRow(
@@ -26,11 +28,13 @@ func (repositorio Categorias) Criar(categoria modelos.Categoria) (uint64, error)
 	return uint64(id), nil
 }
 
+// Busca nas categorias.
 func (repositorio Categorias) Buscar() ([]modelos.Categoria, error) {
 	categorias, _, erro := repositorio.BuscarPaginado(100000, 0)
 	return categorias, erro
 }
 
+// Busca paginado nas categorias.
 func (repositorio Categorias) BuscarPaginado(limite, offset int) ([]modelos.Categoria, int, error) {
 	if limite <= 0 {
 		limite = 20
@@ -72,6 +76,7 @@ func (repositorio Categorias) BuscarPaginado(limite, offset int) ([]modelos.Cate
 	return categorias, total, nil
 }
 
+// Busca por id nas categorias.
 func (repositorio Categorias) BuscarPorID(ID uint64) (modelos.Categoria, error) {
 	linha, erro := repositorio.db.Query(
 		"SELECT id, nome_categoria, ativo, criadoEm FROM categorias WHERE id = $1 AND ativo = true",
@@ -95,6 +100,7 @@ func (repositorio Categorias) BuscarPorID(ID uint64) (modelos.Categoria, error) 
 	return categoria, nil
 }
 
+// Atualiza nas categorias.
 func (repositorio Categorias) Atualizar(ID uint64, categoria modelos.Categoria) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE categorias SET nome_categoria = $1, ativo = $2 WHERE id = $3",
@@ -109,6 +115,7 @@ func (repositorio Categorias) Atualizar(ID uint64, categoria modelos.Categoria) 
 	return nil
 }
 
+// Marca como inativo nas categorias.
 func (repositorio Categorias) Inativar(ID uint64) error {
 	statement, erro := repositorio.db.Prepare(
 		"UPDATE categorias SET ativo = false WHERE id = $1",
@@ -123,6 +130,7 @@ func (repositorio Categorias) Inativar(ID uint64) error {
 	return nil
 }
 
+// Busca por nome nas categorias.
 func (repositorio Categorias) BuscarPorNome(nome string) (modelos.Categoria, error) {
 	linha := repositorio.db.QueryRow(
 		"SELECT id, nome_categoria, ativo, criadoEm FROM categorias WHERE nome_categoria = $1 AND ativo = true",

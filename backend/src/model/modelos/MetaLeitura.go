@@ -16,6 +16,7 @@ type MetaLeituraRequest struct {
 	Meta    int    `json:"meta"`
 }
 
+// Valida e formata.
 func (req *MetaLeituraRequest) Preparar() error {
 	if req.Tipo != "paginas" && req.Tipo != "livros" {
 		return errors.New("Tipo de meta inválido. Use paginas ou livros.")

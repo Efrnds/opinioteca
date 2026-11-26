@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// caminhoLogSeguro: log seguro.
 func caminhoLogSeguro(r *http.Request) string {
 	u := *r.URL
 	q := u.Query()
@@ -25,6 +26,7 @@ func caminhoLogSeguro(r *http.Request) string {
 	return path
 }
 
+// Anota método e caminho da request e esconde o token se ele vier na URL.
 func Logger(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("\n Requisição recebida: %s %s %s", r.Method, caminhoLogSeguro(r), r.Host)
@@ -32,6 +34,7 @@ func Logger(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// Exige JWT válido e conta ativa antes de deixar o handler rodar.
 func Autenticar(proximaFuncao http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if erro := auth.ValidarToken(r); erro != nil {

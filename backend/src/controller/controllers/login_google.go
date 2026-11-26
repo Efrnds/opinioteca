@@ -21,6 +21,7 @@ import (
 
 var nickInvalidoRegex = regexp.MustCompile(`[^a-z0-9_]+`)
 
+// Valida o idToken do Google e entra numa conta já ligada, ou cria o usuário.
 func LoginGoogle(w http.ResponseWriter, r *http.Request) {
 	corpoRequisicao, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -121,6 +122,7 @@ func LoginGoogle(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Cria usuario google no login Google.
 func criarUsuarioGoogle(repositorio *repositorios.Usuarios, perfil googleoauth.Profile) (modelos.Usuario, error) {
 	senhaAleatoria, erro := senhaAleatoriaOAuth()
 	if erro != nil {
@@ -152,6 +154,7 @@ func criarUsuarioGoogle(repositorio *repositorios.Usuarios, perfil googleoauth.P
 	return usuario, nil
 }
 
+// senhaAleatoriaOAuth: aleatoria o auth no login Google.
 func senhaAleatoriaOAuth() (string, error) {
 	buf := make([]byte, 32)
 	if _, erro := rand.Read(buf); erro != nil {
@@ -160,6 +163,7 @@ func senhaAleatoriaOAuth() (string, error) {
 	return hex.EncodeToString(buf), nil
 }
 
+// nickUnicoParaGoogle: unico para google no login Google.
 func nickUnicoParaGoogle(repositorio *repositorios.Usuarios, nome, email string) (string, error) {
 	base := nickBaseDe(nome, email)
 	for tentativa := 0; tentativa < 40; tentativa++ {
@@ -186,6 +190,7 @@ func nickUnicoParaGoogle(repositorio *repositorios.Usuarios, nome, email string)
 	return "user_" + sufixo, nil
 }
 
+// nickBaseDe: base de no login Google.
 func nickBaseDe(nome, email string) string {
 	fonte := strings.TrimSpace(nome)
 	if fonte == "" {
@@ -201,6 +206,7 @@ func nickBaseDe(nome, email string) string {
 	return truncarNick(fonte, 40)
 }
 
+// truncarNick: nick no login Google.
 func truncarNick(s string, max int) string {
 	if max < 1 {
 		return ""
@@ -211,6 +217,7 @@ func truncarNick(s string, max int) string {
 	return s[:max]
 }
 
+// sufixoAleatorio: aleatorio no login Google.
 func sufixoAleatorio(n int) (string, error) {
 	buf := make([]byte, (n+1)/2)
 	if _, erro := rand.Read(buf); erro != nil {

@@ -12,6 +12,7 @@ import (
 	"strconv"
 )
 
+// Cria categoria nas categorias.
 func CriarCategoria(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {
@@ -46,6 +47,7 @@ func CriarCategoria(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusCreated, categoria)
 }
 
+// Busca categorias nas categorias.
 func BuscarCategorias(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -89,6 +91,7 @@ func BuscarCategorias(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Busca categoria por id nas categorias.
 func BuscarCategoriaPorID(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 
@@ -114,6 +117,7 @@ func BuscarCategoriaPorID(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, categoria)
 }
 
+// Atualiza categoria nas categorias.
 func AtualizarCategoria(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 
@@ -155,6 +159,7 @@ func AtualizarCategoria(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusNoContent, nil)
 }
 
+// Marca como inativo categoria nas categorias.
 func InativarCategoria(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 

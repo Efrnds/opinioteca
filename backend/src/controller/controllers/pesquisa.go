@@ -13,6 +13,7 @@ import (
 	"sync"
 )
 
+// parseLimitePesquisa: limite pesquisa na pesquisa.
 func parseLimitePesquisa(r *http.Request) int {
 	padrao := 20
 	if valor := r.URL.Query().Get("limite"); valor != "" {
@@ -23,6 +24,7 @@ func parseLimitePesquisa(r *http.Request) int {
 	return padrao
 }
 
+// Dispara em paralelo usuários, livros locais e Google Books, e espera as três.
 func PesquisaGlobal(w http.ResponseWriter, r *http.Request) {
 	termo := strings.TrimSpace(r.URL.Query().Get("q"))
 	if termo == "" {
@@ -88,6 +90,7 @@ func PesquisaGlobal(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Junta livros pesquisa na pesquisa.
 func mesclarLivrosPesquisa(termo string, locais []modelos.LivroPesquisa, volumes []googlebooks.VolumeItem, errGoogle error, limite int) []modelos.LivroPesquisa {
 	type candidatoPesquisa struct {
 		item  modelos.LivroPesquisa

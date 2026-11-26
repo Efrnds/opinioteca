@@ -85,6 +85,7 @@ type EstatisticasLeituraResposta struct {
 	TotalLivrosAtivos int    `json:"total_livros_ativos,omitempty"`
 }
 
+// Valida e formata.
 func (req *RegistrarDiarioRequest) Preparar() error {
 	if req.LivroID == 0 {
 		return errors.New("livro_id é obrigatório")

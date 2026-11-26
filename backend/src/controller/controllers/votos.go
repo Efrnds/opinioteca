@@ -18,10 +18,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// avaliacaoIDDaURL: id da url nos votos.
 func avaliacaoIDDaURL(r *http.Request) (uint64, error) {
 	return strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
 }
 
+// Monta avaliacao com votos nos votos.
 func montarAvaliacaoComVotos(db *sql.DB, avaliacao modelos.Avaliacao, usuarioID *uint64) (modelos.AvaliacaoComVotos, error) {
 	repoVotos := repositorios.NovoRepositorioDeVotos(db)
 	contadores, erro := repoVotos.ContarPorAvaliacao(avaliacao.ID)
@@ -44,6 +46,7 @@ func montarAvaliacaoComVotos(db *sql.DB, avaliacao modelos.Avaliacao, usuarioID 
 	return resposta, nil
 }
 
+// Monta avaliacoes com votos nos votos.
 func montarAvaliacoesComVotos(db *sql.DB, avaliacoes []modelos.Avaliacao, usuarioID *uint64) ([]modelos.AvaliacaoComVotos, error) {
 	if len(avaliacoes) == 0 {
 		return []modelos.AvaliacaoComVotos{}, nil
@@ -80,6 +83,7 @@ func montarAvaliacoesComVotos(db *sql.DB, avaliacoes []modelos.Avaliacao, usuari
 	return resultado, nil
 }
 
+// Monta feed com votos nos votos.
 func montarFeedComVotos(db *sql.DB, feed []modelos.AvaliacaoFeed, usuarioID *uint64) ([]modelos.AvaliacaoFeed, error) {
 	if len(feed) == 0 {
 		return []modelos.AvaliacaoFeed{}, nil
@@ -112,6 +116,7 @@ func montarFeedComVotos(db *sql.DB, feed []modelos.AvaliacaoFeed, usuarioID *uin
 	return feed, nil
 }
 
+// usuarioIDDoTokenOpcional: id do token opcional nos votos.
 func usuarioIDDoTokenOpcional(r *http.Request) *uint64 {
 	usuarioID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {
@@ -120,6 +125,7 @@ func usuarioIDDoTokenOpcional(r *http.Request) *uint64 {
 	return &usuarioID
 }
 
+// Registra um voto por pessoa e impede voto na própria avaliação.
 func VotarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	avaliacaoID, erro := avaliacaoIDDaURL(r)
 	if erro != nil {
@@ -213,6 +219,7 @@ func VotarAvaliacao(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Remove voto avaliacao nos votos.
 func RemoverVotoAvaliacao(w http.ResponseWriter, r *http.Request) {
 	avaliacaoID, erro := avaliacaoIDDaURL(r)
 	if erro != nil {

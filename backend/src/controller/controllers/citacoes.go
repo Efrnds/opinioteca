@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+// Sorteia uma citação pública, sem exigir login.
 func BuscarCitacaoAleatoria(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {

@@ -9,10 +9,12 @@ type Notificacoes struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeNotificacoes: repositorio de notificacoes nas notificações.
 func NovoRepositorioDeNotificacoes(db *sql.DB) *Notificacoes {
 	return &Notificacoes{db}
 }
 
+// Cria nas notificações.
 func (repositorio Notificacoes) Criar(notificacao modelos.Notificacao) (modelos.Notificacao, error) {
 	var ref sql.NullInt64
 	if notificacao.ReferenciaID != nil {
@@ -48,6 +50,7 @@ func (repositorio Notificacoes) Criar(notificacao modelos.Notificacao) (modelos.
 	return notificacao, nil
 }
 
+// Normaliza paginacao notificacoes nas notificações.
 func normalizarPaginacaoNotificacoes(limite, offset, padraoLimite int) (int, int) {
 	if limite <= 0 {
 		limite = padraoLimite
@@ -61,6 +64,7 @@ func normalizarPaginacaoNotificacoes(limite, offset, padraoLimite int) (int, int
 	return limite, offset
 }
 
+// Busca nao lidas nas notificações.
 func (repositorio Notificacoes) BuscarNaoLidas(usuarioID uint64, limite, offset int) ([]modelos.Notificacao, error) {
 	limite, offset = normalizarPaginacaoNotificacoes(limite, offset, 50)
 	linhas, erro := repositorio.db.Query(
@@ -79,6 +83,7 @@ func (repositorio Notificacoes) BuscarNaoLidas(usuarioID uint64, limite, offset 
 	return scanNotificacoes(linhas)
 }
 
+// Busca todas nas notificações.
 func (repositorio Notificacoes) BuscarTodas(usuarioID uint64, limite, offset int) ([]modelos.Notificacao, error) {
 	limite, offset = normalizarPaginacaoNotificacoes(limite, offset, 100)
 	linhas, erro := repositorio.db.Query(
@@ -97,6 +102,7 @@ func (repositorio Notificacoes) BuscarTodas(usuarioID uint64, limite, offset int
 	return scanNotificacoes(linhas)
 }
 
+// Conta nao lidas nas notificações.
 func (repositorio Notificacoes) ContarNaoLidas(usuarioID uint64) (int, error) {
 	var total int
 	erro := repositorio.db.QueryRow(
@@ -106,6 +112,7 @@ func (repositorio Notificacoes) ContarNaoLidas(usuarioID uint64) (int, error) {
 	return total, erro
 }
 
+// Marca como lida nas notificações.
 func (repositorio Notificacoes) MarcarComoLida(usuarioID, notificacaoID uint64) error {
 	res, erro := repositorio.db.Exec(
 		`UPDATE notificacoes SET lida = TRUE WHERE id = $1 AND usuario_id = $2`,
@@ -121,6 +128,7 @@ func (repositorio Notificacoes) MarcarComoLida(usuarioID, notificacaoID uint64) 
 	return nil
 }
 
+// Marca todas como lidas nas notificações.
 func (repositorio Notificacoes) MarcarTodasComoLidas(usuarioID uint64) error {
 	_, erro := repositorio.db.Exec(
 		`UPDATE notificacoes SET lida = TRUE
@@ -130,6 +138,7 @@ func (repositorio Notificacoes) MarcarTodasComoLidas(usuarioID uint64) error {
 	return erro
 }
 
+// Copia do SQL para notificacoes nas notificações.
 func scanNotificacoes(linhas *sql.Rows) ([]modelos.Notificacao, error) {
 	resultado := make([]modelos.Notificacao, 0)
 	for linhas.Next() {

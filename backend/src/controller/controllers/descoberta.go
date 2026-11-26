@@ -9,6 +9,7 @@ import (
 	"strconv"
 )
 
+// limiteDaQuery: da query na descoberta.
 func limiteDaQuery(r *http.Request, padrao int) int {
 	limite := padrao
 	if valor := r.URL.Query().Get("limite"); valor != "" {
@@ -19,6 +20,7 @@ func limiteDaQuery(r *http.Request, padrao int) int {
 	return limite
 }
 
+// DescobertaLivrosEmAlta: livros em alta na descoberta.
 func DescobertaLivrosEmAlta(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -35,6 +37,7 @@ func DescobertaLivrosEmAlta(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, livros)
 }
 
+// DescobertaLivrosRecentes: livros recentes na descoberta.
 func DescobertaLivrosRecentes(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {
@@ -51,6 +54,7 @@ func DescobertaLivrosRecentes(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, livros)
 }
 
+// DescobertaUsuariosSugeridos: usuarios sugeridos na descoberta.
 func DescobertaUsuariosSugeridos(w http.ResponseWriter, r *http.Request) {
 	viewerID, erro := auth.ExtrairUsuarioID(r)
 	if erro != nil {
@@ -78,6 +82,7 @@ func DescobertaUsuariosSugeridos(w http.ResponseWriter, r *http.Request) {
 	respostas.JSON(w, http.StatusOK, publicos)
 }
 
+// DescobertaUsuariosPorRank: usuarios por rank na descoberta.
 func DescobertaUsuariosPorRank(w http.ResponseWriter, r *http.Request) {
 	db, erro := banco.Conectar()
 	if erro != nil {

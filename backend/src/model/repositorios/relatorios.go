@@ -13,10 +13,12 @@ type Relatorios struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeRelatorios: repositorio de relatorios nos relatórios.
 func NovoRepositorioDeRelatorios(db *sql.DB) *Relatorios {
 	return &Relatorios{db}
 }
 
+// ComentariosPorLivro: por livro nos relatórios.
 func (repositorio Relatorios) ComentariosPorLivro(consulta string) ([]modelos.ComentarioRelatorioItem, error) {
 	consulta = strings.TrimSpace(consulta)
 	if consulta == "" {
@@ -46,6 +48,7 @@ func (repositorio Relatorios) ComentariosPorLivro(consulta string) ([]modelos.Co
 	return repositorio.scanComentarios(query, args...)
 }
 
+// ComentariosPorUsuario: por usuario nos relatórios.
 func (repositorio Relatorios) ComentariosPorUsuario(consulta string) ([]modelos.ComentarioRelatorioItem, error) {
 	consulta = strings.TrimSpace(consulta)
 	if consulta == "" {
@@ -78,6 +81,7 @@ func (repositorio Relatorios) ComentariosPorUsuario(consulta string) ([]modelos.
 	return repositorio.scanComentarios(query, args...)
 }
 
+// ComentariosPorCategoria: por categoria nos relatórios.
 func (repositorio Relatorios) ComentariosPorCategoria(consulta string) ([]modelos.ComentarioRelatorioItem, error) {
 	consulta = strings.TrimSpace(consulta)
 	if consulta == "" {
@@ -108,6 +112,7 @@ func (repositorio Relatorios) ComentariosPorCategoria(consulta string) ([]modelo
 	return repositorio.scanComentarios(query, args...)
 }
 
+// LivrosPorAutor: por autor nos relatórios.
 func (repositorio Relatorios) LivrosPorAutor(consulta string) ([]modelos.Livro, error) {
 	consulta = strings.TrimSpace(consulta)
 	if consulta == "" {
@@ -135,6 +140,7 @@ func (repositorio Relatorios) LivrosPorAutor(consulta string) ([]modelos.Livro, 
 	return livros, nil
 }
 
+// LivrosPorEditora: por editora nos relatórios.
 func (repositorio Relatorios) LivrosPorEditora(consulta string) ([]modelos.Livro, error) {
 	consulta = strings.TrimSpace(consulta)
 	if consulta == "" {
@@ -161,6 +167,7 @@ func (repositorio Relatorios) LivrosPorEditora(consulta string) ([]modelos.Livro
 	return livros, nil
 }
 
+// LivrosPorCategoria: por categoria nos relatórios.
 func (repositorio Relatorios) LivrosPorCategoria(consulta string) ([]modelos.Livro, error) {
 	consulta = strings.TrimSpace(consulta)
 	if consulta == "" {
@@ -203,6 +210,7 @@ func (repositorio Relatorios) LivrosPorCategoria(consulta string) ([]modelos.Liv
 	return livros, nil
 }
 
+// Copia do SQL para comentarios nos relatórios.
 func (repositorio Relatorios) scanComentarios(query string, args ...interface{}) ([]modelos.ComentarioRelatorioItem, error) {
 	linhas, erro := repositorio.db.Query(query, args...)
 	if erro != nil {
@@ -235,6 +243,7 @@ type FiltroPeriodo struct {
 	Ate *time.Time
 }
 
+// RelatorioUsuarios: usuarios nos relatórios.
 func (repositorio Relatorios) RelatorioUsuarios(status, planoCodigo string, periodo FiltroPeriodo) (modelos.RelatorioUsuariosGeral, error) {
 	var out modelos.RelatorioUsuariosGeral
 	out.PorStatus = []modelos.ContagemRotulo{}
@@ -337,6 +346,7 @@ func (repositorio Relatorios) RelatorioUsuarios(status, planoCodigo string, peri
 	return out, nil
 }
 
+// RelatorioAvaliacoes: avaliacoes nos relatórios.
 func (repositorio Relatorios) RelatorioAvaliacoes(periodo FiltroPeriodo, spoiler string) (modelos.RelatorioAvaliacoesGeral, error) {
 	var out modelos.RelatorioAvaliacoesGeral
 	out.PorNota = []modelos.ContagemRotulo{}
@@ -417,6 +427,7 @@ func (repositorio Relatorios) RelatorioAvaliacoes(periodo FiltroPeriodo, spoiler
 	return out, nil
 }
 
+// RelatorioAssinaturas: assinaturas nos relatórios.
 func (repositorio Relatorios) RelatorioAssinaturas(planoCodigo, filtro string) (modelos.RelatorioAssinaturasGeral, error) {
 	var out modelos.RelatorioAssinaturasGeral
 	out.PorPlano = []modelos.ContagemRotulo{}
@@ -523,6 +534,7 @@ func (repositorio Relatorios) RelatorioAssinaturas(planoCodigo, filtro string) (
 	return out, nil
 }
 
+// RelatorioDenuncias: denuncias nos relatórios.
 func (repositorio Relatorios) RelatorioDenuncias(status, tipo string, periodo FiltroPeriodo) (modelos.RelatorioDenunciasGeral, error) {
 	var out modelos.RelatorioDenunciasGeral
 	out.PorStatus = []modelos.ContagemRotulo{}

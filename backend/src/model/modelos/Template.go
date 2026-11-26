@@ -40,6 +40,7 @@ type TemplatePayload struct {
 	Ordem              *int   `json:"ordem"`
 }
 
+// ParaAvaliacao: avaliacao.
 func (t *Template) ParaAvaliacao() TemplateAvaliacao {
 	return TemplateAvaliacao{
 		ID:        t.ID,
@@ -49,6 +50,7 @@ func (t *Template) ParaAvaliacao() TemplateAvaliacao {
 	}
 }
 
+// Valida e formata.
 func (p *TemplatePayload) Preparar(etapa string) error {
 	p.Nome = strings.TrimSpace(p.Nome)
 	p.Descricao = strings.TrimSpace(p.Descricao)
@@ -66,6 +68,7 @@ func (p *TemplatePayload) Preparar(etapa string) error {
 	return nil
 }
 
+// ParaModelo: modelo.
 func (p *TemplatePayload) ParaModelo() Template {
 	ativo := true
 	if p.Ativo != nil {
@@ -87,6 +90,7 @@ func (p *TemplatePayload) ParaModelo() Template {
 	}
 }
 
+// EstruturaTemplateDeJSON: template de json.
 func EstruturaTemplateDeJSON(raw []byte) (TemplateEstrutura, error) {
 	var estrutura TemplateEstrutura
 	if len(raw) == 0 {

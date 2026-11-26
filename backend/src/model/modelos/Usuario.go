@@ -33,6 +33,7 @@ type Usuario struct {
 	PerfilPrivado      bool        `json:"perfilPrivado,omitempty"`
 }
 
+// Valida e formata.
 func (usuario *Usuario) Preparar(etapa string) error {
 	if erro := usuario.validar(etapa); erro != nil {
 		return erro
@@ -45,6 +46,7 @@ func (usuario *Usuario) Preparar(etapa string) error {
 	return nil
 }
 
+// Valida.
 func (usuario *Usuario) validar(etapa string) error {
 	if usuario.Nome == "" {
 		return errors.New("O nome é obrigatório e não pode estar em branco!")
@@ -67,6 +69,7 @@ func (usuario *Usuario) validar(etapa string) error {
 	return nil
 }
 
+// formatar: formatar.
 func (usuario *Usuario) formatar(etapa string) error {
 	usuario.Nome = strings.TrimSpace(usuario.Nome)
 	usuario.Nick = strings.TrimSpace(usuario.Nick)
@@ -93,6 +96,7 @@ func (usuario *Usuario) formatar(etapa string) error {
 	return nil
 }
 
+// OcultarSenha: senha.
 func (usuario *Usuario) OcultarSenha() Usuario {
 	return Usuario{
 		ID:                 usuario.ID,
@@ -113,6 +117,7 @@ func (usuario *Usuario) OcultarSenha() Usuario {
 	}
 }
 
+// Lista publico.
 func (usuario *Usuario) ListarPublico() Usuario {
 	if usuario.Status == "inativo" || usuario.ContaApagada {
 		return Usuario{
@@ -139,6 +144,7 @@ func (usuario *Usuario) ListarPublico() Usuario {
 	}
 }
 
+// Lista perfil privado reduzido.
 func (usuario *Usuario) ListarPerfilPrivadoReduzido() Usuario {
 	return Usuario{
 		ID:            usuario.ID,
@@ -150,6 +156,7 @@ func (usuario *Usuario) ListarPerfilPrivadoReduzido() Usuario {
 	}
 }
 
+// Lista privado.
 func (usuario *Usuario) ListarPrivado() Usuario {
 	plano := StatusPlano(*usuario)
 	return Usuario{
@@ -190,6 +197,7 @@ type UsuarioAdmin struct {
 	IsAdmin            bool        `json:"isAdmin"`
 }
 
+// Lista admin.
 func (usuario *Usuario) ListarAdmin() UsuarioAdmin {
 	plano := StatusPlano(*usuario)
 	return UsuarioAdmin{

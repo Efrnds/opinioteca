@@ -17,10 +17,12 @@ type Livros struct {
 	db *sql.DB
 }
 
+// NovoRepositorioDeLivros: repositorio de livros nos livros.
 func NovoRepositorioDeLivros(db *sql.DB) *Livros {
 	return &Livros{db}
 }
 
+// Copia do SQL para livro nos livros.
 func (repositorio Livros) scanLivro(linhas *sql.Rows) (modelos.Livro, error) {
 	var livro modelos.Livro
 	var isbn, editora, sinopse, capaURL, googleVolumeID sql.NullString
@@ -68,6 +70,7 @@ func (repositorio Livros) scanLivro(linhas *sql.Rows) (modelos.Livro, error) {
 	return livro, nil
 }
 
+// Copia do SQL para livro row nos livros.
 func (repositorio Livros) scanLivroRow(row *sql.Row) (modelos.Livro, error) {
 	var livro modelos.Livro
 	var isbn, editora, sinopse, capaURL, googleVolumeID sql.NullString
@@ -115,6 +118,7 @@ func (repositorio Livros) scanLivroRow(row *sql.Row) (modelos.Livro, error) {
 	return livro, nil
 }
 
+// nullableString: string nos livros.
 func nullableString(valor string) interface{} {
 	if strings.TrimSpace(valor) == "" {
 		return nil
@@ -122,6 +126,7 @@ func nullableString(valor string) interface{} {
 	return valor
 }
 
+// nullableTime: time nos livros.
 func nullableTime(valor *time.Time) interface{} {
 	if valor == nil {
 		return nil
@@ -129,6 +134,7 @@ func nullableTime(valor *time.Time) interface{} {
 	return *valor
 }
 
+// Cria nos livros.
 func (repositorio Livros) Criar(livro modelos.Livro) (uint64, error) {
 	var id uint64
 	erro := repositorio.db.QueryRow(
@@ -153,6 +159,7 @@ func (repositorio Livros) Criar(livro modelos.Livro) (uint64, error) {
 	return id, nil
 }
 
+// Busca por id nos livros.
 func (repositorio Livros) BuscarPorID(ID uint64) (modelos.Livro, error) {
 	linha := repositorio.db.QueryRow(
 		selectLivro+" WHERE id = $1 AND status = 'ativo'", ID)
@@ -163,6 +170,7 @@ func (repositorio Livros) BuscarPorID(ID uint64) (modelos.Livro, error) {
 	return livro, erro
 }
 
+// Busca por isbn nos livros.
 func (repositorio Livros) BuscarPorISBN(ISBN string) (modelos.Livro, error) {
 	linha := repositorio.db.QueryRow(
 		selectLivro+" WHERE ISBN = $1 AND status = 'ativo'", ISBN)
@@ -173,6 +181,7 @@ func (repositorio Livros) BuscarPorISBN(ISBN string) (modelos.Livro, error) {
 	return livro, erro
 }
 
+// Busca por google volume id nos livros.
 func (repositorio Livros) BuscarPorGoogleVolumeID(volumeID string) (modelos.Livro, error) {
 	linha := repositorio.db.QueryRow(
 		selectLivro+" WHERE google_volume_id = $1 AND status = 'ativo'", volumeID)
@@ -183,6 +192,7 @@ func (repositorio Livros) BuscarPorGoogleVolumeID(volumeID string) (modelos.Livr
 	return livro, erro
 }
 
+// Busca texto nos livros.
 func (repositorio Livros) BuscarTexto(q string, limite int) ([]modelos.Livro, error) {
 	if limite <= 0 {
 		limite = 10
@@ -228,6 +238,7 @@ type FiltrosLivros struct {
 	Offset int
 }
 
+// whereBuscarTodos: buscar todos nos livros.
 func (repositorio Livros) whereBuscarTodos(filtros FiltrosLivros) (string, []interface{}) {
 	query := " WHERE 1=1"
 	args := []interface{}{}
@@ -253,11 +264,13 @@ func (repositorio Livros) whereBuscarTodos(filtros FiltrosLivros) (string, []int
 	return query, args
 }
 
+// Busca todos nos livros.
 func (repositorio Livros) BuscarTodos(filtros FiltrosLivros) ([]modelos.Livro, error) {
 	livros, _, erro := repositorio.BuscarTodosPaginado(filtros)
 	return livros, erro
 }
 
+// Busca todos paginado nos livros.
 func (repositorio Livros) BuscarTodosPaginado(filtros FiltrosLivros) ([]modelos.Livro, int, error) {
 	limite := filtros.Limite
 	if limite <= 0 {
@@ -296,6 +309,7 @@ func (repositorio Livros) BuscarTodosPaginado(filtros FiltrosLivros) ([]modelos.
 	return livros, total, nil
 }
 
+// UpsertGoogle: google nos livros.
 func (repositorio Livros) UpsertGoogle(livro modelos.Livro) (uint64, error) {
 	if livro.ISBN != "" {
 		existente, erro := repositorio.BuscarPorISBN(livro.ISBN)
@@ -320,6 +334,7 @@ func (repositorio Livros) UpsertGoogle(livro modelos.Livro) (uint64, error) {
 	return repositorio.Criar(livro)
 }
 
+// Atualiza google nos livros.
 func (repositorio Livros) atualizarGoogle(id uint64, livro modelos.Livro) error {
 	_, erro := repositorio.db.Exec(
 		`UPDATE livros SET
@@ -349,6 +364,7 @@ func (repositorio Livros) atualizarGoogle(id uint64, livro modelos.Livro) error 
 	return erro
 }
 
+// Atualiza nos livros.
 func (repositorio Livros) Atualizar(ID uint64, livro modelos.Livro) error {
 	_, erro := repositorio.db.Exec(
 		`UPDATE livros SET ISBN = $1, titulo = $2, editora = $3, categoria_id = $4, status = $5,
@@ -371,11 +387,13 @@ func (repositorio Livros) Atualizar(ID uint64, livro modelos.Livro) error {
 	return erro
 }
 
+// Marca como inativo nos livros.
 func (repositorio Livros) Inativar(ID uint64) error {
 	_, erro := repositorio.db.Exec("UPDATE livros SET status = 'inativo' WHERE id = $1", ID)
 	return erro
 }
 
+// Pesquisa global nos livros.
 func (repositorio Livros) PesquisarGlobal(termo string, limite int) ([]modelos.LivroPesquisa, error) {
 	padrao := "%" + termo + "%"
 	linhas, erro := repositorio.db.Query(

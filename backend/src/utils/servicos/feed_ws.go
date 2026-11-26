@@ -27,6 +27,7 @@ type comentarioAtualizadoPayload struct {
 	ComentarioDestaque *modelos.ComentarioResposta `json:"comentario_destaque,omitempty"`
 }
 
+// Conta comentarios avaliacao.
 func contarComentariosAvaliacao(db *sql.DB, avaliacaoID uint64) (int, error) {
 	var total int
 	erro := db.QueryRow(
@@ -36,6 +37,7 @@ func contarComentariosAvaliacao(db *sql.DB, avaliacaoID uint64) (int, error) {
 	return total, erro
 }
 
+// Busca destaque avaliacao.
 func buscarDestaqueAvaliacao(db *sql.DB, avaliacaoID uint64) *modelos.ComentarioResposta {
 	repo := repositorios.NovoRepositorioDeComentarios(db)
 	destaques, erro := repo.BuscarDestaquesPorAvaliacoes([]uint64{avaliacaoID})
@@ -45,6 +47,7 @@ func buscarDestaqueAvaliacao(db *sql.DB, avaliacaoID uint64) *modelos.Comentario
 	return destaques[avaliacaoID]
 }
 
+// donoDaAvaliacao: da avaliacao.
 func donoDaAvaliacao(db *sql.DB, avaliacaoID uint64) (uint64, error) {
 	avaliacao, erro := repositorios.NovoRepositorioDeAvaliacoes(db).BuscarPorID(avaliacaoID)
 	if erro != nil {
@@ -53,6 +56,7 @@ func donoDaAvaliacao(db *sql.DB, avaliacaoID uint64) (uint64, error) {
 	return avaliacao.UsuarioID, nil
 }
 
+// broadcastVisivel: visivel.
 func broadcastVisivel(db *sql.DB, donoPerfilID uint64, tipo string, payload interface{}) {
 	ids := websockets.IDsConectados()
 	destinos := make([]uint64, 0, len(ids))
@@ -66,6 +70,7 @@ func broadcastVisivel(db *sql.DB, donoPerfilID uint64, tipo string, payload inte
 	websockets.BroadcastParaUsuarios(destinos, tipo, payload)
 }
 
+// BroadcastVotosAvaliacao: votos avaliacao.
 func BroadcastVotosAvaliacao(db *sql.DB, avaliacaoID uint64) {
 	repoVotos := repositorios.NovoRepositorioDeVotos(db)
 	votos, erro := repoVotos.ContarPorAvaliacao(avaliacaoID)
@@ -84,6 +89,7 @@ func BroadcastVotosAvaliacao(db *sql.DB, avaliacaoID uint64) {
 	})
 }
 
+// BroadcastNovoComentario: novo comentario.
 func BroadcastNovoComentario(db *sql.DB, avaliacaoID uint64, comentario modelos.ComentarioResposta) {
 	qtd, erro := contarComentariosAvaliacao(db, avaliacaoID)
 	if erro != nil {
@@ -105,6 +111,7 @@ func BroadcastNovoComentario(db *sql.DB, avaliacaoID uint64, comentario modelos.
 	})
 }
 
+// BroadcastComentarioAtualizado: comentario atualizado.
 func BroadcastComentarioAtualizado(db *sql.DB, avaliacaoID uint64, comentario modelos.ComentarioResposta) {
 	donoID, erro := donoDaAvaliacao(db, avaliacaoID)
 	if erro != nil {

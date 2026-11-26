@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// Lista planos nos planos.
 func ListarPlanos(w http.ResponseWriter, r *http.Request) {
 
 	db, erro := banco.Conectar()
@@ -52,6 +53,7 @@ func ListarPlanos(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Busca plano usuario nos planos.
 func BuscarPlanoUsuario(w http.ResponseWriter, r *http.Request) {
 
 	nick := nickDaURL(r)
@@ -124,6 +126,7 @@ type atribuirPlanoPayload struct {
 	Vitalicia bool `json:"vitalicia"`
 }
 
+// Calcula expiracao nos planos.
 func calcularExpiracao(payload atribuirPlanoPayload) (*time.Time, error) {
 
 	agora := time.Now()
@@ -186,6 +189,7 @@ func calcularExpiracao(payload atribuirPlanoPayload) (*time.Time, error) {
 
 }
 
+// AdminAtribuirPlano: atribuir plano nos planos.
 func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
 	usuarioID, erro := usuarioIDDaURL(r)
@@ -318,6 +322,7 @@ func AdminAtribuirPlano(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// AdminRevogarPlano: revogar plano nos planos.
 func AdminRevogarPlano(w http.ResponseWriter, r *http.Request) {
 
 	usuarioID, erro := usuarioIDDaURL(r)

@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// esquemaPerigoso: perigoso.
 func esquemaPerigoso(raw string) bool {
 	lower := strings.ToLower(strings.TrimSpace(raw))
 	return strings.HasPrefix(lower, "javascript:") ||
@@ -15,12 +16,14 @@ func esquemaPerigoso(raw string) bool {
 		strings.HasPrefix(lower, "vbscript:")
 }
 
+// hostGiphyPermitido: giphy permitido.
 func hostGiphyPermitido(host string) bool {
 	h := strings.ToLower(host)
 	return h == "giphy.com" || h == "media.giphy.com" || h == "i.giphy.com" ||
 		strings.HasSuffix(h, ".giphy.com")
 }
 
+// caminhoUploadLimpo: upload limpo.
 func caminhoUploadLimpo(caminho string) (string, error) {
 	limpo := path.Clean("/" + strings.TrimPrefix(caminho, "/"))
 	if limpo == "/" || strings.Contains(limpo, "..") {
@@ -32,6 +35,7 @@ func caminhoUploadLimpo(caminho string) (string, error) {
 	return limpo, nil
 }
 
+// hostAnexoPermitido: anexo permitido.
 func hostAnexoPermitido(host string) bool {
 	host = strings.ToLower(host)
 	if host == "localhost" || host == "127.0.0.1" {
@@ -59,6 +63,7 @@ func hostAnexoPermitido(host string) bool {
 	return strings.EqualFold(host, baseURL.Hostname())
 }
 
+// Valida url anexo.
 func ValidarURLAnexo(raw string) error {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -97,6 +102,7 @@ func ValidarURLAnexo(raw string) error {
 	return nil
 }
 
+// Valida url midia perfil.
 func ValidarURLMidiaPerfil(raw string) error {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {

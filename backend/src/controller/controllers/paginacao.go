@@ -10,6 +10,7 @@ const (
 	limiteMaxAdmin    = 100
 )
 
+// paginacaoAdmin: admin.
 func paginacaoAdmin(r *http.Request) (pagina, limite, offset int) {
 	pagina = 1
 	limite = limitePadraoAdmin
