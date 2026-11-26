@@ -601,7 +601,7 @@ export default function PerfilNickPage() {
     }
     if (perfil.perfilPrivado && !ehMeuPerfil) {
         return (<Box className="flex flex-col items-center gap-4 py-10 text-center">
-                <AvatarUsuario image={perfil.image} nome={perfil.nome} nick={perfil.nick} size={96} className="h-24 w-24"/>
+                <AvatarUsuario image={perfil.image} nome={perfil.nome} nick={perfil.nick} assinaturaId={perfil.assinaturaId} plano={perfil.plano} temPlanoPro={perfil.plano?.temPlanoPro} size={96} className="h-24 w-24"/>
                 <h1 className="font-gabarito-bold text-2xl text-azul-900">@{perfil.nick}</h1>
                 <p className="font-gabarito-regular text-cinza-700">Este perfil é privado.</p>
                 <p className="max-w-sm font-gabarito-regular text-sm text-cinza-600">

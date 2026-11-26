@@ -52,10 +52,31 @@ func (repositorio Usuarios) AtribuirPlano(usuarioID, assinaturaID uint64, expira
 		return fmt.Errorf("migration pendente: execute backend/sql/migrations/20260708_producao.sql")
 	}
 	_, erro := repositorio.db.Exec(
-		`UPDATE usuarios SET assinatura_id = $1, assinatura_expira_em = $2 WHERE id = $3`,
-		assinaturaID, parametroTimestamp(expiraEm), usuarioID,
+		`UPDATE usuarios SET
+			assinatura_id = $1,
+			assinatura_expira_em = $2,
+			modo_zen = CASE
+				WHEN $1 = $4 AND ($2::timestamptz IS NULL OR $2 > NOW()) THEN modo_zen
+				ELSE FALSE
+			END
+		WHERE id = $3`,
+		assinaturaID, parametroTimestamp(expiraEm), usuarioID, modelos.PlanoOpinioProID,
 	)
 	return erro
+}
+
+func (repositorio Usuarios) GarantirPrivilegiosPro(usuario *modelos.Usuario) error {
+	if usuario == nil || usuario.ID == 0 {
+		return nil
+	}
+	if !usuario.ModoZen || modelos.TemPlanoPro(*usuario) {
+		return nil
+	}
+	if erro := repositorio.AtualizarModoZen(usuario.ID, false); erro != nil {
+		return erro
+	}
+	usuario.ModoZen = false
+	return nil
 }
 
 func parametroTimestamp(valor *time.Time) interface{} {

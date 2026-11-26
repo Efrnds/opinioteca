@@ -4,7 +4,7 @@ import { RELATORIOS, type RelatorioOpcao, type RelatorioSlug } from "@/lib/admin
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type RelatorioConsultaModalProps = {
     slug: RelatorioSlug | null;
@@ -19,7 +19,6 @@ export default function RelatorioConsultaModal({ slug, open, onClose }: Relatori
     const router = useRouter();
     const config = slug ? RELATORIOS[slug] : null;
     const [consulta, setConsulta] = useState("");
-    const [filtro, setFiltro] = useState("");
     const [opcoes, setOpcoes] = useState<RelatorioOpcao[]>([]);
     const [carregando, setCarregando] = useState(false);
     const [erro, setErro] = useState("");
@@ -27,7 +26,6 @@ export default function RelatorioConsultaModal({ slug, open, onClose }: Relatori
     useEffect(() => {
         if (!open || !config) return;
         setConsulta("");
-        setFiltro("");
         setErro("");
         setOpcoes([]);
         let cancelado = false;
@@ -46,12 +44,6 @@ export default function RelatorioConsultaModal({ slug, open, onClose }: Relatori
             cancelado = true;
         };
     }, [open, slug, config]);
-
-    const opcoesFiltradas = useMemo(() => {
-        const t = filtro.trim().toLowerCase();
-        if (!t) return opcoes;
-        return opcoes.filter((o) => o.label.toLowerCase().includes(t) || o.value.toLowerCase().includes(t));
-    }, [opcoes, filtro]);
 
     function abrir(e: FormEvent) {
         e.preventDefault();
@@ -93,16 +85,7 @@ export default function RelatorioConsultaModal({ slug, open, onClose }: Relatori
                             {config.subtitulo}
                         </p>
 
-                        <form onSubmit={abrir} className="mt-6 flex flex-col gap-3">
-                            <input
-                                type="search"
-                                value={filtro}
-                                onChange={(e) => setFiltro(e.target.value)}
-                                placeholder="Filtrar lista..."
-                                disabled={carregando || opcoes.length === 0}
-                                className={selectClass}
-                            />
-
+                        <form onSubmit={abrir} className="mt-6 flex flex-col gap-4">
                             {carregando ? (
                                 <div className="flex items-center justify-center gap-2 rounded-xl border border-cinza-200 py-8 text-cinza-600">
                                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -116,12 +99,11 @@ export default function RelatorioConsultaModal({ slug, open, onClose }: Relatori
                                         setConsulta(e.target.value);
                                         if (erro) setErro("");
                                     }}
-                                    size={Math.min(10, Math.max(4, opcoesFiltradas.length || 4))}
-                                    className={`${selectClass} py-2`}
+                                    className={selectClass}
                                 >
                                     <option value="">{config.placeholder}</option>
-                                    {opcoesFiltradas.map((o) => (
-                                        <option key={o.value} value={o.value}>
+                                    {opcoes.map((o) => (
+                                        <option key={`${o.value}-${o.label}`} value={o.value}>
                                             {o.label}
                                         </option>
                                     ))}
@@ -141,7 +123,7 @@ export default function RelatorioConsultaModal({ slug, open, onClose }: Relatori
                             <button
                                 type="submit"
                                 disabled={carregando || !consulta}
-                                className="mt-1 w-full rounded-xl bg-azul-600 px-4 py-3.5 font-gabarito-bold text-sm text-white transition hover:bg-azul-500 disabled:opacity-60"
+                                className="w-full rounded-xl bg-azul-600 px-4 py-3.5 font-gabarito-bold text-sm text-white transition hover:bg-azul-500 disabled:opacity-60"
                             >
                                 Abrir Relatório
                             </button>

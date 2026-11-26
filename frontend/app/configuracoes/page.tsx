@@ -180,6 +180,7 @@ function ContaInfoLinha({ label, valor, onClick, trailing, }: {
 }
 function ContaSecao() {
     const { data: session } = useSession();
+    const { plano, temPlanoPro } = usePlano();
     const router = useRouter();
     const nick = session?.user?.nick ?? "";
     const emailAtual = session?.user?.email ?? "";
@@ -335,7 +336,7 @@ function ContaSecao() {
                             <ContaInfoLinha label="Nome de usuário" valor={nickExibido ? `@${nickExibido}` : "-"}/>
                             <ContaInfoLinha label="Nome" valor={nomeExibido || "-"}/>
                             <ContaInfoLinha label="E-mail" valor={emailExibido || undefined} onClick={() => setPainel("email")}/>
-                            <ContaInfoLinha label="Foto de perfil" valor={avatarSrc ? undefined : "Nenhuma foto"} trailing={avatarSrc ? (<AvatarUsuario image={perfil?.image ?? session?.user?.image ?? undefined} nome={nomeExibido} nick={nickExibido} size={36} className="mt-0.5 h-9 w-9 shrink-0"/>) : (<span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-azul-100 font-gabarito-bold text-sm text-azul-800">
+                            <ContaInfoLinha label="Foto de perfil" valor={avatarSrc ? undefined : "Nenhuma foto"} trailing={avatarSrc ? (<AvatarUsuario image={perfil?.image ?? session?.user?.image ?? undefined} nome={nomeExibido} nick={nickExibido} assinaturaId={plano?.assinaturaId ?? perfil?.assinaturaId} plano={plano ?? undefined} temPlanoPro={temPlanoPro} size={36} className="mt-0.5 h-9 w-9 shrink-0"/>) : (<span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-azul-100 font-gabarito-bold text-sm text-azul-800">
                                             {inicial}
                                         </span>)}/>
                         </div>

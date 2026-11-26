@@ -154,5 +154,5 @@ export function podeExibirAvatarGif(imageUrl?: string | null, assinaturaId?: num
         return plano.temPlanoPro;
     if (assinaturaId != null)
         return temPlanoProDeId(assinaturaId, plano);
-    return true;
+    return false;
 }

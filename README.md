@@ -33,18 +33,18 @@ Requisição HTTP
 └─────────────┘
 ```
 
-| Camada | Onde fica | Responsabilidade |
-|--------|-----------|------------------|
-| **Model** | `backend/src/model/` | Dados: structs (`modelos`), SQL (`repositorios`), conexão (`banco`) |
-| **Controller** | `backend/src/controller/` | HTTP: handlers, rotas, middlewares (auth/admin) |
-| **View** | `frontend/` | Interface: App Router, componentes, Auth.js |
-| Infra (apoio) | `backend/src/infra/` | JWT, e-mail, upload, WebSocket, PDF, integrações — não é regra de negócio |
+| Camada         | Onde fica                 | Responsabilidade                                                          |
+| -------------- | ------------------------- | ------------------------------------------------------------------------- |
+| **Model**      | `backend/src/model/`      | Dados: structs (`modelos`), SQL (`repositorios`), conexão (`banco`)       |
+| **Controller** | `backend/src/controller/` | HTTP: handlers, rotas, middlewares (auth/admin)                           |
+| **View**       | `frontend/`               | Interface: App Router, componentes, Auth.js                               |
+| Infra (apoio)  | `backend/src/infra/`      | JWT, e-mail, upload, WebSocket, PDF, integrações — não é regra de negócio |
 
 ### Fluxo típico (ex.: criar avaliação)
 
-1. **View** — formulário no Next.js chama a API  
-2. **Controller** — `controllers/avaliacoes.go` valida e orquestra  
-3. **Model** — `repositorios` persiste; `modelos` tipa o dado  
+1. **View** — formulário no Next.js chama a API
+2. **Controller** — `controllers/avaliacoes.go` valida e orquestra
+3. **Model** — `repositorios` persiste; `modelos` tipa o dado
 4. Resposta JSON volta para a **View**
 
 ### Estrutura do repositório
@@ -71,11 +71,11 @@ opinioteca/
     └── lib/
 ```
 
-| Parte | Stack |
-|-------|--------|
-| Backend | Go, PostgreSQL, Gorilla Mux/WebSocket |
-| Frontend | Next.js, React, Tailwind, Auth.js / NextAuth |
-| Infra típica | Docker (DB), nginx / NPM na frente |
+| Parte        | Stack                                        |
+| ------------ | -------------------------------------------- |
+| Backend      | Go, PostgreSQL, Gorilla Mux/WebSocket        |
+| Frontend     | Next.js, React, Tailwind, Auth.js / NextAuth |
+| Infra típica | Docker (DB), nginx / NPM na frente           |
 
 Detalhes de operação do backend: [`backend/readme.MD`](./backend/readme.MD).
 

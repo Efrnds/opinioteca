@@ -2,6 +2,7 @@
 import { mediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import type { LivroPublico } from "@/types/livro";
+import type { PlanoStatus } from "@/types/plano";
 import { UserPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +17,8 @@ type UsuarioSugerido = {
     nome: string;
     nick: string;
     image?: string;
+    assinaturaId?: number;
+    plano?: PlanoStatus;
     rankConfiabilidade?: number;
 };
 type Variante = "pagina" | "lateral";
@@ -114,7 +117,7 @@ function SecaoUsuariosSugeridos({ variante }: {
                 const jaSegue = seguindo.has(u.nick);
                 return (<li key={u.id} className="flex items-center gap-1.5">
                                 <Link href={`/perfil/${u.nick}`} className="flex min-w-0 flex-1 items-center gap-1.5">
-                                    <AvatarUsuario image={u.image} nome={u.nome} nick={u.nick} size={lateral ? 28 : 44} className={lateral ? "h-7 w-7" : "h-11 w-11"}/>
+                                    <AvatarUsuario image={u.image} nome={u.nome} nick={u.nick} assinaturaId={u.assinaturaId} plano={u.plano} temPlanoPro={u.plano?.temPlanoPro} size={lateral ? 28 : 44} className={lateral ? "h-7 w-7" : "h-11 w-11"}/>
                                     <div className="min-w-0">
                                         <p className={cn("flex min-w-0 items-center gap-1 truncate font-gabarito-bold text-azul-900", lateral && "text-xs leading-tight")}>
                                             <span className="truncate">{u.nome}</span>
@@ -168,7 +171,7 @@ function SecaoCriticosEmAlta({ variante }: {
                                     <span className={cn("w-5 shrink-0 text-center font-gabarito-bold text-cinza-500", lateral ? "text-[10px]" : "text-sm")}>
                                         {index + 1}
                                     </span>
-                                    <AvatarUsuario image={u.image} nome={u.nome} nick={u.nick} size={lateral ? 28 : 44} className={lateral ? "h-7 w-7" : "h-11 w-11"}/>
+                                    <AvatarUsuario image={u.image} nome={u.nome} nick={u.nick} assinaturaId={u.assinaturaId} plano={u.plano} temPlanoPro={u.plano?.temPlanoPro} size={lateral ? 28 : 44} className={lateral ? "h-7 w-7" : "h-11 w-11"}/>
                                     <div className="min-w-0 flex-1">
                                         <p className={cn("truncate font-gabarito-bold text-azul-900", lateral && "text-xs leading-tight")}>
                                             {u.nome}

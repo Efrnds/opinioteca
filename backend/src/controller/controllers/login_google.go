@@ -111,6 +111,8 @@ func LoginGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_ = repositorio.GarantirPrivilegiosPro(&usuarioCompleto)
+
 	security.RegistrarSucessoLogin(r, "google")
 	respostas.JSON(w, http.StatusOK, modelos.LoginResposta{
 		Token:   token,

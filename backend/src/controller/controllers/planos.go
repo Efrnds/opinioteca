@@ -106,6 +106,8 @@ func BuscarPlanoUsuario(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	_ = repoUsuarios.GarantirPrivilegiosPro(&usuario)
+
 	respostas.JSON(w, http.StatusOK, modelos.StatusPlano(usuario))
 
 }

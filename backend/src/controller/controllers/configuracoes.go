@@ -40,6 +40,8 @@ func BuscarConfiguracoes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_ = repoUsuarios.GarantirPrivilegiosPro(&usuarioToken)
+
 	if !modelos.TemPlanoPro(usuarioToken) {
 		config = modelos.SanitizarAparenciaSemPro(config)
 	}

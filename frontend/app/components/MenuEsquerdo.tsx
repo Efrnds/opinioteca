@@ -11,10 +11,12 @@ import { useEffect, useRef, useState } from "react";
 import AvatarUsuario from "./AvatarUsuario";
 import Box from "./Box";
 import NovaAvaliacaoModal from "./NovaAvaliacaoModal";
+import { usePlano } from "./PlanoProvider";
 import { useWebSocket } from "./WebSocketProvider";
 export default function MenuEsquerdo() {
     const pathname = usePathname();
     const { data: session } = useSession();
+    const { plano, temPlanoPro } = usePlano();
     const { contagemNaoLidas, mensagensNaoLidasTotal } = useWebSocket();
     const [modalAberto, setModalAberto] = useState(false);
     const [menuContaAberto, setMenuContaAberto] = useState(false);
@@ -66,7 +68,7 @@ export default function MenuEsquerdo() {
 
             <Box ref={contaRef} className="relative flex w-full shrink-0 items-center justify-between gap-2 !p-2.5 xl:!p-3">
                 <Link href="/perfil" className="flex min-w-0 items-center gap-2">
-                    <AvatarUsuario image={session?.user?.image} nome={session?.user?.name ?? undefined} nick={nick} size={44} className="h-10 w-10 xl:h-11 xl:w-11"/>
+                    <AvatarUsuario image={session?.user?.image} nome={session?.user?.name ?? undefined} nick={nick} assinaturaId={plano?.assinaturaId ?? session?.user?.assinaturaId} plano={plano ?? undefined} temPlanoPro={temPlanoPro} size={44} className="h-10 w-10 xl:h-11 xl:w-11"/>
                     <span className="truncate font-gabarito-bold text-base text-azul-900 xl:text-lg">{nick}</span>
                 </Link>
 

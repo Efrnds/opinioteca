@@ -4,6 +4,10 @@ import type { CategoriaAdmin, LivroAdmin, UsuarioAdmin } from "@/types/admin";
 
 const LIMITE = 100;
 
+function normalizarChave(s: string): string {
+    return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 async function carregarTodasPaginas<T>(urlBase: string): Promise<T[]> {
     const itens: T[] = [];
     let pagina = 1;
@@ -25,13 +29,27 @@ async function carregarTodasPaginas<T>(urlBase: string): Promise<T[]> {
     return itens;
 }
 
-function unicosOrdenados(valores: string[]): RelatorioOpcao[] {
-    const set = new Set<string>();
-    for (const v of valores) {
-        const t = v.trim();
-        if (t) set.add(t);
+function unicosPorLabel(opcoes: RelatorioOpcao[]): RelatorioOpcao[] {
+    const vistos = new Map<string, RelatorioOpcao>();
+    for (const o of opcoes) {
+        const chave = normalizarChave(o.label);
+        if (!chave || vistos.has(chave)) continue;
+        vistos.set(chave, o);
     }
-    return [...set]
+    return [...vistos.values()].sort((a, b) =>
+        a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }),
+    );
+}
+
+function unicosOrdenados(valores: string[]): RelatorioOpcao[] {
+    const vistos = new Map<string, string>();
+    for (const v of valores) {
+        const t = v.trim().replace(/\s+/g, " ");
+        if (!t) continue;
+        const chave = normalizarChave(t);
+        if (!vistos.has(chave)) vistos.set(chave, t);
+    }
+    return [...vistos.values()]
         .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }))
         .map((v) => ({ value: v, label: v }));
 }
@@ -40,35 +58,41 @@ export async function carregarOpcoesRelatorio(fonte: RelatorioFonte): Promise<Re
     switch (fonte) {
         case "usuarios": {
             const usuarios = await carregarTodasPaginas<UsuarioAdmin>("/api/admin/usuarios");
-            return usuarios
-                .slice()
-                .sort((a, b) => a.nick.localeCompare(b.nick, "pt-BR", { sensitivity: "base" }))
-                .map((u) => ({
+            const porId = new Map<number, RelatorioOpcao>();
+            for (const u of usuarios) {
+                if (!u?.id || porId.has(u.id)) continue;
+                porId.set(u.id, {
                     value: String(u.id),
                     label: `@${u.nick} - ${u.nome} (${u.email})`,
-                }));
+                });
+            }
+            return [...porId.values()].sort((a, b) =>
+                a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }),
+            );
         }
         case "livros": {
             const livros = await carregarTodasPaginas<LivroAdmin>("/api/admin/livros");
-            return livros
-                .slice()
-                .sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR", { sensitivity: "base" }))
+            const opcoes = livros
+                .filter((l) => l?.id && l.titulo?.trim())
                 .map((l) => ({
                     value: String(l.id),
-                    label: `${l.titulo}${l.autor ? ` - ${l.autor}` : ""}`,
+                    label: `${l.titulo.trim()}${l.autor?.trim() ? ` - ${l.autor.trim()}` : ""}`,
                 }));
+            return unicosPorLabel(opcoes);
         }
         case "categorias": {
             const categorias = await carregarTodasPaginas<CategoriaAdmin>("/api/admin/categorias");
-            return categorias
-                .slice()
-                .sort((a, b) =>
-                    a.nome_categoria.localeCompare(b.nome_categoria, "pt-BR", { sensitivity: "base" }),
-                )
-                .map((c) => ({
+            const porId = new Map<number, RelatorioOpcao>();
+            for (const c of categorias) {
+                if (!c?.id || porId.has(c.id)) continue;
+                porId.set(c.id, {
                     value: String(c.id),
                     label: c.nome_categoria,
-                }));
+                });
+            }
+            return [...porId.values()].sort((a, b) =>
+                a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }),
+            );
         }
         case "autores": {
             const livros = await carregarTodasPaginas<LivroAdmin>("/api/admin/livros");

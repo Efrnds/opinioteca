@@ -133,6 +133,7 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 
 	if usuario.Status != "ativo" {
 		if ehDono {
+			_ = repositorio.GarantirPrivilegiosPro(&usuario)
 			respostas.JSON(w, http.StatusOK, usuario.ListarPrivado())
 			return
 		}
@@ -146,6 +147,7 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ehDono {
+		_ = repositorio.GarantirPrivilegiosPro(&usuario)
 		respostas.JSON(w, http.StatusOK, usuario.ListarPrivado())
 		return
 	}

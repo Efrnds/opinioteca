@@ -164,7 +164,7 @@ func (usuario *Usuario) ListarPrivado() Usuario {
 		AssinaturaID:       usuario.AssinaturaID,
 		AssinaturaExpiraEm: PtrTempoJSON(usuario.AssinaturaExpiraEm),
 		Plano:              plano,
-		ModoZen:            usuario.ModoZen,
+		ModoZen:            usuario.ModoZen && TemPlanoPro(*usuario),
 		RankConfiabilidade: usuario.RankConfiabilidade,
 		SequenciaAtual:     usuario.SequenciaAtual,
 		MaiorSequencia:     usuario.MaiorSequencia,
@@ -205,7 +205,7 @@ func (usuario *Usuario) ListarAdmin() UsuarioAdmin {
 		Plano:              plano,
 		SequenciaAtual:     usuario.SequenciaAtual,
 		MaiorSequencia:     usuario.MaiorSequencia,
-		ModoZen:            usuario.ModoZen,
+		ModoZen:            usuario.ModoZen && TemPlanoPro(*usuario),
 		Status:             usuario.Status,
 		IsAdmin:            usuario.IsAdmin,
 	}
