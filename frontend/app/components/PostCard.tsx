@@ -150,6 +150,8 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
     const [comentarioPaiAtivo, setComentarioPaiAtivo] = useState<number | null>(null);
     const [enviandoResposta, setEnviandoResposta] = useState(false);
     const [erroComentario, setErroComentario] = useState("");
+    const [apagandoComentarioId, setApagandoComentarioId] = useState<number | null>(null);
+    const [qtdComentarios, setQtdComentarios] = useState(post.qtd_comentarios ?? 0);
     const [erroApagar, setErroApagar] = useState("");
     const [denunciarAberto, setDenunciarAberto] = useState(false);
     const [denunciarComentarioId, setDenunciarComentarioId] = useState<number | null>(null);
@@ -158,6 +160,8 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
     const [textoLocal, setTextoLocal] = useState(textoPost);
     const [notaLocal, setNotaLocal] = useState(notaPost);
     const menuRef = useRef<HTMLDivElement | null>(null);
+    const menuComentarioRef = useRef<HTMLDivElement | null>(null);
+    const [menuComentarioId, setMenuComentarioId] = useState<number | null>(null);
     const { temPlanoTop: temTop } = usePlano();
     const ehProprioPost = session?.user?.id === String(usuario.id);
     const podeExcluir = ehProprioPost || (podeApagar && !!aoApagar);
@@ -174,7 +178,8 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
     useEffect(() => {
         setTextoLocal(post?.texto ?? "");
         setNotaLocal(Number.isFinite(post?.nota) ? post.nota : 0);
-    }, [post?.texto, post?.nota]);
+        setQtdComentarios(post.qtd_comentarios ?? 0);
+    }, [post?.texto, post?.nota, post?.qtd_comentarios, post?.id]);
     useEffect(() => {
         setVotos(post.votos);
         setMeuVoto(post.meu_voto);
@@ -200,6 +205,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
                 const euEnviei = meuID === String(dados.comentario.usuario.id);
                 if (!euEnviei) {
                     setComentarios((lista) => adicionarComentarioUnico(lista, dados.comentario!));
+                    setQtdComentarios((atual) => atual + 1);
                 }
                 setComentariosCarregados(true);
             }
@@ -342,6 +348,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
                 throw new Error(data.erro || "erro");
             }
             setComentarios((lista) => adicionarComentarioUnico(lista, data as ComentarioAvaliacao));
+            setQtdComentarios((atual) => atual + 1);
             setComentariosCarregados(true);
             setComentariosAbertos(true);
             if (paiId)
@@ -411,6 +418,56 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
         document.addEventListener("mousedown", handleClickFora);
         return () => document.removeEventListener("mousedown", handleClickFora);
     }, [menuAberto]);
+    useEffect(() => {
+        if (menuComentarioId === null)
+            return;
+        function handleClickFora(evento: MouseEvent) {
+            if (menuComentarioRef.current && !menuComentarioRef.current.contains(evento.target as Node)) {
+                setMenuComentarioId(null);
+            }
+        }
+        document.addEventListener("mousedown", handleClickFora);
+        return () => document.removeEventListener("mousedown", handleClickFora);
+    }, [menuComentarioId]);
+    function idsDoComentarioERespostas(lista: ComentarioAvaliacao[], raiz: number) {
+        const ids = new Set<number>([raiz]);
+        let mudou = true;
+        while (mudou) {
+            mudou = false;
+            for (const item of lista) {
+                if (item.pai_id && ids.has(item.pai_id) && !ids.has(item.id)) {
+                    ids.add(item.id);
+                    mudou = true;
+                }
+            }
+        }
+        return ids;
+    }
+    async function apagarComentario(comentarioId: number) {
+        if (!exigirAuth() || apagandoComentarioId !== null)
+            return;
+        setApagandoComentarioId(comentarioId);
+        setErroComentario("");
+        try {
+            const res = await fetch(`/api/comentarios/${comentarioId}`, { method: "DELETE" });
+            if (!res.ok && res.status !== 204) {
+                const data = await res.json().catch(() => ({}));
+                setErroComentario((data as { erro?: string }).erro || "Não foi possível apagar o comentário.");
+                return;
+            }
+            const ids = idsDoComentarioERespostas(comentarios, comentarioId);
+            setComentarios((lista) => lista.filter((item) => !ids.has(item.id)));
+            setQtdComentarios((atual) => Math.max(0, atual - ids.size));
+            if (comentarioPaiAtivo && ids.has(comentarioPaiAtivo))
+                setComentarioPaiAtivo(null);
+        }
+        catch {
+            setErroComentario("Não foi possível apagar o comentário.");
+        }
+        finally {
+            setApagandoComentarioId(null);
+        }
+    }
     function renderComentario(no: ComentarioNo, nivel = 0) {
         const meuVotoComentario = no.voto_usuario || "";
         const respostaAtiva = comentarioPaiAtivo === no.id;
@@ -447,12 +504,30 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
             }} className="rounded-full px-2 py-0.5 text-xs text-azul-600 transition hover:bg-white/60">
                                 Responder
                             </button>
-                            {podeDenunciarComentario && (<button type="button" onClick={() => setDenunciarComentarioId(no.id)} className="rounded-full px-2 py-0.5 text-xs text-cinza-600 transition hover:bg-white/60">
-                                    Denunciar
-                                </button>)}
                             <span className="font-gabarito-regular text-[10px] text-cinza-500">
                                 {tempoRelativo(no.criado_em)}
                             </span>
+                            {(ehProprioComentario || podeDenunciarComentario) && (<div ref={menuComentarioId === no.id ? menuComentarioRef : undefined} className="relative">
+                                    <button type="button" onClick={() => setMenuComentarioId((atual) => (atual === no.id ? null : no.id))} className="rounded-full p-1 text-cinza-600 transition hover:bg-white/60" aria-label="Mais opções do comentário">
+                                        <MoreHorizontal className="h-4 w-4"/>
+                                    </button>
+                                    {menuComentarioId === no.id && (<div className="absolute left-0 top-7 z-20 min-w-36 rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
+                                            {podeDenunciarComentario && (<button type="button" onClick={() => {
+                        setMenuComentarioId(null);
+                        setDenunciarComentarioId(no.id);
+                    }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-azul-900 transition hover:bg-azul-50">
+                                                    <Flag className="h-4 w-4"/>
+                                                    Denunciar
+                                                </button>)}
+                                            {ehProprioComentario && (<button type="button" disabled={apagandoComentarioId === no.id} onClick={() => {
+                        setMenuComentarioId(null);
+                        apagarComentario(no.id);
+                    }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-60">
+                                                    {apagandoComentarioId === no.id ? (<Loader2 className="h-4 w-4 animate-spin"/>) : (<Trash2 className="h-4 w-4"/>)}
+                                                    Apagar
+                                                </button>)}
+                                        </div>)}
+                                </div>)}
                         </div>
 
                         {respostaAtiva && (<div className="mt-2">
@@ -578,7 +653,7 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
             }
         }} className="flex items-center gap-1 rounded-full px-2 py-1 transition hover:bg-background" title="Comentários">
                     <MessageCircle className="h-4 w-4"/>
-                    <span className="font-gabarito-bold text-sm">{post.qtd_comentarios ?? 0}</span>
+                    <span className="font-gabarito-bold text-sm">{qtdComentarios}</span>
                 </button>
             </div>
 

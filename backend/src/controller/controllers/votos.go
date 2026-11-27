@@ -63,6 +63,11 @@ func montarAvaliacoesComVotos(db *sql.DB, avaliacoes []modelos.Avaliacao, usuari
 		return nil, erro
 	}
 
+	qtdComentarios, erro := repositorios.NovoRepositorioDeComentarios(db).ContarPorAvaliacoes(ids)
+	if erro != nil {
+		return nil, erro
+	}
+
 	meusVotos := map[uint64]string{}
 	if usuarioID != nil {
 		meusVotos, erro = repoVotos.MeusVotosPorAvaliacoes(*usuarioID, ids)
@@ -75,9 +80,10 @@ func montarAvaliacoesComVotos(db *sql.DB, avaliacoes []modelos.Avaliacao, usuari
 	for i, avaliacao := range avaliacoes {
 		votos := contadores[avaliacao.ID]
 		resultado[i] = modelos.AvaliacaoComVotos{
-			Avaliacao: avaliacao,
-			Votos:     votos,
-			MeuVoto:   meusVotos[avaliacao.ID],
+			Avaliacao:      avaliacao,
+			Votos:          votos,
+			MeuVoto:        meusVotos[avaliacao.ID],
+			QtdComentarios: qtdComentarios[avaliacao.ID],
 		}
 	}
 	return resultado, nil

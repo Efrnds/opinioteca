@@ -3,6 +3,7 @@ package repositorios
 import (
 	"backend/src/model/modelos"
 	"database/sql"
+	"fmt"
 )
 
 type Comentarios struct {
@@ -164,6 +165,37 @@ func (repositorio Comentarios) VotarComentario(usuarioID, comentarioID uint64, t
 		tipoVoto,
 	)
 	return erro
+}
+
+// Conta comentários de cada avaliação da lista.
+func (repositorio Comentarios) ContarPorAvaliacoes(ids []uint64) (map[uint64]int, error) {
+	resultado := make(map[uint64]int)
+	if len(ids) == 0 {
+		return resultado, nil
+	}
+
+	query := fmt.Sprintf(
+		`SELECT avaliacao_id, COUNT(*)
+		 FROM comentarios
+		 WHERE avaliacao_id IN (%s)
+		 GROUP BY avaliacao_id`,
+		placeholdersIN(1, len(ids)),
+	)
+	linhas, erro := repositorio.db.Query(query, idsParaArgs(ids)...)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	for linhas.Next() {
+		var avaliacaoID uint64
+		var total int
+		if erro = linhas.Scan(&avaliacaoID, &total); erro != nil {
+			return nil, erro
+		}
+		resultado[avaliacaoID] = total
+	}
+	return resultado, nil
 }
 
 // Apaga por admin nos comentários.

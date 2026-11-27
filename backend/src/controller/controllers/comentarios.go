@@ -348,3 +348,47 @@ func RemoverVotoComentario(w http.ResponseWriter, r *http.Request) {
 
 	respostas.Erro(w, http.StatusNotFound, errors.New("Comentário não encontrado"))
 }
+
+// Apaga o comentário se quem chama é o autor. Respostas somem junto pelo banco.
+func DeletarComentario(w http.ResponseWriter, r *http.Request) {
+	comentarioID, erro := strconv.ParseUint(mux.Vars(r)["id"], 10, 64)
+	if erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	usuarioID, erro := auth.ExtrairUsuarioID(r)
+	if erro != nil {
+		respostas.Erro(w, http.StatusUnauthorized, erro)
+		return
+	}
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repo := repositorios.NovoRepositorioDeComentarios(db)
+	comentario, erro := repo.BuscarPorID(comentarioID)
+	if erro == sql.ErrNoRows {
+		respostas.Erro(w, http.StatusNotFound, errors.New("Comentário não encontrado"))
+		return
+	}
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	if comentario.UsuarioID != usuarioID {
+		respostas.Erro(w, http.StatusForbidden, errors.New("Você só pode apagar seus próprios comentários"))
+		return
+	}
+
+	if erro = repo.DeletarPorAdmin(comentarioID); erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.NoContent(w)
+}

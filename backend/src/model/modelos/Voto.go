@@ -26,8 +26,9 @@ type ContadoresVoto struct {
 
 type AvaliacaoComVotos struct {
 	Avaliacao
-	Votos   ContadoresVoto `json:"votos"`
-	MeuVoto string         `json:"meu_voto,omitempty"`
+	Votos          ContadoresVoto `json:"votos"`
+	MeuVoto        string         `json:"meu_voto,omitempty"`
+	QtdComentarios int            `json:"qtd_comentarios"`
 }
 
 // Valida e formata.

@@ -101,6 +101,7 @@ function normalizarAvaliacoes(raw: unknown, perfil: UsuarioPublico, nickRota: st
             },
             votos: avaliacao.votos ?? { upvotes: 0, downvotes: 0, score: 0 },
             meu_voto: avaliacao.meu_voto,
+            qtd_comentarios: Number(avaliacao.qtd_comentarios ?? dados.qtd_comentarios ?? 0),
         };
     });
 }
@@ -282,6 +283,29 @@ export default function PerfilNickPage() {
             setCarregandoAtividade(false);
         }
     }, [session?.accessToken]);
+    const atualizarDiarioSilencioso = useCallback(async (nickAlvo: string) => {
+        try {
+            const [resDiario, resHistorico] = await Promise.all([
+                fetch(`/api/diario/${encodeURIComponent(nickAlvo)}`),
+                fetch(`/api/diario/${encodeURIComponent(nickAlvo)}/historico?limite=50`),
+            ]);
+            if (resDiario.ok) {
+                const data = (await resDiario.json()) as DiarioResposta;
+                setDiario(data);
+                updatePerfilCache(nickAlvo, { diario: data });
+            }
+            if (resHistorico.ok) {
+                const data = (await resHistorico.json()) as DiarioHistoricoResposta;
+                setHistorico(data);
+                updatePerfilCache(nickAlvo, { historico: data });
+            }
+        }
+        catch {
+            return;
+        }
+        void carregarEstatisticas(nickAlvo);
+        setAtividadeAno(null);
+    }, [carregarEstatisticas]);
     const carregarDados = useCallback(async () => {
         if (!nick) {
             setCarregando(false);
@@ -447,11 +471,13 @@ export default function PerfilNickPage() {
     }, [nick]);
     useEffect(() => {
         function onRefresh() {
-            setAtividadeAno(null);
+            if (!nick)
+                return;
+            void atualizarDiarioSilencioso(nick);
         }
         window.addEventListener("diario:refresh", onRefresh);
         return () => window.removeEventListener("diario:refresh", onRefresh);
-    }, []);
+    }, [nick, atualizarDiarioSilencioso]);
     useEffect(() => {
         if (!menuOpcoesAberto)
             return;

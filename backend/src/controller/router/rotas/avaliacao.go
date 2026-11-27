@@ -49,6 +49,12 @@ var rotasAvaliacoes = []Rota{
 		RequerAutenticacao: true,
 	},
 	{
+		URI:                "/comentarios/{id}",
+		Metodo:             http.MethodDelete,
+		Funcao:             controllers.DeletarComentario,
+		RequerAutenticacao: true,
+	},
+	{
 		URI:                "/avaliacoes/{id}/voto",
 		Metodo:             http.MethodDelete,
 		Funcao:             controllers.RemoverVotoAvaliacao,

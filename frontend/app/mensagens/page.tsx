@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Flag, ImageIcon, Loader2, MoreHorizontal, Pencil, Plus, Reply, Search, Send, Smile, Trash2, X, } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, ClipboardEvent, FormEvent, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, } from "react";
 import Box from "../components/Box";
@@ -742,13 +743,15 @@ function MensagensConteudo() {
                                 <button type="button" onClick={() => setChatAtivo(null)} className="-ml-1 flex shrink-0 rounded-full p-1.5 text-azul-900 transition hover:bg-background lg:hidden" aria-label="Voltar para as conversas">
                                     <ArrowLeft className="h-5 w-5"/>
                                 </button>
-                                <AvatarUsuario image={conversaAtiva.image} nome={conversaAtiva.nome} nick={conversaAtiva.nick} size={40} className="h-10 w-10"/>
-                                <div>
-                                    <p className="font-gabarito-bold text-base text-azul-900">{conversaAtiva.nome}</p>
-                                    <p className="font-gabarito-regular text-xs text-cinza-700">
-                                        @{conversaAtiva.nick}
-                                    </p>
-                                </div>
+                                <Link href={`/perfil/${conversaAtiva.nick}`} className="flex min-w-0 items-center gap-3 rounded-xl transition hover:opacity-80">
+                                    <AvatarUsuario image={conversaAtiva.image} nome={conversaAtiva.nome} nick={conversaAtiva.nick} size={40} className="h-10 w-10"/>
+                                    <div className="min-w-0">
+                                        <p className="truncate font-gabarito-bold text-base text-azul-900 hover:underline">{conversaAtiva.nome}</p>
+                                        <p className="truncate font-gabarito-regular text-xs text-cinza-700">
+                                            @{conversaAtiva.nick}
+                                        </p>
+                                    </div>
+                                </Link>
                             </header>
 
                             <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4">
