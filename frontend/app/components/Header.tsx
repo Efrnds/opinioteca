@@ -32,7 +32,7 @@ export default function Header() {
         }
         setBuscando(true);
         try {
-            const res = await fetch(`/api/pesquisa?q=${encodeURIComponent(q.trim())}&limite=3`);
+            const res = await fetch(`/api/pesquisa?q=${encodeURIComponent(q.trim())}&limite=8`);
             if (res.ok) {
                 const data = (await res.json()) as PesquisaResultado;
                 setResultados(data);

@@ -99,6 +99,7 @@ func mesclarLivrosPesquisa(termo string, locais []modelos.LivroPesquisa, volumes
 
 	isbnsVistos := map[string]bool{}
 	volumesVistos := map[string]bool{}
+	obrasLocais := map[string]struct{}{}
 	candidatos := make([]candidatoPesquisa, 0, len(locais)+len(volumes))
 
 	for _, l := range locais {
@@ -106,6 +107,7 @@ func mesclarLivrosPesquisa(termo string, locais []modelos.LivroPesquisa, volumes
 			item:  l,
 			score: googlebooks.RelevanciaLivro(l.Titulo, l.Autor, termo, 15),
 		})
+		obrasLocais[googlebooks.ChaveObra(l.Titulo, l.Autor)] = struct{}{}
 		if l.ISBN != "" {
 			isbnsVistos[l.ISBN] = true
 		}
@@ -124,6 +126,9 @@ func mesclarLivrosPesquisa(termo string, locais []modelos.LivroPesquisa, volumes
 				continue
 			}
 			if item.GoogleVolumeID != "" && volumesVistos[item.GoogleVolumeID] {
+				continue
+			}
+			if _, existe := obrasLocais[googlebooks.ChaveObra(item.Titulo, item.Autor)]; existe {
 				continue
 			}
 			if item.ISBN != "" {
@@ -146,6 +151,11 @@ func mesclarLivrosPesquisa(termo string, locais []modelos.LivroPesquisa, volumes
 	}
 
 	sort.SliceStable(candidatos, func(i, j int) bool {
+		localI := candidatos[i].item.ID > 0
+		localJ := candidatos[j].item.ID > 0
+		if localI != localJ {
+			return localI
+		}
 		return candidatos[i].score > candidatos[j].score
 	})
 

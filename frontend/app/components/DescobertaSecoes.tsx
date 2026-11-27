@@ -81,7 +81,7 @@ function SecaoUsuariosSugeridos({ variante }: {
     const [carregando, setCarregando] = useState(true);
     const [seguindo, setSeguindo] = useState<Set<string>>(new Set());
     const lateral = variante === "lateral";
-    const limite = lateral ? 3 : 12;
+    const limite = lateral ? 3 : 10;
     useEffect(() => {
         fetch(`/api/descoberta/usuarios/sugeridos?limite=${limite}`)
             .then((r) => (r.ok ? r.json() : []))
@@ -140,7 +140,7 @@ function SecaoCriticosEmAlta({ variante }: {
     const [usuarios, setUsuarios] = useState<UsuarioSugerido[]>([]);
     const [carregando, setCarregando] = useState(true);
     const lateral = variante === "lateral";
-    const limite = lateral ? 5 : 12;
+    const limite = lateral ? 5 : 10;
     useEffect(() => {
         fetch(`/api/descoberta/usuarios/rank?limite=${limite}`)
             .then((r) => (r.ok ? r.json() : []))

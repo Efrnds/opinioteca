@@ -4,6 +4,7 @@ import (
 	"backend/src/model/modelos"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -192,27 +193,64 @@ func (repositorio Livros) BuscarPorGoogleVolumeID(volumeID string) (modelos.Livr
 	return livro, erro
 }
 
+func termosBuscaLivro(q string) []string {
+	vistos := map[string]struct{}{}
+	var termos []string
+	for _, parte := range strings.Fields(strings.TrimSpace(q)) {
+		parte = strings.Trim(parte, ".,;:!?\"'()[]")
+		if len([]rune(parte)) < 3 {
+			continue
+		}
+		chave := strings.ToLower(parte)
+		if _, ok := vistos[chave]; ok {
+			continue
+		}
+		vistos[chave] = struct{}{}
+		termos = append(termos, parte)
+	}
+	if len(termos) == 0 {
+		if q = strings.TrimSpace(q); q != "" {
+			termos = append(termos, q)
+		}
+	}
+	return termos
+}
+
+func filtroTextoLivro(colunas []string, termos []string) (string, []interface{}) {
+	args := make([]interface{}, 0, len(termos))
+	partes := make([]string, 0, len(termos))
+	for i, termo := range termos {
+		placeholder := fmt.Sprintf("$%d", i+1)
+		args = append(args, "%"+termo+"%")
+		campos := make([]string, 0, len(colunas))
+		for _, coluna := range colunas {
+			campos = append(campos, fmt.Sprintf(
+				"translate(lower(%s), 'áàãâäéèêëíìîïóòõôöúùûüç', 'aaaaaeeeeiiiiooooouuuuc') ILIKE translate(lower(%s), 'áàãâäéèêëíìîïóòõôöúùûüç', 'aaaaaeeeeiiiiooooouuuuc')",
+				coluna, placeholder,
+			))
+		}
+		partes = append(partes, "("+strings.Join(campos, " OR ")+")")
+	}
+	return strings.Join(partes, " AND "), args
+}
+
 // Busca texto nos livros.
 func (repositorio Livros) BuscarTexto(q string, limite int) ([]modelos.Livro, error) {
 	if limite <= 0 {
 		limite = 10
 	}
 
-	termo := strings.TrimSpace(q)
-	padrao := "%" + termo + "%"
+	termos := termosBuscaLivro(q)
+	if len(termos) == 0 {
+		return []modelos.Livro{}, nil
+	}
+	filtro, args := filtroTextoLivro([]string{"titulo", "autor", "ISBN", "editora"}, termos)
+	args = append(args, limite)
 	linhas, erro := repositorio.db.Query(
-		selectLivro+` WHERE status = 'ativo'
-		 AND (titulo ILIKE $1 OR autor ILIKE $1 OR ISBN ILIKE $1 OR editora ILIKE $1)
-		 ORDER BY
-		   CASE
-		     WHEN lower(titulo) = lower($3) THEN 0
-		     WHEN titulo ILIKE $3 || '%' THEN 1
-		     WHEN titulo ILIKE $1 THEN 2
-		     ELSE 3
-		   END,
-		   titulo ASC
-		 LIMIT $2`,
-		padrao, limite, termo,
+		selectLivro+` WHERE status = 'ativo' AND `+filtro+`
+		 ORDER BY titulo ASC
+		 LIMIT $`+strconv.Itoa(len(args)),
+		args...,
 	)
 	if erro != nil {
 		return nil, erro
@@ -395,20 +433,18 @@ func (repositorio Livros) Inativar(ID uint64) error {
 
 // Pesquisa global nos livros.
 func (repositorio Livros) PesquisarGlobal(termo string, limite int) ([]modelos.LivroPesquisa, error) {
-	padrao := "%" + termo + "%"
+	termos := termosBuscaLivro(termo)
+	if len(termos) == 0 {
+		return []modelos.LivroPesquisa{}, nil
+	}
+	filtro, args := filtroTextoLivro([]string{"titulo", "autor"}, termos)
+	args = append(args, limite)
 	linhas, erro := repositorio.db.Query(
 		`SELECT id, titulo, autor, capa_url, google_volume_id, ISBN FROM livros
-		 WHERE status = 'ativo' AND (titulo ILIKE $1 OR autor ILIKE $1)
-		 ORDER BY
-		   CASE
-		     WHEN lower(titulo) = lower($2) THEN 0
-		     WHEN titulo ILIKE $2 || '%' THEN 1
-		     WHEN titulo ILIKE $1 THEN 2
-		     ELSE 3
-		   END,
-		   titulo ASC
-		 LIMIT $3`,
-		padrao, termo, limite,
+		 WHERE status = 'ativo' AND `+filtro+`
+		 ORDER BY titulo ASC
+		 LIMIT $`+strconv.Itoa(len(args)),
+		args...,
 	)
 	if erro != nil {
 		return nil, erro

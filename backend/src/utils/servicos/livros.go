@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const limiteBuscaLocal = 10
+const limiteBuscaLocal = 30
 const limiteResultadoFinal = 15
 const limitePoolGoogle = 25
 
