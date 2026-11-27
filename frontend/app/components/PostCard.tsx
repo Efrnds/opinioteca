@@ -23,6 +23,7 @@ import NomeUsuario from "./NomeUsuario";
 import PlanoUpgradeModal from "./PlanoUpgradeModal";
 import SpoilerGuard from "./SpoilerGuard";
 import { useWebSocket } from "./WebSocketProvider";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
 function tempoRelativo(dataISO: string) {
     const diff = Date.now() - new Date(dataISO).getTime();
     const minutos = Math.floor(diff / 60000);
@@ -160,8 +161,6 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
     const [textoLocal, setTextoLocal] = useState(textoPost);
     const [notaLocal, setNotaLocal] = useState(notaPost);
     const menuRef = useRef<HTMLDivElement | null>(null);
-    const menuComentarioRef = useRef<HTMLDivElement | null>(null);
-    const [menuComentarioId, setMenuComentarioId] = useState<number | null>(null);
     const { temPlanoTop: temTop } = usePlano();
     const ehProprioPost = session?.user?.id === String(usuario.id);
     const podeExcluir = ehProprioPost || (podeApagar && !!aoApagar);
@@ -418,17 +417,6 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
         document.addEventListener("mousedown", handleClickFora);
         return () => document.removeEventListener("mousedown", handleClickFora);
     }, [menuAberto]);
-    useEffect(() => {
-        if (menuComentarioId === null)
-            return;
-        function handleClickFora(evento: MouseEvent) {
-            if (menuComentarioRef.current && !menuComentarioRef.current.contains(evento.target as Node)) {
-                setMenuComentarioId(null);
-            }
-        }
-        document.addEventListener("mousedown", handleClickFora);
-        return () => document.removeEventListener("mousedown", handleClickFora);
-    }, [menuComentarioId]);
     function idsDoComentarioERespostas(lista: ComentarioAvaliacao[], raiz: number) {
         const ids = new Set<number>([raiz]);
         let mudou = true;
@@ -481,11 +469,28 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
                     </Link>
                     <div className="min-w-0 flex-1">
                         <div className="rounded-2xl bg-white/70 px-3 py-2 ring-1 ring-black/5 backdrop-blur-sm">
-                            <p className="font-gabarito-bold text-xs text-azul-900">
-                                <Link href={`/perfil/${no.usuario.nick}`} className="cursor-pointer transition hover:underline">
-                                    <NomeUsuario inline nome={no.usuario.nome} nick={no.usuario.nick} assinaturaId={no.usuario.assinaturaId} temPlanoTop={no.usuario.temPlanoTop} temPlanoPro={no.usuario.temPlanoPro} mostrarNick nomeClassName="font-gabarito-bold text-xs text-azul-900" nickClassName="font-gabarito-regular text-cinza-600"/>
-                                </Link>
-                            </p>
+                            <div className="flex items-start justify-between gap-2">
+                                <p className="min-w-0 font-gabarito-bold text-xs text-azul-900">
+                                    <Link href={`/perfil/${no.usuario.nick}`} className="cursor-pointer transition hover:underline">
+                                        <NomeUsuario inline nome={no.usuario.nome} nick={no.usuario.nick} assinaturaId={no.usuario.assinaturaId} temPlanoTop={no.usuario.temPlanoTop} temPlanoPro={no.usuario.temPlanoPro} mostrarNick nomeClassName="font-gabarito-bold text-xs text-azul-900" nickClassName="font-gabarito-regular text-cinza-600"/>
+                                    </Link>
+                                </p>
+                                {(ehProprioComentario || podeDenunciarComentario) && (<DropdownMenu>
+                                        <DropdownMenuTrigger className="-mr-1 -mt-0.5 shrink-0 rounded-full p-1 text-cinza-600 outline-none transition hover:bg-black/5" aria-label="Mais opções do comentário">
+                                            <MoreHorizontal className="h-4 w-4"/>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="min-w-36">
+                                            {podeDenunciarComentario && (<DropdownMenuItem onClick={() => setDenunciarComentarioId(no.id)}>
+                                                    <Flag className="h-4 w-4"/>
+                                                    Denunciar
+                                                </DropdownMenuItem>)}
+                                            {ehProprioComentario && (<DropdownMenuItem variant="destructive" disabled={apagandoComentarioId === no.id} onClick={() => apagarComentario(no.id)}>
+                                                    {apagandoComentarioId === no.id ? (<Loader2 className="h-4 w-4 animate-spin"/>) : (<Trash2 className="h-4 w-4"/>)}
+                                                    Apagar
+                                                </DropdownMenuItem>)}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>)}
+                            </div>
                             {no.texto && (<p className="mt-0.5 whitespace-pre-wrap font-gabarito-regular text-sm text-azul-900/90">
                                     {no.texto}
                                 </p>)}
@@ -507,27 +512,6 @@ export default function PostCard({ post, podeApagar = false, aoApagar, onRemovid
                             <span className="font-gabarito-regular text-[10px] text-cinza-500">
                                 {tempoRelativo(no.criado_em)}
                             </span>
-                            {(ehProprioComentario || podeDenunciarComentario) && (<div ref={menuComentarioId === no.id ? menuComentarioRef : undefined} className="relative">
-                                    <button type="button" onClick={() => setMenuComentarioId((atual) => (atual === no.id ? null : no.id))} className="rounded-full p-1 text-cinza-600 transition hover:bg-white/60" aria-label="Mais opções do comentário">
-                                        <MoreHorizontal className="h-4 w-4"/>
-                                    </button>
-                                    {menuComentarioId === no.id && (<div className="absolute left-0 top-7 z-20 min-w-36 rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
-                                            {podeDenunciarComentario && (<button type="button" onClick={() => {
-                        setMenuComentarioId(null);
-                        setDenunciarComentarioId(no.id);
-                    }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-azul-900 transition hover:bg-azul-50">
-                                                    <Flag className="h-4 w-4"/>
-                                                    Denunciar
-                                                </button>)}
-                                            {ehProprioComentario && (<button type="button" disabled={apagandoComentarioId === no.id} onClick={() => {
-                        setMenuComentarioId(null);
-                        apagarComentario(no.id);
-                    }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-60">
-                                                    {apagandoComentarioId === no.id ? (<Loader2 className="h-4 w-4 animate-spin"/>) : (<Trash2 className="h-4 w-4"/>)}
-                                                    Apagar
-                                                </button>)}
-                                        </div>)}
-                                </div>)}
                         </div>
 
                         {respostaAtiva && (<div className="mt-2">
