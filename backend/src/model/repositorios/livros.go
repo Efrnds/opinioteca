@@ -268,6 +268,32 @@ func (repositorio Livros) BuscarTexto(q string, limite int) ([]modelos.Livro, er
 	return livros, nil
 }
 
+// Conta as avaliações de cada livro informado.
+func (repositorio Livros) ContarAvaliacoes(ids []uint64) (map[uint64]int, error) {
+	contagens := map[uint64]int{}
+	if len(ids) == 0 {
+		return contagens, nil
+	}
+	linhas, erro := repositorio.db.Query(
+		`SELECT livro_id, COUNT(*) FROM avaliacoes WHERE livro_id IN (`+placeholdersIN(1, len(ids))+`) GROUP BY livro_id`,
+		idsParaArgs(ids)...,
+	)
+	if erro != nil {
+		return nil, erro
+	}
+	defer linhas.Close()
+
+	for linhas.Next() {
+		var livroID uint64
+		var total int
+		if erro := linhas.Scan(&livroID, &total); erro != nil {
+			return nil, erro
+		}
+		contagens[livroID] = total
+	}
+	return contagens, linhas.Err()
+}
+
 type FiltrosLivros struct {
 	Query  string
 	Status string

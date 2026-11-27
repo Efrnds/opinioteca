@@ -52,6 +52,7 @@ type LivroBusca struct {
 	Sinopse        string   `json:"sinopse,omitempty"`
 	CategoriaID    uint64   `json:"categoria_id,omitempty"`
 	CategoriasIDs  []uint64 `json:"categorias_ids,omitempty"`
+	QtdAvaliacoes  int      `json:"qtd_avaliacoes,omitempty"`
 }
 
 type ResultadoBuscaLivros struct {

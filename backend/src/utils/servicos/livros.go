@@ -136,9 +136,20 @@ func (s *Livros) BuscarUnificado(q string) (modelos.ResultadoBuscaLivros, error)
 	isbnsVistos := map[string]bool{}
 	volumesVistos := map[string]bool{}
 	obrasLocais := map[string]struct{}{}
+	idsLocais := make([]uint64, 0, len(locais))
+	for _, livro := range locais {
+		idsLocais = append(idsLocais, livro.ID)
+	}
+	contagens, erro := s.repoLivros.ContarAvaliacoes(idsLocais)
+	if erro != nil {
+		return modelos.ResultadoBuscaLivros{}, erro
+	}
 
 	for _, livro := range locais {
 		item := livro.ParaBusca()
+		if item.ID != nil {
+			item.QtdAvaliacoes = contagens[*item.ID]
+		}
 		candidatos = append(candidatos, candidatoBusca{
 			item:  item,
 			score: googlebooks.RelevanciaLivro(item.Titulo, item.Autor, q, 15),

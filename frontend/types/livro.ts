@@ -11,6 +11,7 @@ export type LivroBusca = {
     sinopse?: string;
     categoria_id?: number;
     categorias_ids?: number[];
+    qtd_avaliacoes?: number;
 };
 export type LivroPublico = {
     id: number;

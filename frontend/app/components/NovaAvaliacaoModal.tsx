@@ -657,7 +657,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                                                     </p>
                                                                                     <p className="truncate font-gabarito-regular text-xs text-cinza-700">
                                                                                         {livro.autor || "Autor não informado"}
-                                                                                        {livro.origem === "local" ? " · Já na Opinioteca" : ""}
+                                                                                        {livro.origem === "local" ? ` · ${livro.qtd_avaliacoes === 1 ? "1 avaliação" : `${livro.qtd_avaliacoes ?? 0} avaliações`}` : ""}
                                                                                     </p>
                                                                                 </div>
                                                                             </button>
