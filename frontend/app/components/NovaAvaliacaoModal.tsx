@@ -18,6 +18,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookPlus, Check, ImageIcon, Loader2, Lock, Search, Star, X, } from "lucide-react";
 import Image from "next/image";
 import { ChangeEvent, ClipboardEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { deletePerfilCache } from "@/lib/perfil-cache";
 import { useSession } from "next-auth/react";
 import { usePlano } from "./PlanoProvider";
 import PlanoUpgradeModal from "./PlanoUpgradeModal";
@@ -156,7 +157,9 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const inputImagemId = useId();
     const conteudoRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
-        conteudoRef.current?.scrollTo({ top: 0 });
+        const conteudo = conteudoRef.current;
+        conteudo?.scrollTo({ top: 0 });
+        conteudo?.closest("[data-slot=dialog-content]")?.scrollTo({ top: 0 });
     }, [passo]);
     const buscaRef = useRef(busca);
     buscaRef.current = busca;
@@ -532,6 +535,9 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                 setErro(data.erro || "Não foi possível publicar a avaliação.");
                 return;
             }
+            if (nick)
+                deletePerfilCache(nick);
+            window.dispatchEvent(new CustomEvent("perfil:avaliacoes", { detail: { nick } }));
             window.dispatchEvent(new Event("feed:refresh"));
             window.dispatchEvent(new CustomEvent("livro:registrado", { detail: { livroId } }));
             onClose();
@@ -563,15 +569,15 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const mostrarRodape = passo > 1 || exibirFormularioLivro;
     return (<>
             <Dialog open={open && !adicionarLivroAberto} onOpenChange={(value) => !value && onClose()}>
-                <DialogContent showCloseButton className={cn("flex h-dvh w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:rounded-[2rem]", passo === 2 ? "sm:max-w-3xl" : "sm:max-w-xl")}>
-                    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                <DialogContent showCloseButton className={cn("flex h-auto max-h-[100dvh] w-full max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-3xl border-0 bg-background p-0 sm:max-h-none sm:overflow-visible sm:rounded-[2rem]", passo === 2 ? "sm:max-w-3xl" : "sm:max-w-xl")}>
+                    <div className="relative flex flex-col">
                         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
                             <div className="absolute -left-20 -top-24 h-56 w-56 rounded-full bg-azul-100/80 blur-3xl"/>
                             <div className="absolute -right-16 top-32 h-48 w-48 rounded-full bg-azul-50 blur-3xl"/>
                             <div className="absolute bottom-0 left-1/3 h-40 w-64 rounded-full bg-azul-100/40 blur-3xl"/>
                         </div>
 
-                        <div className="relative z-10 flex shrink-0 flex-col gap-3 px-4 pb-2 pt-4 sm:gap-4 sm:px-7 sm:pt-6">
+                        <div className="relative z-10 flex flex-col gap-3 px-4 pb-2 pt-4 sm:px-7 sm:pt-5">
                             <div className="pr-8">
                                 <p className="font-gabarito-medium text-[11px] uppercase tracking-[0.18em] text-azul-600">
                                     Nova avaliação
@@ -584,9 +590,9 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                             <IndicadorPassos passo={passo}/>
                         </div>
 
-                        <div ref={conteudoRef} className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-7 sm:py-4">
+                        <div ref={conteudoRef} className="relative z-10 px-4 py-3 sm:px-7 sm:py-4">
                             <AnimatePresence mode="wait" custom={direcao}>
-                                <motion.div key={passo} custom={direcao} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ type: "spring", stiffness: 380, damping: 34, mass: 0.85 }} className="flex min-h-full flex-col">
+                                <motion.div key={passo} custom={direcao} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ type: "spring", stiffness: 380, damping: 34, mass: 0.85 }} className="flex flex-col">
                                     {passo === 1 && (<div className="flex flex-1 flex-col gap-4 py-2">
                                             {exibirFormularioLivro && dadosLivro ? (<div className="flex flex-col gap-4 rounded-3xl bg-azul-50/60 p-4 ring-1 ring-azul-100">
                                                     <div className="flex items-center justify-between gap-2">
@@ -611,7 +617,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                                     </p>
                                                                 </div>) : (<EstanteCarousel livros={estante} apenasAtivos={false} onSelecionar={selecionarDaEstante} onAdicionarLivro={nick
                             ? () => setAdicionarLivroAberto(true)
-                            : undefined} dica="Arraste ou toque no livro que você quer avaliar"/>)}
+                            : undefined} dica="Selecione o livro que deseja avaliar"/>)}
                                                         </div>)}
 
                                                     {mostrarBusca && (<div className="relative flex flex-col gap-3">
@@ -698,7 +704,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                     </div>
                                                 </motion.div>
 
-                                                <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-4 py-4 sm:px-5 sm:py-6 ring-1 ring-azul-100">
+                                                <div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-4 py-4 ring-1 ring-azul-100 sm:px-5">
                                                     <p className="mb-3 text-center font-gabarito-bold text-sm text-azul-900">
                                                         Sua nota
                                                     </p>
@@ -817,7 +823,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                         return;
                     }
                 }
-            }} rows={6} placeholder="O que você achou do livro? Você pode combinar texto com imagem ou GIF." className="w-full resize-none rounded-2xl border-2 border-cinza-300 bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"/>
+            }} rows={4} placeholder="O que você achou do livro? Você pode combinar texto com imagem ou GIF." className="w-full resize-none rounded-2xl border-2 border-cinza-300 bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"/>
 
                                                 {(previewImagem || anexoUrlDireto) && (<div className="relative mt-3 w-fit">
                                                         

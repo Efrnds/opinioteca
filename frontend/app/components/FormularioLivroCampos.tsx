@@ -67,7 +67,10 @@ export default function FormularioLivroCampos({ dados, modoManual, categorias, c
                     </div>
                 </div>)}
 
-            {!modoManual && !exibirCamposCompletos && (<p className="font-gabarito-regular text-sm text-cinza-700">{dados.autor}</p>)}
+            {!modoManual && !exibirCamposCompletos && (<div className="min-w-0">
+                    <p className="font-gabarito-bold text-sm text-azul-900">{dados.titulo}</p>
+                    {dados.autor ? (<p className="font-gabarito-regular text-sm text-cinza-700">{dados.autor}</p>) : null}
+                </div>)}
 
             {exibirCamposCompletos && (<div className="grid grid-cols-2 gap-3">
                     <input type="number" min={1} value={dados.paginas} onChange={(e) => onChange("paginas", e.target.value)} placeholder="Páginas" className={inputRetangularClassName}/>

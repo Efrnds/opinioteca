@@ -41,7 +41,7 @@ export default function PerfilLivroModal({ open, onClose, livro, registros, aval
         return null;
     }
     return (<Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+            <DialogContent className="max-h-[100dvh] overflow-y-auto overscroll-contain sm:max-h-none sm:max-w-xl sm:overflow-visible">
                 <DialogHeader>
                     <DialogTitle className="font-gabarito-bold text-2xl text-azul-900">Detalhes do livro</DialogTitle>
                 </DialogHeader>
@@ -95,7 +95,7 @@ export default function PerfilLivroModal({ open, onClose, livro, registros, aval
 
                 <div className="space-y-2">
                     <h4 className="font-gabarito-bold text-base text-azul-900">Histórico de leitura</h4>
-                    {registros.length === 0 ? (<p className="font-gabarito-regular text-sm text-cinza-700">Sem registros de leitura para este livro.</p>) : (<div className="max-h-52 space-y-2 overflow-y-auto pr-1">
+                    {registros.length === 0 ? (<p className="font-gabarito-regular text-sm text-cinza-700">Sem registros de leitura para este livro.</p>) : (<div className="space-y-2">
                             {registros.map((registro) => (<div key={registro.id} className="rounded-xl border border-gray-200 bg-white p-3">
                                     <div className="flex items-center justify-between gap-2">
                                         <p className="font-gabarito-bold text-sm text-azul-900">

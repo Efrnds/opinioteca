@@ -307,15 +307,15 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             : "Confira o resumo e salve sua leitura de hoje.";
     return (<>
             <Dialog open={open && !adicionarLivroAberto && !conviteAvaliacaoAberto && !avaliacaoAberta} onOpenChange={(value) => !value && onClose()}>
-                <DialogContent showCloseButton className="flex max-h-[92vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl border-0 bg-background p-0 sm:max-w-xl sm:rounded-[2rem]">
-                    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                <DialogContent showCloseButton className="flex h-auto max-h-[100dvh] w-full max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-3xl border-0 bg-background p-0 sm:max-h-none sm:max-w-xl sm:overflow-visible sm:rounded-[2rem]">
+                    <div className="relative flex flex-col">
                         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
                             <div className="absolute -left-20 -top-24 h-56 w-56 rounded-full bg-azul-100/80 blur-3xl"/>
                             <div className="absolute -right-16 top-32 h-48 w-48 rounded-full bg-azul-50 blur-3xl"/>
                             <div className="absolute bottom-0 left-1/3 h-40 w-64 rounded-full bg-azul-100/40 blur-3xl"/>
                         </div>
 
-                        <div className="relative z-10 flex shrink-0 flex-col gap-4 px-5 pb-2 pt-5 sm:px-7 sm:pt-6">
+                        <div className="relative z-10 flex flex-col gap-3 px-4 pb-2 pt-4 sm:px-7 sm:pt-5">
                             <div className="pr-8">
                                 <p className="font-gabarito-medium text-[11px] uppercase tracking-[0.18em] text-azul-600">
                                     Registro de leitura

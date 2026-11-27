@@ -52,7 +52,7 @@ export default function EstanteCarousel({ livros, onSelecionar, apenasAtivos = t
                 {({ arrastando, protegerClique }) => (<>
                         {lista.map((item) => (<button key={item.livro.id} type="button" onClick={protegerClique(() => onSelecionar(item))} className={cn("group flex w-[140px] min-w-0 shrink-0 flex-col gap-2 rounded-2xl bg-background p-2 text-left transition hover:shadow-md", arrastando && "pointer-events-none")}>
                                 <div className={cn("relative w-full shrink-0", arrastando && "pointer-events-none")}>
-                                    {mediaUrl(item.livro.capa_url) ? (<Image src={mediaUrl(item.livro.capa_url)!} alt={item.livro.titulo} width={CARD_WIDTH} height={210} className="pointer-events-none h-[210px] w-full rounded-xl object-cover shadow-sm transition group-hover:scale-[1.02]" unoptimized draggable={false}/>) : (<div className="pointer-events-none flex h-[210px] w-full items-center justify-center rounded-xl bg-azul-200 text-4xl">
+                                    {mediaUrl(item.livro.capa_url) ? (<Image src={mediaUrl(item.livro.capa_url)!} alt={item.livro.titulo} width={CARD_WIDTH} height={168} className="pointer-events-none h-[148px] w-full rounded-xl object-cover shadow-sm transition group-hover:scale-[1.02] sm:h-[168px]" unoptimized draggable={false}/>) : (<div className="pointer-events-none flex h-[148px] w-full items-center justify-center rounded-xl bg-azul-200 text-4xl sm:h-[168px]">
                                             📖
                                         </div>)}
                                     {item.porcentagem_atual > 0 && (<span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-azul-600 px-2 py-0.5 font-gabarito-bold text-[10px] text-white shadow">
@@ -73,7 +73,7 @@ export default function EstanteCarousel({ livros, onSelecionar, apenasAtivos = t
                             </button>))}
 
                         {onAdicionarLivro ? (<button type="button" onClick={protegerClique(onAdicionarLivro)} className={cn("group flex w-[140px] min-w-0 shrink-0 flex-col gap-2 rounded-2xl border-2 border-dashed border-azul-300 bg-azul-50/60 p-2 text-left transition hover:border-azul-600 hover:bg-azul-50 hover:shadow-md", arrastando && "pointer-events-none")}>
-                                <div className={cn("flex h-[210px] w-full items-center justify-center rounded-xl bg-azul-100 transition group-hover:bg-azul-200", arrastando && "pointer-events-none")}>
+                                <div className={cn("flex h-[148px] w-full items-center justify-center rounded-xl bg-azul-100 transition group-hover:bg-azul-200 sm:h-[168px]", arrastando && "pointer-events-none")}>
                                     <Plus className="h-10 w-10 text-azul-600" strokeWidth={2.25}/>
                                 </div>
                                 <p className="pointer-events-none line-clamp-2 h-8 w-full break-words font-gabarito-bold text-xs leading-4 text-azul-900">

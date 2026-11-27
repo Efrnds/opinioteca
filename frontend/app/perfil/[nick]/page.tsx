@@ -209,8 +209,9 @@ export default function PerfilNickPage() {
         }
         return avaliacoes.find((avaliacao) => avaliacao.livro.id === livroSelecionadoId);
     }, [avaliacoes, livroSelecionadoId]);
-    const carregarEstante = useCallback(async (nickAlvo: string) => {
-        setCarregandoEstante(true);
+    const carregarEstante = useCallback(async (nickAlvo: string, silencioso = false) => {
+        if (!silencioso)
+            setCarregandoEstante(true);
         try {
             const res = await fetch(`/api/usuarios/${encodeURIComponent(nickAlvo)}/estante`);
             if (!res.ok) {
@@ -306,14 +307,19 @@ export default function PerfilNickPage() {
         void carregarEstatisticas(nickAlvo);
         setAtividadeAno(null);
     }, [carregarEstatisticas]);
-    const carregarDados = useCallback(async () => {
+    const carregarDados = useCallback(async (opcoes?: {
+        silencioso?: boolean;
+    }) => {
         if (!nick) {
             setCarregando(false);
             return;
         }
-        setCarregando(true);
-        setErro("");
-        const cache = getPerfilCache(nick);
+        const silencioso = opcoes?.silencioso === true;
+        if (!silencioso) {
+            setCarregando(true);
+            setErro("");
+        }
+        const cache = silencioso ? undefined : getPerfilCache(nick);
         if (cache) {
             setPerfil(cache.perfil);
             setAvaliacoes(cache.avaliacoes);
@@ -430,13 +436,15 @@ export default function PerfilNickPage() {
                 estatisticas: null,
             });
             void carregarEstatisticas(nick);
-            void carregarEstante(nick);
+            void carregarEstante(nick, silencioso);
         }
         catch {
-            setErro("Não foi possível carregar o perfil.");
+            if (!silencioso)
+                setErro("Não foi possível carregar o perfil.");
         }
         finally {
-            setCarregando(false);
+            if (!silencioso)
+                setCarregando(false);
         }
     }, [nick, carregarEstatisticas, carregarEstante]);
     useEffect(() => {
@@ -478,6 +486,20 @@ export default function PerfilNickPage() {
         window.addEventListener("diario:refresh", onRefresh);
         return () => window.removeEventListener("diario:refresh", onRefresh);
     }, [nick, atualizarDiarioSilencioso]);
+    useEffect(() => {
+        function onAvaliacoes(evento: Event) {
+            const detalhe = (evento as CustomEvent<{
+                nick?: string;
+            }>).detail;
+            if (!nick || !detalhe?.nick)
+                return;
+            if (detalhe.nick.toLowerCase() !== nick.toLowerCase())
+                return;
+            void carregarDados({ silencioso: true });
+        }
+        window.addEventListener("perfil:avaliacoes", onAvaliacoes);
+        return () => window.removeEventListener("perfil:avaliacoes", onAvaliacoes);
+    }, [nick, carregarDados]);
     useEffect(() => {
         if (!menuOpcoesAberto)
             return;

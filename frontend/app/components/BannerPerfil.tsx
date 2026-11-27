@@ -50,13 +50,15 @@ export default function BannerPerfil({ nome, nick, email, image, banner, bannerP
         origX: number;
         origY: number;
     } | null>(null);
-    const [enviando, setEnviando] = useState(false);
     const [salvandoPosicao, setSalvandoPosicao] = useState(false);
     const [erro, setErro] = useState("");
     const [reposicionando, setReposicionando] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const arquivoPendenteRef = useRef<File | null>(null);
     const [posicao, setPosicao] = useState<Ponto>(() => parsePosicao(bannerPosicao));
     const [posicaoSalva, setPosicaoSalva] = useState<Ponto>(() => parsePosicao(bannerPosicao));
     const bannerSrc = mediaUrl(banner);
+    const srcExibido = previewUrl ?? bannerSrc;
     const objectPosition = formatPosicao(posicao);
     useEffect(() => {
         if (reposicionando)
@@ -65,6 +67,12 @@ export default function BannerPerfil({ nome, nick, email, image, banner, bannerP
         setPosicao(parsed);
         setPosicaoSalva(parsed);
     }, [bannerPosicao, reposicionando]);
+    useEffect(() => {
+        return () => {
+            if (previewUrl)
+                URL.revokeObjectURL(previewUrl);
+        };
+    }, [previewUrl]);
     async function persistirPerfil(payload: {
         banner?: string;
         bannerPosicao?: string;
@@ -88,29 +96,17 @@ export default function BannerPerfil({ nome, nick, email, image, banner, bannerP
             }).erro || "Não foi possível atualizar o banner.");
         }
     }
-    async function handleArquivo(arquivo: File) {
+    function handleArquivo(arquivo: File) {
         const erroValidacao = validarArquivoBanner(arquivo);
         if (erroValidacao) {
             setErro(erroValidacao);
             return;
         }
-        setEnviando(true);
         setErro("");
-        try {
-            const novaUrl = await enviarImagemBanner(arquivo);
-            const posicaoInicial = formatPosicao(POSICAO_PADRAO);
-            await persistirPerfil({ banner: novaUrl, bannerPosicao: posicaoInicial });
-            setPosicao(POSICAO_PADRAO);
-            setPosicaoSalva(POSICAO_PADRAO);
-            setReposicionando(true);
-            onAtualizado?.({ banner: novaUrl, bannerPosicao: posicaoInicial });
-        }
-        catch (uploadErro) {
-            setErro(uploadErro instanceof Error ? uploadErro.message : "Erro ao enviar banner.");
-        }
-        finally {
-            setEnviando(false);
-        }
+        arquivoPendenteRef.current = arquivo;
+        setPreviewUrl(URL.createObjectURL(arquivo));
+        setPosicao(POSICAO_PADRAO);
+        setReposicionando(true);
     }
     function iniciarReposicao() {
         setErro("");
@@ -118,6 +114,8 @@ export default function BannerPerfil({ nome, nick, email, image, banner, bannerP
         setReposicionando(true);
     }
     function cancelarReposicao() {
+        arquivoPendenteRef.current = null;
+        setPreviewUrl(null);
         setPosicao(posicaoSalva);
         setReposicionando(false);
         setErro("");
@@ -128,10 +126,14 @@ export default function BannerPerfil({ nome, nick, email, image, banner, bannerP
         setErro("");
         try {
             const valor = formatPosicao(posicao);
-            await persistirPerfil({ banner, bannerPosicao: valor });
+            const arquivo = arquivoPendenteRef.current;
+            const bannerFinal = arquivo ? await enviarImagemBanner(arquivo) : banner;
+            await persistirPerfil({ banner: bannerFinal, bannerPosicao: valor });
+            arquivoPendenteRef.current = null;
+            setPreviewUrl(null);
             setPosicaoSalva(posicao);
             setReposicionando(false);
-            onAtualizado?.({ banner, bannerPosicao: valor });
+            onAtualizado?.({ banner: bannerFinal, bannerPosicao: valor });
         }
         catch (saveErro) {
             setErro(saveErro instanceof Error ? saveErro.message : "Erro ao salvar posição.");
@@ -141,7 +143,7 @@ export default function BannerPerfil({ nome, nick, email, image, banner, bannerP
         }
     }
     function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-        if (!reposicionando || !bannerSrc)
+        if (!reposicionando || !srcExibido)
             return;
         e.preventDefault();
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -173,22 +175,20 @@ export default function BannerPerfil({ nome, nick, email, image, banner, bannerP
             arrastoRef.current = null;
         }
     }
-    const imagemBanner = bannerSrc ? (<Image src={bannerSrc} alt={`Banner de ${nome || nick}`} fill priority draggable={false} className="object-cover select-none" style={{ objectPosition }} sizes="(max-width: 768px) 100vw, 768px"/>) : (<div className="absolute inset-0 bg-gradient-to-br from-azul-900 via-azul-700 to-azul-600"/>);
+    const imagemBanner = srcExibido ? (previewUrl ? (<img src={previewUrl} alt={`Banner de ${nome || nick}`} draggable={false} className="absolute inset-0 h-full w-full object-cover select-none" style={{ objectPosition }}/>) : (<Image src={srcExibido} alt={`Banner de ${nome || nick}`} fill priority draggable={false} className="object-cover select-none" style={{ objectPosition }} sizes="(max-width: 768px) 100vw, 768px"/>)) : (<div className="absolute inset-0 bg-gradient-to-br from-azul-900 via-azul-700 to-azul-600"/>);
     return (<div className={`relative ${reposicionando ? "z-20" : "z-0"}`}>
             <div ref={containerRef} className={`relative h-32 w-full overflow-hidden rounded-2xl ${reposicionando ? "cursor-grab active:cursor-grabbing touch-none" : ""}`} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
                 {imagemBanner}
 
                 {editavel && !reposicionando && (<div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/35 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100">
-                        {enviando ? (<Loader2 className="h-7 w-7 animate-spin text-white"/>) : (<>
-                                <label htmlFor={inputId} className="flex cursor-pointer items-center gap-2 rounded-full bg-azul-600 px-3 py-1.5 font-gabarito-bold text-xs text-white shadow-sm" title="Alterar banner do perfil">
-                                    <Camera className="h-4 w-4"/>
-                                    Alterar banner
-                                </label>
-                                {bannerSrc && (<button type="button" onClick={iniciarReposicao} className="flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 font-gabarito-bold text-xs text-azul-900 shadow-sm">
-                                        <Move className="h-4 w-4"/>
-                                        Reposicionar
-                                    </button>)}
-                            </>)}
+                        <label htmlFor={inputId} className="flex cursor-pointer items-center gap-2 rounded-full bg-azul-600 px-3 py-1.5 font-gabarito-bold text-xs text-white shadow-sm" title="Alterar banner do perfil">
+                            <Camera className="h-4 w-4"/>
+                            Alterar banner
+                        </label>
+                        {bannerSrc && (<button type="button" onClick={iniciarReposicao} className="flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 font-gabarito-bold text-xs text-azul-900 shadow-sm">
+                                <Move className="h-4 w-4"/>
+                                Reposicionar
+                            </button>)}
                     </div>)}
 
                 {reposicionando && (<div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/55 to-transparent px-3 py-2">
@@ -198,7 +198,7 @@ export default function BannerPerfil({ nome, nick, email, image, banner, bannerP
                     </div>)}
             </div>
 
-            {editavel && (<input ref={inputRef} id={inputId} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={enviando || reposicionando || salvandoPosicao} onChange={(e) => {
+            {editavel && (<input ref={inputRef} id={inputId} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={reposicionando || salvandoPosicao} onChange={(e) => {
                 const arquivo = e.target.files?.[0];
                 if (arquivo)
                     void handleArquivo(arquivo);

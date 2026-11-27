@@ -420,7 +420,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 onClose();
             }
         }}>
-            <DialogContent className="bg-background sm:max-w-md gap-4">
+            <DialogContent className="max-h-[100dvh] gap-4 overflow-y-auto overscroll-contain bg-background sm:max-h-none sm:max-w-md sm:overflow-visible">
                 <DialogHeader className="items-center text-center gap-4">
                     <Image src="/assets/images/Vector.svg" width={80} height={65} alt="Logo da opinioteca"/>
                     <DialogTitle className="font-gabarito-bold text-3xl text-azul-900">
@@ -457,7 +457,7 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                                     </button>
                                 </p>
                                 </div>
-                            </form>) : mode === "recuperar" ? (renderRecuperar()) : (<form onSubmit={handleCadastro} className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                            </form>) : mode === "recuperar" ? (renderRecuperar()) : (<form onSubmit={handleCadastro} className="flex flex-col gap-4">
                                 <div className="flex items-center justify-between gap-2">
                                     <p className="text-sm font-bold text-azul-900 px-2">Foto de perfil (opcional)</p>
                                     <div className="flex items-center gap-4">

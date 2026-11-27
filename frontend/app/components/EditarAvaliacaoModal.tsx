@@ -63,7 +63,7 @@ export default function EditarAvaliacaoModal({ open, onClose, avaliacaoId, notaI
     }
     const notaExibida = notaHover || nota;
     return (<Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-            <DialogContent className="gap-4 sm:max-w-lg">
+            <DialogContent className="max-h-[100dvh] gap-4 overflow-y-auto overscroll-contain sm:max-h-none sm:max-w-lg sm:overflow-visible">
                 <DialogHeader>
                     <DialogTitle className="font-gabarito-bold text-xl text-azul-900">Editar avaliação</DialogTitle>
                 </DialogHeader>
@@ -80,7 +80,7 @@ export default function EditarAvaliacaoModal({ open, onClose, avaliacaoId, notaI
                         <label htmlFor="editar-texto-avaliacao" className="mb-2 block font-gabarito-bold text-sm text-azul-900">
                             Texto da avaliação
                         </label>
-                        <textarea id="editar-texto-avaliacao" value={texto} onChange={(e) => setTexto(e.target.value)} rows={6} className="w-full resize-none rounded-2xl border-2 border-cinza-400 bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"/>
+                        <textarea id="editar-texto-avaliacao" value={texto} onChange={(e) => setTexto(e.target.value)} rows={4} className="w-full resize-none rounded-2xl border-2 border-cinza-400 bg-white px-4 py-3 font-gabarito-regular outline-none focus:border-azul-600"/>
                     </div>
                     {erro && <p className="text-center text-sm text-red-600">{erro}</p>}
                     <div className="flex gap-2">

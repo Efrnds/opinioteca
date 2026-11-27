@@ -209,9 +209,9 @@ export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdic
     const exibirFormulario = !!dadosLivro;
     return (<>
             <Dialog open={open && !conviteAvaliacaoAberto} onOpenChange={(value) => !value && onClose()}>
-                <DialogContent className="flex max-h-[92vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:max-h-[90vh] sm:max-w-lg sm:rounded-4xl">
-                    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-                        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
+                <DialogContent className="flex h-auto max-h-[100dvh] w-full max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-3xl p-0 sm:max-h-none sm:max-w-lg sm:overflow-visible sm:rounded-4xl">
+                    <form onSubmit={handleSubmit} className="flex flex-col">
+                        <div className="flex flex-col gap-5 p-4 sm:p-6">
                             <DialogHeader>
                                 <DialogTitle className="font-gabarito-bold text-2xl text-azul-900">
                                     Adicionar à estante
@@ -255,7 +255,7 @@ export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdic
                             </div>) : (<div className="flex flex-col gap-4">
                                 <FormularioLivroCampos dados={dadosLivro} modoManual={modoManual} categorias={categorias} carregandoCategorias={carregandoCategorias} onChange={atualizarDado} exibirCamposCompletos={modoManual}/>
 
-                                {statusFixo ? (<p className="font-gabarito-regular text-sm text-cinza-700">O livro entra na estante como lido.</p>) : (<div className="flex flex-col gap-2">
+                                {!statusFixo && (<div className="flex flex-col gap-2">
                                     <label className="font-gabarito-bold text-sm text-azul-900">Status na estante</label>
                                     <div className="flex flex-wrap gap-2">
                                         {(["quero_ler", "lendo", "lido"] as StatusEstante[]).map((valor) => (<button key={valor} type="button" onClick={() => setStatus(valor)} className={cn("rounded-full px-4 py-1.5 font-gabarito-bold text-xs transition", status === valor
@@ -275,7 +275,7 @@ export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdic
                                 {enviando ? (<>
                                         <Loader2 className="mr-2 h-5 w-5 animate-spin"/>
                                         Adicionando...
-                                    </>) : ("Adicionar à estante")}
+                                    </>) : ("Adicionar")}
                             </Button>
                         </div>)}
                 </form>

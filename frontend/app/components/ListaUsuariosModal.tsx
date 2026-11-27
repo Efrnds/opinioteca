@@ -28,12 +28,12 @@ type ListaUsuariosModalProps = {
 };
 export default function ListaUsuariosModal({ open, onClose, titulo, usuarios, vazio }: ListaUsuariosModalProps) {
     return (<Dialog open={open} onOpenChange={(value) => !value && onClose()}>
-            <DialogContent className="flex max-h-[85vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:max-h-[80vh] sm:max-w-md sm:rounded-4xl">
-                <DialogHeader className="shrink-0 border-b border-cinza-100 px-4 py-4 sm:px-6">
+            <DialogContent className="flex h-auto max-h-[100dvh] w-full max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-3xl p-0 sm:max-h-none sm:max-w-md sm:overflow-visible sm:rounded-4xl">
+                <DialogHeader className="border-b border-cinza-100 px-4 py-4 sm:px-6">
                     <DialogTitle className="font-gabarito-bold text-2xl text-azul-900">{titulo}</DialogTitle>
                 </DialogHeader>
 
-                <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 sm:px-4 sm:py-3">
+                <div className="px-2 py-2 sm:px-4 sm:py-3">
                     {usuarios.length === 0 ? (<p className="py-8 text-center font-gabarito-regular text-sm text-cinza-700">
                             {vazio ?? "Nenhum usuário encontrado."}
                         </p>) : (<div className="flex flex-col divide-y divide-cinza-100">
