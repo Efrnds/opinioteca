@@ -56,14 +56,15 @@ func (repositorio Usuarios) AtribuirPlano(usuarioID, assinaturaID uint64, expira
 	}
 	_, erro := repositorio.db.Exec(
 		`UPDATE usuarios SET
-			assinatura_id = $1,
-			assinatura_expira_em = $2,
+			assinatura_id = $1::integer,
+			assinatura_expira_em = $2::timestamp,
 			modo_zen = CASE
-				WHEN $1 = $4 AND ($2::timestamptz IS NULL OR $2 > NOW()) THEN modo_zen
+				WHEN $1::integer = $4::integer
+					AND ($2::timestamp IS NULL OR $2::timestamp > NOW()) THEN modo_zen
 				ELSE FALSE
 			END
-		WHERE id = $3`,
-		assinaturaID, parametroTimestamp(expiraEm), usuarioID, modelos.PlanoOpinioProID,
+		WHERE id = $3::integer`,
+		int64(assinaturaID), parametroTimestamp(expiraEm), int64(usuarioID), int64(modelos.PlanoOpinioProID),
 	)
 	return erro
 }
