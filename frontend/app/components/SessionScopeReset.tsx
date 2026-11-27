@@ -1,4 +1,5 @@
 "use client";
+import { clearFeedCache } from "@/lib/feed-cache";
 import { clearPerfilCache } from "@/lib/perfil-cache";
 import { limparStorageCliente } from "@/lib/session-cleanup";
 import { useSession } from "next-auth/react";
@@ -22,6 +23,7 @@ export default function SessionScopeReset({ children }: {
             return;
         }
         clearPerfilCache();
+        clearFeedCache();
         const prevUserId = prevUserIdRef.current;
         if (prevUserId && userId && prevUserId !== userId) {
             limparStorageCliente();

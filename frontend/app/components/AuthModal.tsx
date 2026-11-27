@@ -84,21 +84,28 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
         setImagem(arquivo);
         setPreviewImagem(URL.createObjectURL(arquivo));
     }
-    async function enviarImagem(): Promise<string | undefined> {
+    async function salvarAvatarNoCadastro(): Promise<void> {
         if (!imagem) {
-            return undefined;
+            return;
         }
         const formData = new FormData();
         formData.append("imagem", imagem);
-        const res = await fetch("/api/upload", {
+        formData.append("nick", nick);
+        formData.append("senha", password);
+        formData.append("nome", nome);
+        formData.append("email", email);
+        const res = await fetch("/api/cadastro/avatar", {
             method: "POST",
             body: formData,
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.url) {
-            throw new Error(data.erro || "Não foi possível enviar a imagem.");
+            throw new Error(
+                typeof data.erro === "string"
+                    ? data.erro
+                    : "Conta criada, mas não foi possível salvar a foto. Você pode adicioná-la depois nas configurações.",
+            );
         }
-        return data.url as string;
     }
     async function prepararLoginLimpo() {
         limparStorageCliente();
@@ -236,6 +243,18 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 setErro("Não foi possível criar a conta. Verifique os dados.");
                 return;
             }
+            try {
+                await salvarAvatarNoCadastro();
+            }
+            catch (avatarErro) {
+                setCarregando(false);
+                endAuthTransition();
+                setErro(avatarErro instanceof Error
+                    ? avatarErro.message
+                    : "Conta criada, mas a foto não foi salva. Entre e adicione nas configurações.");
+                irPara("login");
+                return;
+            }
             await prepararLoginLimpo();
             const result = await signIn("credentials", {
                 nick,
@@ -248,20 +267,6 @@ export default function AuthModal({ open, mode, onClose, onSwitchMode, callbackU
                 setErro("Conta criada, mas o login falhou. Tente entrar manualmente.");
                 irPara("login");
                 return;
-            }
-            if (imagem) {
-                try {
-                    const imageUrl = await enviarImagem();
-                    if (imageUrl) {
-                        await fetch(`/api/usuarios/${encodeURIComponent(nick)}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ nome, nick, email, image: imageUrl }),
-                        });
-                    }
-                }
-                catch {
-                }
             }
             await concluirLoginComSucesso();
         }

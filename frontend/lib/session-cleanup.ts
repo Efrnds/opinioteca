@@ -1,9 +1,11 @@
+import { clearFeedCache } from "@/lib/feed-cache";
 import { clearPerfilCache } from "@/lib/perfil-cache";
 import { wsClient } from "@/lib/ws/client";
 const LOCAL_STORAGE_EXATO = ["opinioteca-tema", "opinioteca-session-id", "opinioteca-session-nick"];
 const LOCAL_STORAGE_PREFIXOS = ["opinioteca-", "aviso-assinatura-expira:"];
 export function limparStorageCliente() {
     clearPerfilCache();
+    clearFeedCache();
     try {
         wsClient.disconnect();
     }
