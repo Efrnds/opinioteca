@@ -25,5 +25,5 @@ export function calcularProgressoLeitura(tipo: TipoProgressoLeitura, valor: numb
     return { paginasLidas, paginaAtual, porcentagem: valor };
 }
 export function formatarPorcentagemLeitura(valor: number) {
-    return valor.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    return Math.round(valor).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 }

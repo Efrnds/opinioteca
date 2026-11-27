@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { mediaUrl } from "@/lib/media";
 import { CORES_DESTAQUE, coresTextoSobreFundo, derivarDestaqueParaTexto, derivarTextoSobreDestaque, digitosHexDigitados, ehHexCor, ehPresetCor, ehTemaCustom, hexDeDigitos, hexParaCampo, OPCOES_TEMA, aplicarTemaNoDocumento, resolverFundoContrasteDestaque, resolverHexDestaque, resolverTomDestaque50, } from "@/lib/tema";
 import { type PreferenciasAcessibilidade, } from "@/lib/acessibilidade";
@@ -194,6 +193,7 @@ function ContaSecao() {
     const [apagarConfirmacao, setApagarConfirmacao] = useState("");
     const [modalDesativarAberto, setModalDesativarAberto] = useState(false);
     const [salvando, setSalvando] = useState(false);
+    const [erroConta, setErroConta] = useState("");
     useEffect(() => {
         setEmail(emailAtual);
     }, [emailAtual]);
@@ -247,11 +247,11 @@ function ContaSecao() {
                 }),
             });
             if (!res.ok) {
-                toast.error("Não foi possível atualizar o e-mail.");
+                setErroConta("Não foi possível atualizar o e-mail.");
                 return;
             }
             setPerfil((atual) => (atual ? { ...atual, email } : { email, nick, nome: session?.user?.name ?? nick }));
-            toast.success("E-mail atualizado.");
+            setErroConta("");
             setPainel("info");
         }
         finally {
@@ -261,7 +261,7 @@ function ContaSecao() {
     async function alterarSenha(e: FormEvent) {
         e.preventDefault();
         if (novaSenha !== confirmar) {
-            toast.error("As senhas não coincidem.");
+            setErroConta("As senhas não coincidem.");
             return;
         }
         setSalvando(true);
@@ -273,10 +273,10 @@ function ContaSecao() {
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
-                toast.error(data?.erro ?? "Não foi possível alterar a senha.");
+                setErroConta(data?.erro ?? "Não foi possível alterar a senha.");
                 return;
             }
-            toast.success("Senha alterada.");
+            setErroConta("");
             setSenhaAtual("");
             setNovaSenha("");
             setConfirmar("");
@@ -287,18 +287,18 @@ function ContaSecao() {
     }
     async function apagarConta() {
         if (apagarConfirmacao !== nick) {
-            toast.error("Digite seu nick para confirmar.");
+            setErroConta("Digite seu nick para confirmar.");
             return;
         }
         setSalvando(true);
         try {
             const res = await fetch(`/api/usuarios/${encodeURIComponent(nick)}`, { method: "DELETE" });
             if (!res.ok && res.status !== 204) {
-                toast.error("Não foi possível desativar a conta.");
+                setErroConta("Não foi possível desativar a conta.");
                 return;
             }
             setModalDesativarAberto(false);
-            toast.success("Conta desativada. Você tem 30 dias para reativar.");
+            setErroConta("");
             router.push("/");
             router.refresh();
         }
@@ -313,6 +313,7 @@ function ContaSecao() {
                     <p className="font-gabarito-regular text-sm text-cinza-700">
                         Atualize o endereço de e-mail da sua conta.
                     </p>
+                    {erroConta ? <p className="font-gabarito-regular text-sm text-red-600">{erroConta}</p> : null}
                     <label className="flex flex-col gap-1.5">
                         <span className="font-gabarito-medium text-sm text-azul-900">E-mail</span>
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={selectClass} required/>
@@ -357,6 +358,7 @@ function ContaSecao() {
                     <p className="mb-1 font-gabarito-regular text-sm text-cinza-700">
                         Altere a senha a qualquer momento.
                     </p>
+                    {erroConta ? <p className="font-gabarito-regular text-sm text-red-600">{erroConta}</p> : null}
                     <input type="password" placeholder="Senha atual" value={senhaAtual} onChange={(e) => setSenhaAtual(e.target.value)} className={selectClass} required/>
                     <input type="password" placeholder="Nova senha" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} className={selectClass} required/>
                     <input type="password" placeholder="Confirmar nova senha" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className={selectClass} required/>
@@ -393,6 +395,7 @@ function ContaSecao() {
                                 para confirmar. Você terá 30 dias para reativar a conta.
                             </p>
                             <input type="text" placeholder={`Digite ${nick} para confirmar`} value={apagarConfirmacao} onChange={(e) => setApagarConfirmacao(e.target.value)} className={`${selectClass} mt-4`} autoFocus/>
+                            {erroConta ? <p className="mt-2 font-gabarito-regular text-sm text-red-600">{erroConta}</p> : null}
                             <div className="mt-5 flex flex-wrap justify-end gap-2">
                                 <button type="button" disabled={salvando} onClick={() => {
                     setModalDesativarAberto(false);
@@ -527,10 +530,8 @@ function PreferenciasSecao() {
     async function atualizar(parcial: Partial<ConfiguracaoUsuario>) {
         aplicarTemaNoDocumento(prefCom(parcial));
         const ok = await salvar(parcial);
-        if (ok)
-            toast.success("Preferência salva.");
-        else
-            toast.error("Não foi possível salvar.");
+        if (!ok)
+            return;
     }
     function salvarCorDebounced(parcial: Partial<ConfiguracaoUsuario>) {
         const payload = comTemaCustomSePro(parcial);
@@ -538,11 +539,7 @@ function PreferenciasSecao() {
         if (corDebounceRef.current)
             clearTimeout(corDebounceRef.current);
         corDebounceRef.current = setTimeout(async () => {
-            const ok = await salvar(payload);
-            if (ok)
-                toast.success("Preferência salva.");
-            else
-                toast.error("Não foi possível salvar.");
+            await salvar(payload);
         }, 250);
     }
     async function toggleZen(checked: boolean) {
@@ -550,13 +547,7 @@ function PreferenciasSecao() {
             setCtaZenAberto(true);
             return;
         }
-        const ok = await alternarModoZen();
-        if (ok) {
-            toast.success(checked ? "Modo Zen ativado." : "Modo Zen desativado.");
-        }
-        else {
-            toast.error("Não foi possível alterar o Modo Zen.");
-        }
+        await alternarModoZen();
     }
     function exigirPro() {
         setCtaTemaAberto(true);
@@ -754,10 +745,8 @@ function NotificacoesSecao() {
     const { config, salvar } = useConfiguracoes();
     async function atualizar(parcial: Partial<ConfiguracaoUsuario>) {
         const ok = await salvar(parcial);
-        if (ok)
-            toast.success("Preferência salva.");
-        else
-            toast.error("Não foi possível salvar.");
+        if (!ok)
+            return;
     }
     return (<div className="divide-y divide-cinza-200">
             <ToggleLinha label="Novo seguidor" descricao="Quando alguém começa a seguir você." checked={config.notifSeguidor} onChange={(v) => void atualizar({ notifSeguidor: v })}/>
@@ -769,11 +758,7 @@ function NotificacoesSecao() {
 function PrivacidadeSecao() {
     const { config, salvar } = useConfiguracoes();
     async function atualizar(parcial: Partial<ConfiguracaoUsuario>) {
-        const ok = await salvar(parcial);
-        if (ok)
-            toast.success("Privacidade atualizada.");
-        else
-            toast.error("Não foi possível salvar.");
+        await salvar(parcial);
     }
     return (<div className="flex flex-col divide-y divide-cinza-200">
             <label className="flex flex-col gap-1.5 py-3">

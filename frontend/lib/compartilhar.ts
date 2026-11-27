@@ -1,4 +1,3 @@
-import { toast } from "sonner";
 import { hrefLivro } from "@/lib/livro-url";
 export type CompartilharLivroParams = {
     titulo: string;
@@ -44,11 +43,9 @@ export function urlEmailCompartilhar(titulo: string, text: string, url: string):
 export async function copiarLinkCompartilhar(text: string, url: string): Promise<boolean> {
     try {
         await navigator.clipboard.writeText(`${text}\n${url}`);
-        toast.success("Link copiado!");
         return true;
     }
     catch {
-        toast.error("Não foi possível copiar o link.");
         return false;
     }
 }

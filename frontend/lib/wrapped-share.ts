@@ -1,5 +1,4 @@
 import { toPng } from "html-to-image";
-import { toast } from "sonner";
 import { WRAPPED_SHARE_BG_COLOR, WRAPPED_SHARE_GRADIENT_CSS, getWrappedShareTema } from "@/lib/wrapped-visuals";
 import type { WrappedShareTemaId } from "@/lib/wrapped-visuals";
 export const WRAPPED_CARD_WIDTH = 1080;
@@ -70,17 +69,12 @@ export async function compartilharImagemStories(dataUrl: string, titulo = "Opini
             return "shared";
         }
         await baixarImagemWrapped(dataUrl);
-        toast.info("Abra o Instagram e adicione aos Stories", {
-            description: "A imagem foi salva no seu dispositivo.",
-            duration: 6000,
-        });
         return "downloaded";
     }
     catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
             return "downloaded";
         }
-        toast.error("Não foi possível compartilhar a imagem.");
         return "error";
     }
 }

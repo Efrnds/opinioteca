@@ -25,6 +25,7 @@ type AdicionarLivroEstanteModalProps = {
     onAdicionado?: (resultado?: LivroAdicionadoEstante) => void;
     omitirConviteAvaliacao?: boolean;
     onQueroAvaliar?: (livro: EstanteLivro) => void;
+    statusFixo?: StatusEstante;
 };
 const DEBOUNCE_MS = 500;
 const MIN_CARACTERES_BUSCA = 2;
@@ -45,7 +46,7 @@ function parseBuscaResposta(data: unknown): BuscaLivrosResposta {
     }
     return { resultados: [] };
 }
-export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdicionado, omitirConviteAvaliacao = false, onQueroAvaliar, }: AdicionarLivroEstanteModalProps) {
+export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdicionado, omitirConviteAvaliacao = false, onQueroAvaliar, statusFixo, }: AdicionarLivroEstanteModalProps) {
     const [busca, setBusca] = useState("");
     const [resultados, setResultados] = useState<LivroBusca[]>([]);
     const [buscando, setBuscando] = useState(false);
@@ -66,13 +67,13 @@ export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdic
             setResultados([]);
             setModoManual(false);
             setDadosLivro(null);
-            setStatus("quero_ler");
+            setStatus(statusFixo ?? "quero_ler");
             setAvisoBusca("");
             setErro("");
             setLivroConcluido(null);
             setConviteAvaliacaoAberto(false);
         }
-    }, [open]);
+    }, [open, statusFixo]);
     useEffect(() => {
         if (!open || modoManual || dadosLivro) {
             return;
@@ -240,6 +241,7 @@ export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdic
                                                         </p>
                                                         <p className="truncate font-gabarito-regular text-xs text-cinza-700">
                                                             {livro.autor || "Autor não informado"}
+                                                            {livro.origem === "local" ? " · Já na Opinioteca" : ""}
                                                         </p>
                                                     </div>
                                                 </button>
@@ -253,7 +255,7 @@ export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdic
                             </div>) : (<div className="flex flex-col gap-4">
                                 <FormularioLivroCampos dados={dadosLivro} modoManual={modoManual} categorias={categorias} carregandoCategorias={carregandoCategorias} onChange={atualizarDado} exibirCamposCompletos={modoManual}/>
 
-                                <div className="flex flex-col gap-2">
+                                {statusFixo ? (<p className="font-gabarito-regular text-sm text-cinza-700">O livro entra na estante como lido.</p>) : (<div className="flex flex-col gap-2">
                                     <label className="font-gabarito-bold text-sm text-azul-900">Status na estante</label>
                                     <div className="flex flex-wrap gap-2">
                                         {(["quero_ler", "lendo", "lido"] as StatusEstante[]).map((valor) => (<button key={valor} type="button" onClick={() => setStatus(valor)} className={cn("rounded-full px-4 py-1.5 font-gabarito-bold text-xs transition", status === valor
@@ -262,7 +264,7 @@ export default function AdicionarLivroEstanteModal({ open, onClose, nick, onAdic
                                                 {ROTULOS_STATUS_ESTANTE[valor]}
                                             </button>))}
                                     </div>
-                                </div>
+                                </div>)}
                             </div>)}
 
                         {erro && <p className="font-gabarito-regular text-sm text-red-600">{erro}</p>}

@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, ChevronLeft, ChevronRight, Download, Flame, Share2, Sparkles, Star, X, } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
 import PlanoUpgradeModal from "./PlanoUpgradeModal";
 import WrappedShareCard from "./WrappedShareCard";
 type OpinioWrappedModalProps = {
@@ -361,7 +360,6 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
     }, [open, total, avancar, voltar, onClose]);
     const gerarImagem = useCallback(async () => {
         if (!cardRef.current) {
-            toast.error("Não foi possível gerar a imagem.");
             return null;
         }
         setGerandoImagem(true);
@@ -369,7 +367,6 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
             return await gerarImagemWrapped(cardRef.current, temaShare);
         }
         catch {
-            toast.error("Não foi possível gerar a imagem.");
             return null;
         }
         finally {
@@ -389,7 +386,6 @@ export default function OpinioWrappedModal({ open, onClose }: OpinioWrappedModal
         if (!dataUrl)
             return;
         await baixarImagemWrapped(dataUrl);
-        toast.success("Imagem baixada!");
     }, [gerarImagem]);
     if (!open)
         return null;

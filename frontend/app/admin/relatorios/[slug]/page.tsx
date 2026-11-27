@@ -5,7 +5,6 @@ import { RELATORIOS, type RelatorioSlug } from "@/lib/admin/relatorios";
 import { Download, Loader2 } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 
 function endpointPdf(slug: RelatorioSlug, q: string): string | null {
     const config = RELATORIOS[slug];
@@ -42,11 +41,9 @@ export default function AdminRelatorioPage() {
     async function gerarPdf() {
         const url = endpointPdf(slug, q);
         if (!url) {
-            toast.error("Relatório inválido.");
             return;
         }
         if (!q.trim()) {
-            toast.error("Informe a consulta.");
             return;
         }
         setGerando(true);
@@ -65,10 +62,9 @@ export default function AdminRelatorioPage() {
             a.click();
             a.remove();
             URL.revokeObjectURL(objectUrl);
-            toast.success("PDF gerado com sucesso.");
         }
-        catch (e) {
-            toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF");
+        catch {
+            return;
         }
         finally {
             setGerando(false);

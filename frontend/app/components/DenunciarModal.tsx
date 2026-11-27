@@ -5,7 +5,6 @@ import { MOTIVOS_DENUNCIA, type CriarDenunciaPayload, type MotivoDenuncia, type 
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
-import { toast } from "sonner";
 type DenunciarModalProps = {
     open: boolean;
     onClose: () => void;
@@ -53,7 +52,6 @@ export default function DenunciarModal({ open, onClose, tipoEntidade, referencia
             if (!res.ok) {
                 throw new Error(data.erro ?? "Não foi possível enviar a denúncia.");
             }
-            toast.success("Denúncia recebida. Obrigado.");
             onClose();
         }
         catch (e) {

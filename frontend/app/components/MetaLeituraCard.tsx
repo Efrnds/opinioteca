@@ -4,7 +4,6 @@ import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import PlanoUpgradeModal from "./PlanoUpgradeModal";
 const selectClass = "rounded-full border-2 border-cinza-400 bg-white px-3 py-1.5 font-gabarito-regular text-sm outline-none focus:border-azul-600";
 export default function MetaLeituraCard({ editavel = false }: {
@@ -55,7 +54,6 @@ export default function MetaLeituraCard({ editavel = false }: {
             return;
         const valor = Number(meta);
         if (!Number.isFinite(valor) || valor <= 0) {
-            toast.error("Informe uma meta válida.");
             return;
         }
         setSalvando(true);
@@ -70,15 +68,12 @@ export default function MetaLeituraCard({ editavel = false }: {
             };
             if (res.status === 403) {
                 setCtaAberto(true);
-                toast.error("Meta de leitura disponível apenas no OpinioPro.");
                 return;
             }
             if (!res.ok) {
-                toast.error(data.erro || "Não foi possível salvar a meta.");
                 return;
             }
             setDados(data);
-            toast.success("Meta de leitura salva.");
         }
         finally {
             setSalvando(false);

@@ -1,6 +1,5 @@
 "use client";
 import { SessionProvider } from "next-auth/react";
-import { Toaster } from "sonner";
 import AuthenticatedLayout from "./components/AuthenticatedLayout";
 import { AcessibilidadeProvider } from "./components/AcessibilidadeProvider";
 import { AuthGateProvider } from "./components/AuthGateProvider";
@@ -26,7 +25,6 @@ export default function Providers({ children }: {
                                         <AuthenticatedLayout>
                                             <SessaoExpiradaProvider>
                                                 {children}
-                                                <Toaster position="top-right" richColors closeButton/>
                                             </SessaoExpiradaProvider>
                                         </AuthenticatedLayout>
                                     </WebSocketProvider>

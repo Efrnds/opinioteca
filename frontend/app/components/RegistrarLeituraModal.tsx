@@ -145,8 +145,10 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
         setLivroSelecionado(item);
         setTipoProgresso(null);
         setPaginas("1");
-        const inicial = calcularProgressoLeitura("paginas", 1, item.porcentagem_atual, item.livro.paginas);
-        setPorcentagem(inicial?.porcentagem ?? 100);
+        const total = item.livro.paginas;
+        const paginaAnteriorLivro = total > 0 ? paginasPorPorcentagem(item.porcentagem_atual, total) : 0;
+        const minimo = total > 0 ? Math.min(100, Math.ceil((paginaAnteriorLivro + 1) / total * 100 - 1e-6)) : 100;
+        setPorcentagem(minimo);
         setErro("");
         setDirecao(1);
         setPasso(2);
@@ -186,7 +188,9 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const pctAtualLivro = livroSelecionado?.porcentagem_atual ?? 0;
     const totalPaginasLivro = livroSelecionado?.livro.paginas ?? 0;
     const paginaAnterior = totalPaginasLivro > 0 ? paginasPorPorcentagem(pctAtualLivro, totalPaginasLivro) : 0;
-    const minPct = totalPaginasLivro > 0 ? Math.min(100, (paginaAnterior + 1) / totalPaginasLivro * 100) : 100;
+    const minPct = totalPaginasLivro > 0
+        ? Math.min(100, Math.ceil((paginaAnterior + 1) / totalPaginasLivro * 100 - 1e-6))
+        : 100;
     const progresso = tipoProgresso
         ? calcularProgressoLeitura(tipoProgresso, tipoProgresso === "paginas" ? Number(paginas) : porcentagem, pctAtualLivro, totalPaginasLivro)
         : null;
@@ -196,7 +200,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
     const paginasRestantes = Math.max(0, totalPaginasLivro - paginaAnterior);
     function escolherTipoProgresso(tipo: TipoProgressoLeitura) {
         if (progresso) {
-            setPorcentagem(progresso.porcentagem);
+            setPorcentagem(Math.min(100, Math.max(minPct, Math.round(progresso.porcentagem))));
             setPaginas(String(progresso.paginasLidas));
         }
         setTipoProgresso(tipo);
@@ -303,7 +307,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
             : "Confira o resumo e salve sua leitura de hoje.";
     return (<>
             <Dialog open={open && !adicionarLivroAberto && !conviteAvaliacaoAberto && !avaliacaoAberta} onOpenChange={(value) => !value && onClose()}>
-                <DialogContent showCloseButton className="flex h-[min(92vh,720px)] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl border-0 bg-background p-0 sm:h-[min(88vh,680px)] sm:max-w-xl sm:rounded-[2rem]">
+                <DialogContent showCloseButton className="flex max-h-[92vh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-3xl border-0 bg-background p-0 sm:max-w-xl sm:rounded-[2rem]">
                     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
                             <div className="absolute -left-20 -top-24 h-56 w-56 rounded-full bg-azul-100/80 blur-3xl"/>
@@ -326,9 +330,9 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                             <IndicadorPassos passo={passo}/>
                         </div>
 
-                        <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-7">
+                        <div className="relative z-10 px-5 py-3 sm:px-7">
                             <AnimatePresence mode="wait" custom={direcao}>
-                                <motion.div key={passo} custom={direcao} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ type: "spring", stiffness: 380, damping: 34, mass: 0.85 }} className="flex min-h-full flex-col">
+                                <motion.div key={passo} custom={direcao} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ type: "spring", stiffness: 380, damping: 34, mass: 0.85 }} className="flex flex-col">
                                     {passo === 1 && (<div className="flex flex-1 flex-col justify-center gap-2 py-2">
                                             {carregandoEstante ? (<div className="flex flex-col items-center justify-center gap-3 py-16">
                                                     <Loader2 className="h-9 w-9 animate-spin text-azul-600"/>
@@ -340,7 +344,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                     : undefined} dica="Arraste ou toque no livro que você leu hoje"/>)}
                                         </div>)}
 
-                                    {passo === 2 && livroSelecionado && (<div className="flex flex-1 flex-col items-center gap-4 py-2">
+                                    {passo === 2 && livroSelecionado && (<div className="flex flex-col items-center gap-3">
                                             <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 320, damping: 24 }} className="flex w-full max-w-sm items-center gap-3 text-left">
                                                 <CapaHero livro={livroSelecionado.livro} tamanho="sm"/>
                                                 <div className="min-w-0 max-w-[280px]">
@@ -373,7 +377,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                     <p className="mt-2 font-gabarito-regular text-xs text-cinza-700">Restam {paginasRestantes} páginas. O progresso anterior é {formatarPorcentagemLeitura(pctAtualLivro)}%.</p>
                                                 </div>)}
 
-                                            {tipoProgresso === "porcentagem" && totalPaginasLivro > 0 && (<div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-5 py-6 ring-1 ring-azul-100">
+                                            {tipoProgresso === "porcentagem" && totalPaginasLivro > 0 && (<div className="w-full max-w-sm rounded-3xl bg-azul-50/80 px-4 py-3 ring-1 ring-azul-100">
                                                     <div className="flex items-center justify-between gap-3">
                                                         <button type="button" onClick={() => ajustarPct(-1)} disabled={porcentagem <= minPct} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-azul-600 shadow-sm ring-1 ring-cinza-200 transition hover:bg-azul-50 disabled:opacity-40" aria-label="Diminuir porcentagem">
                                                             <Minus className="h-5 w-5"/>
@@ -381,7 +385,13 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
 
                                                         <div className="flex min-w-0 flex-1 flex-col items-center">
                                                             <div className="flex w-full min-w-0 items-baseline justify-center gap-1">
-                                                                <input type="number" inputMode="decimal" min={0} max={100} step="any" value={Number(porcentagem.toFixed(6))} onChange={(event) => { setPorcentagem(Number(event.target.value)); setErro(""); }} aria-label="Porcentagem total lida" className="w-full min-w-0 max-w-28 rounded-lg bg-transparent text-center font-gabarito-black text-3xl sm:text-4xl text-azul-900 outline-none focus-visible:ring-2 focus-visible:ring-azul-600"/>
+                                                                <input type="number" inputMode="numeric" min={minPct} max={100} step={1} value={Math.round(porcentagem)} onChange={(event) => {
+                    const valor = Math.round(Number(event.target.value));
+                    if (!Number.isFinite(valor))
+                        return;
+                    setPorcentagem(Math.min(100, Math.max(minPct, valor)));
+                    setErro("");
+                }} aria-label="Porcentagem total lida" className="w-full min-w-0 max-w-20 rounded-lg bg-transparent text-center font-gabarito-black text-3xl text-azul-900 outline-none focus-visible:ring-2 focus-visible:ring-azul-600"/>
                                                                 <span className="font-gabarito-bold text-2xl text-azul-600">%</span>
                                                             </div>
                                                             <span className="mt-2 font-gabarito-regular text-xs text-cinza-700">
@@ -394,9 +404,9 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                         </button>
                                                     </div>
 
-                                                    <div className="mt-5">
-                                                        <input type="range" min={pctAtualLivro} max={100} step="any" value={porcentagem} onChange={(e) => {
-                    setPorcentagem(Number(e.target.value));
+                                                    <div className="mt-3">
+                                                        <input type="range" min={minPct} max={100} step={1} value={Math.round(porcentagem)} onChange={(e) => {
+                    setPorcentagem(Math.round(Number(e.target.value)));
                     setErro("");
                 }} className="h-2 w-full cursor-pointer appearance-none rounded-full bg-azul-200 accent-azul-600 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-azul-600 [&::-webkit-slider-thumb]:shadow-md" aria-label="Porcentagem lida"/>
                                                         <div className="mt-1.5 flex justify-between font-gabarito-regular text-[10px] text-cinza-700">
@@ -405,7 +415,7 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                         </div>
                                                     </div>
 
-                                                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                                                         {[25, 50, 75, 100]
                     .filter((v) => v >= minPct)
                     .map((v) => (<button key={v} type="button" onClick={() => {
@@ -419,15 +429,9 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                                                     </div>
                                                 </div>)}
 
-                                            {progresso && (<div aria-live="polite" className="w-full max-w-sm text-center">
-                                                    <p className="font-gabarito-bold text-base text-azul-900">
-                                                        {formatarPorcentagemLeitura(progresso.porcentagem)}% do livro lido
-                                                    </p>
-                                                    <p className="mt-1 font-gabarito-regular text-sm text-cinza-700">
-                                                        {progresso.paginasLidas} {progresso.paginasLidas === 1 ? "página lida" : "páginas lidas"} nesta sessão
-                                                    </p>
-                                                    <p className="mt-1 font-gabarito-regular text-xs text-cinza-700">Página {progresso.paginaAtual} de {totalPaginasLivro}</p>
-                                                </div>)}
+                                            {progresso && (<p aria-live="polite" className="font-gabarito-regular text-sm text-cinza-700">
+                                                    {progresso.paginasLidas} {progresso.paginasLidas === 1 ? "página" : "páginas"} nesta sessão, página {progresso.paginaAtual} de {totalPaginasLivro}
+                                                </p>)}
                                         </div>)}
 
                                     {passo === 3 && livroSelecionado && (<div className="flex flex-1 flex-col items-center justify-center gap-6 py-4">
@@ -483,16 +487,16 @@ export default function RegistrarLeituraModal({ open, onClose }: RegistrarLeitur
                             {erro && (<p className="mt-2 text-center font-gabarito-regular text-sm text-red-600">{erro}</p>)}
                         </div>
 
-                        {passo > 1 && (<div className="relative z-10 shrink-0 border-t border-cinza-200/80 bg-background/90 px-5 py-4 backdrop-blur-sm sm:px-7">
+                        {passo > 1 && (<div className="relative z-10 shrink-0 border-t border-cinza-200/80 bg-background/90 px-5 py-3 backdrop-blur-sm sm:px-7">
                                 <div className="flex gap-2">
                                     <Button type="button" variant="ghost" onClick={voltar} disabled={enviando} className="rounded-full px-4 font-gabarito-bold text-azul-700">
                                         <ArrowLeft className="mr-1 h-4 w-4"/>
                                         Voltar
                                     </Button>
 
-                                    {passo === 2 ? (<Button type="button" onClick={avancarParaConfirmacao} disabled={!pctValida} className="flex-1 rounded-full bg-azul-600 py-6 font-gabarito-bold text-base hover:bg-azul-700 disabled:opacity-50">
+                                    {passo === 2 ? (<Button type="button" onClick={avancarParaConfirmacao} disabled={!pctValida} className="flex-1 rounded-full bg-azul-600 py-5 font-gabarito-bold text-base hover:bg-azul-700 disabled:opacity-50">
                                             Continuar
-                                        </Button>) : (<Button type="button" onClick={() => void confirmarRegistro()} disabled={enviando || !pctValida} className="flex-1 rounded-full bg-azul-600 py-6 font-gabarito-bold text-base hover:bg-azul-700">
+                                        </Button>) : (<Button type="button" onClick={() => void confirmarRegistro()} disabled={enviando || !pctValida} className="flex-1 rounded-full bg-azul-600 py-5 font-gabarito-bold text-base hover:bg-azul-700">
                                             {enviando ? (<>
                                                     <Loader2 className="mr-2 h-5 w-5 animate-spin"/>
                                                     Salvando...

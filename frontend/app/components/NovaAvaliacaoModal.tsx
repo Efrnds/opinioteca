@@ -650,8 +650,8 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                                                                                         {livro.titulo}
                                                                                     </p>
                                                                                     <p className="truncate font-gabarito-regular text-xs text-cinza-700">
-                                                                                        {livro.autor ||
-                                "Autor não informado"}
+                                                                                        {livro.autor || "Autor não informado"}
+                                                                                        {livro.origem === "local" ? " · Já na Opinioteca" : ""}
                                                                                     </p>
                                                                                 </div>
                                                                             </button>
@@ -961,6 +961,6 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
             </Dialog>
             <PlanoUpgradeModal open={upgradeTemplatesAberto} onClose={() => setUpgradeTemplatesAberto(false)} recurso="templatesAvaliacao"/>
 
-            {nick ? (<AdicionarLivroEstanteModal open={adicionarLivroAberto} onClose={() => setAdicionarLivroAberto(false)} nick={nick} omitirConviteAvaliacao onAdicionado={(resultado) => void aoLivroAdicionadoNaEstante(resultado)}/>) : null}
+            {nick ? (<AdicionarLivroEstanteModal open={adicionarLivroAberto} onClose={() => setAdicionarLivroAberto(false)} nick={nick} omitirConviteAvaliacao statusFixo="lido" onAdicionado={(resultado) => void aoLivroAdicionadoNaEstante(resultado)}/>) : null}
         </>);
 }

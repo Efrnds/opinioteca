@@ -10,7 +10,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ExternalLink, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 const TIPOS_ENTIDADE = [
     { value: "", label: "Todos os tipos" },
     { value: "avaliacao", label: "Avaliação" },
@@ -172,7 +171,6 @@ function DenunciaDetalheModal({ denunciaId, onClose, onResolvida }: DenunciaDeta
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.erro ?? "Erro ao resolver denúncia");
             }
-            toast.success("Denúncia resolvida.");
             onResolvida();
             onClose();
         }

@@ -4,7 +4,6 @@ import AdminPageHeader from "@/app/components/admin/AdminPageHeader";
 import { RELATORIO_TABS, type RelatorioTabId } from "@/lib/admin/relatorios";
 import { Download, Loader2 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
-import { toast } from "sonner";
 
 const inputClass =
     "w-full rounded-xl border border-cinza-200 bg-white px-3 py-2.5 font-gabarito-regular text-sm text-azul-900 outline-none focus:border-azul-600";
@@ -109,10 +108,9 @@ export default function AdminRelatoriosPage() {
         setGerando(true);
         try {
             await baixarPdf(url, `relatorio-${tab}.pdf`);
-            toast.success("PDF gerado com sucesso.");
         }
-        catch (e) {
-            toast.error(e instanceof Error ? e.message : "Erro ao gerar PDF");
+        catch {
+            return;
         }
         finally {
             setGerando(false);

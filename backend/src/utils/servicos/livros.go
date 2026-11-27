@@ -98,6 +98,11 @@ func ehErroRede(msg string) bool {
 // Ordena candidatos nos livros.
 func ordenarCandidatos(candidatos []candidatoBusca) {
 	sort.SliceStable(candidatos, func(i, j int) bool {
+		localI := candidatos[i].item.Origem == "local"
+		localJ := candidatos[j].item.Origem == "local"
+		if localI != localJ {
+			return localI
+		}
 		return candidatos[i].score > candidatos[j].score
 	})
 }
@@ -130,6 +135,7 @@ func (s *Livros) BuscarUnificado(q string) (modelos.ResultadoBuscaLivros, error)
 	candidatos := make([]candidatoBusca, 0, limitePoolGoogle)
 	isbnsVistos := map[string]bool{}
 	volumesVistos := map[string]bool{}
+	obrasLocais := map[string]struct{}{}
 
 	for _, livro := range locais {
 		item := livro.ParaBusca()
@@ -137,6 +143,7 @@ func (s *Livros) BuscarUnificado(q string) (modelos.ResultadoBuscaLivros, error)
 			item:  item,
 			score: googlebooks.RelevanciaLivro(item.Titulo, item.Autor, q, 15),
 		})
+		obrasLocais[googlebooks.ChaveObra(livro.Titulo, livro.Autor)] = struct{}{}
 		if livro.ISBN != "" {
 			isbnsVistos[livro.ISBN] = true
 		}
@@ -162,6 +169,9 @@ func (s *Livros) BuscarUnificado(q string) (modelos.ResultadoBuscaLivros, error)
 				continue
 			}
 			if item.GoogleVolumeID != "" && volumesVistos[item.GoogleVolumeID] {
+				continue
+			}
+			if _, existe := obrasLocais[googlebooks.ChaveObra(item.Titulo, item.Autor)]; existe {
 				continue
 			}
 			candidatos = append(candidatos, candidatoBusca{

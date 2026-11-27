@@ -58,6 +58,10 @@ func RelevanciaLivro(titulo, autor, consulta string, bonus int) int {
 }
 
 // Normaliza texto busca.
+func ChaveObra(titulo, autor string) string {
+	return normalizarTextoBusca(titulo) + "|" + normalizarTextoBusca(autor)
+}
+
 func normalizarTextoBusca(s string) string {
 	s = strings.ToLower(strings.TrimSpace(s))
 	replacer := strings.NewReplacer(

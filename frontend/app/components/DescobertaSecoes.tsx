@@ -7,7 +7,6 @@ import { UserPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import AvatarUsuario from "./AvatarUsuario";
 import Box from "./Box";
 import BadgeRank from "./BadgeRank";
@@ -93,11 +92,9 @@ function SecaoUsuariosSugeridos({ variante }: {
     async function seguir(nick: string) {
         const res = await fetch(`/api/usuarios/${encodeURIComponent(nick)}/seguir`, { method: "POST" });
         if (!res.ok && res.status !== 204) {
-            toast.error("Não foi possível seguir.");
             return;
         }
         setSeguindo((prev) => new Set(prev).add(nick));
-        toast.success(`Você agora segue @${nick}`);
     }
     return (<Box className={cn("flex flex-col", lateral ? "gap-1.5 !p-2.5" : "gap-4 !p-5")}>
             <div className="flex items-baseline justify-between gap-2">

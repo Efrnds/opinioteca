@@ -70,6 +70,7 @@ test("bloqueia progresso inválido, excesso e livro sem total de páginas", () =
     }
 });
 
-test("porcentagem é exibida em pt-BR sem alterar o valor numérico", () => {
-    assert.equal(formatarPorcentagemLeitura(100 / 3), "33,33");
+test("porcentagem é exibida em inteiro, no formato pt-BR", () => {
+    assert.equal(formatarPorcentagemLeitura(100 / 3), "33");
+    assert.equal(formatarPorcentagemLeitura(32.415), "32");
 });
