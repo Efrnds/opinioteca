@@ -569,7 +569,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
     const mostrarRodape = passo > 1 || exibirFormularioLivro;
     return (<>
             <Dialog open={open && !adicionarLivroAberto} onOpenChange={(value) => !value && onClose()}>
-                <DialogContent showCloseButton className={cn("flex h-auto max-h-[100dvh] w-full max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-3xl border-0 bg-background p-0 sm:max-h-none sm:overflow-visible sm:rounded-[2rem]", passo === 2 ? "sm:max-w-3xl" : "sm:max-w-xl")}>
+                <DialogContent showCloseButton className={cn("flex h-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-3xl border-0 bg-background p-0 sm:rounded-[2rem]", passo === 2 ? "sm:max-w-3xl" : "sm:max-w-xl")}>
                     <div className="relative flex flex-col">
                         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
                             <div className="absolute -left-20 -top-24 h-56 w-56 rounded-full bg-azul-100/80 blur-3xl"/>
@@ -827,7 +827,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
 
                                                 {(previewImagem || anexoUrlDireto) && (<div className="relative mt-3 w-fit">
                                                         
-                                                        <img src={previewImagem ?? anexoUrlDireto ?? ""} alt="Preview" className="max-h-48 max-w-full rounded-xl object-contain"/>
+                                                        <img src={previewImagem ?? anexoUrlDireto ?? ""} alt="Preview" className="max-h-32 max-w-full rounded-xl object-contain"/>
                                                         <button type="button" onClick={limparAnexo} className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-azul-900 text-white" aria-label="Remover imagem">
                                                             <X className="h-3.5 w-3.5"/>
                                                         </button>
@@ -929,7 +929,7 @@ export default function NovaAvaliacaoModal({ open, onClose, livroInicial = null 
                             {erro && (<p className="mt-2 text-center font-gabarito-regular text-sm text-red-600">{erro}</p>)}
                         </div>
 
-                        {mostrarRodape && (<div className="relative z-10 shrink-0 border-t border-cinza-200/80 bg-background/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:px-7 sm:py-4">
+                        {mostrarRodape && (<div className="sticky bottom-0 z-20 shrink-0 border-t border-cinza-200/80 bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-7 sm:py-4">
                                 <div className="flex gap-2">
                                     {(passo > 1 || exibirFormularioLivro) && (<Button type="button" variant="ghost" onClick={() => {
                     if (passo === 1 && exibirFormularioLivro) {
